@@ -43,6 +43,12 @@ type PuzzleInteractionProps = {
    */
   onIncorrect?: () => void;
   /**
+   * Called once per valid answer submission (correct or incorrect).
+   * Used by the parent to record knowledge evidence and puzzle attempts.
+   * @param correct  Whether this submission was correct.
+   */
+  onAnswerSubmitted?: (correct: boolean) => void;
+  /**
    * When true, all input is disabled. Set by the parent when the story
    * has failed (HP = 0). Optional for backward compatibility.
    */
@@ -53,6 +59,7 @@ export function PuzzleInteraction({
   puzzle,
   onComplete,
   onIncorrect,
+  onAnswerSubmitted,
   isFailed = false,
 }: PuzzleInteractionProps) {
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
@@ -87,14 +94,16 @@ export function PuzzleInteraction({
 
     if (result.outcome === "correct") {
       setInteractionState("correct");
+      // Notify parent of any valid submission for knowledge/attempt tracking.
+      onAnswerSubmitted?.(true);
     } else if (result.outcome === "incorrect") {
       setInteractionState("incorrect");
-      // Notify the parent of this incorrect submission so it can deduct HP.
-      // Called synchronously after state is set so the guard in
-      // useStoryPlayer (isFailed check) is accurate.
+      // Notify parent of valid submission for knowledge/attempt tracking.
+      onAnswerSubmitted?.(false);
+      // Notify parent of incorrect specifically for HP deduction.
       onIncorrect?.();
     }
-    // empty / unknown_choice: stay idle, show feedback — no HP deduction
+    // empty / unknown_choice: no notification — not a valid puzzle attempt.
     setIsSubmitting(false);
   }
 

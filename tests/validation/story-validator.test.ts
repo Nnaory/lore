@@ -136,3 +136,51 @@ describe("validateStory — invalid concept references", () => {
     }
   });
 });
+
+// ── knowledge_mapping consistency validation ──────────────────────────────────
+
+describe("validateStory — knowledge_mapping concept consistency", () => {
+  it("should pass when knowledge_mapping concept matches the scene's learning_info", () => {
+    // dummyStory is correctly configured
+    const result = validateStory(dummyStory, dummyMaterial);
+    expect(result.valid).toBe(true);
+  });
+
+  it("should detect a concept in knowledge_mapping not present in the referenced scene's learning_info", () => {
+    const story: StoryBlueprint = JSON.parse(JSON.stringify(dummyStory));
+    // Change the knowledge_mapping to reference a concept that is NOT in scene_02_learning
+    story.knowledge_mapping[0] = {
+      ...story.knowledge_mapping[0],
+      concept_id: "concept_GHOST",
+    };
+    // Also fix the puzzle reference to avoid a separate error
+    story.puzzles[0] = { ...story.puzzles[0], concept_ids: ["concept_GHOST"] };
+
+    const result = validateStory(story);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      const codes = result.errors.map((e) => e.code);
+      expect(codes).toContain("KNOWLEDGE_MAPPING_CONCEPT_NOT_IN_SCENE");
+    }
+  });
+
+  it("should detect a concept in knowledge_mapping not present in the referenced puzzle's concept_ids", () => {
+    const story: StoryBlueprint = JSON.parse(JSON.stringify(dummyStory));
+    // Keep the scene mapping correct but break the puzzle side
+    // Add a mapping entry where the puzzle doesn't reference the concept
+    story.knowledge_mapping.push({
+      concept_id: "concept_linear_combination",
+      introduced_in_scene_id: "scene_02_learning",
+      tested_in_puzzle_id: "puzzle_01", // puzzle_01 DOES reference it — make a bad one
+    });
+    // Modify puzzle_01 to NOT reference concept_linear_combination
+    story.puzzles[0] = { ...story.puzzles[0], concept_ids: ["concept_vector_span"] };
+
+    const result = validateStory(story);
+    expect(result.valid).toBe(false);
+    if (!result.valid) {
+      const codes = result.errors.map((e) => e.code);
+      expect(codes).toContain("KNOWLEDGE_MAPPING_CONCEPT_NOT_IN_PUZZLE");
+    }
+  });
+});

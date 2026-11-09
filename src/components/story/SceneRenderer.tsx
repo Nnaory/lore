@@ -31,15 +31,14 @@ type SceneRendererProps = {
   characterIndex: CharacterIndex;
   onAdvance: () => void;
   onPuzzleComplete: () => void;
-  /**
-   * Called once per incorrect puzzle submission.
-   * Forwarded from useStoryPlayer to deduct HP. Optional for backward compatibility.
-   */
+  /** Called once per incorrect puzzle submission (HP deduction). */
   onPuzzleIncorrect?: () => void;
   /**
-   * When true, puzzle interaction is fully disabled.
-   * Forwarded from useStoryPlayer's isFailed state.
+   * Called once per valid puzzle submission (correct or incorrect).
+   * Used for knowledge tracking. Receives `correct` flag.
    */
+  onPuzzleAnswerSubmitted?: (correct: boolean) => void;
+  /** When true, puzzle interaction is fully disabled (story failed). */
   isFailed?: boolean;
 };
 
@@ -52,6 +51,7 @@ export function SceneRenderer({
   onAdvance,
   onPuzzleComplete,
   onPuzzleIncorrect,
+  onPuzzleAnswerSubmitted,
   isFailed = false,
 }: SceneRendererProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -99,6 +99,7 @@ export function SceneRenderer({
         puzzle={puzzle}
         onComplete={onPuzzleComplete}
         onIncorrect={onPuzzleIncorrect}
+        onAnswerSubmitted={onPuzzleAnswerSubmitted}
         isFailed={isFailed}
       />
     );

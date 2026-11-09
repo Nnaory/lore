@@ -2,33 +2,35 @@
  * StoryViewer
  *
  * The main story display component.
- * Implements the three-column layout from DESIGN.md §5.1:
- *   Left sidebar  | Main story area | Right sidebar
+ * Implements the three-column layout from DESIGN.md §5.1.
  *
- * - Left sidebar: navigation (exit action — Milestone 5)
- * - Main story area: sticky header + scrollable content
- * - Right sidebar: chapter progress + live HP display
- *
- * Milestone 5 additions:
- *   - onStoryComplete: called when the player reaches a story ending and
- *     chooses to record completion and advance the campaign.
- *   - onExit: called when the player exits mid-story or from the
- *     completion screen. Does NOT mark the story complete.
- *   - isCampaignComplete: controls what StoryComplete shows.
- *   - StoryComplete screen replaces the passive "— End of Story —" text.
- *   - Exit button in the left sidebar is now active.
+ * Milestone 6 additions:
+ *   - onKnowledgeUpdate prop: called when a learning_info block is revealed
+ *     or a puzzle answer is submitted. Wires into useCampaign.
+ *   - Scene-entry learning detection: when the player advances into a scene
+ *     that contains learning_info blocks, concepts are marked as introduced.
+ *   - Puzzle answer tracking: each submission is forwarded up with
+ *     isFirstAttempt derived from useStoryPlayer.isPuzzleFirstAttempt.
  */
 
 "use client";
 
+import { useEffect, useCallback, useRef } from "react";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { Character } from "@/lib/types/campaign";
+import type { PlayerKnowledge } from "@/lib/types/game";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { StoryHeader } from "./StoryHeader";
 import { SceneRenderer } from "./SceneRenderer";
 import { StoryFailure } from "./StoryFailure";
 import { StoryComplete } from "./StoryComplete";
 import { MAX_HP } from "@/lib/game/hp-manager";
+import {
+  getOrCreateKnowledge,
+  recordLearningExposure,
+  recordPuzzleSubmission,
+  getConceptIdsFromScene,
+} from "@/lib/game/knowledge-manager";
 
 type StoryViewerProps = {
   story: StoryBlueprint;
@@ -43,6 +45,16 @@ type StoryViewerProps = {
   onExit?: () => void;
   /** True when this was the last story — alters the completion screen. */
   isCampaignComplete?: boolean;
+  /**
+   * Called when knowledge state needs updating (learning exposure or puzzle answer).
+   * Provided by useCampaign via game/page.tsx.
+   */
+  onKnowledgeUpdate?: (updates: Record<string, PlayerKnowledge>) => void;
+  /**
+   * The current player_knowledge map from CampaignState.
+   * Used to build knowledge update objects with the latest state.
+   */
+  playerKnowledge?: Record<string, PlayerKnowledge>;
 };
 
 export function StoryViewer({
@@ -51,6 +63,8 @@ export function StoryViewer({
   onStoryComplete,
   onExit,
   isCampaignComplete = false,
+  onKnowledgeUpdate,
+  playerKnowledge = {},
 }: StoryViewerProps) {
   const {
     playerState,
@@ -66,6 +80,70 @@ export function StoryViewer({
     onPuzzleIncorrect,
     retryStory,
   } = useStoryPlayer(story, characters);
+
+  // Keep a ref to the latest playerKnowledge so that the puzzle answer
+  // handler always reads the most recent evidence without needing to re-create
+  // the callback on every render (which would risk stale closure bugs and
+  // React warnings about unnecessary re-renders).
+  const playerKnowledgeRef = useRef(playerKnowledge);
+  useEffect(() => {
+    playerKnowledgeRef.current = playerKnowledge;
+  });
+
+  // ── Learning exposure: when entering a scene, record learning_info concepts ─
+  useEffect(() => {
+    if (!currentScene) return;
+    if (!onKnowledgeUpdate) return;
+
+    const conceptIds = getConceptIdsFromScene(story, currentScene.scene_id);
+    if (conceptIds.length === 0) return;
+
+    const updates: Record<string, PlayerKnowledge> = {};
+    for (const conceptId of conceptIds) {
+      const current = getOrCreateKnowledge(playerKnowledge, conceptId);
+      const updated = recordLearningExposure(current, currentScene.scene_id);
+      if (updated !== current) {
+        updates[conceptId] = updated;
+      }
+    }
+    if (Object.keys(updates).length > 0) {
+      onKnowledgeUpdate(updates);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentScene?.scene_id, story.story_id]);
+  // ^ Intentionally excludes playerKnowledge and onKnowledgeUpdate from deps
+  //   to avoid infinite loops. Scene entry fires once per scene_id change.
+
+  // ── Puzzle answer handler ─────────────────────────────────────────────────
+  // isFirstAttempt is derived from accumulated CampaignState evidence inside
+  // recordPuzzleSubmission. We read playerKnowledge from a ref to ensure we
+  // always see the latest state — critical for the feedback-rule correctness.
+  const handlePuzzleAnswerSubmitted = useCallback(
+    (correct: boolean) => {
+      if (!currentScene || currentScene.type !== "puzzle") return;
+
+      const puzzleId = currentScene.puzzle_id;
+      const puzzle = story.puzzles.find((p) => p.puzzle_id === puzzleId);
+      if (!puzzle) return;
+
+      if (onKnowledgeUpdate) {
+        const latestKnowledge = playerKnowledgeRef.current;
+        const updates: Record<string, PlayerKnowledge> = {};
+        for (const conceptId of puzzle.concept_ids) {
+          const current = getOrCreateKnowledge(latestKnowledge, conceptId);
+          const updated = recordPuzzleSubmission(current, puzzleId, correct);
+          if (updated !== current) {
+            updates[conceptId] = updated;
+          }
+        }
+        if (Object.keys(updates).length > 0) {
+          onKnowledgeUpdate(updates);
+        }
+      }
+    },
+    [currentScene, story.puzzles, onKnowledgeUpdate]
+    // playerKnowledgeRef is stable and always current — no need to include it.
+  );
 
   // ── Navigation error state ─────────────────────────────────────────────────
   if (error) {
@@ -210,6 +288,7 @@ export function StoryViewer({
                 onAdvance={advance}
                 onPuzzleComplete={completePuzzle}
                 onPuzzleIncorrect={onPuzzleIncorrect}
+                onPuzzleAnswerSubmitted={handlePuzzleAnswerSubmitted}
                 isFailed={isFailed}
               />
             ) : (

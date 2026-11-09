@@ -23,6 +23,7 @@
 import type { CampaignBlueprint, StorySummaryEntry } from "@/lib/types/campaign";
 import type { CampaignState, PreviousStorySummary } from "@/lib/types/game";
 import type { StoryBlueprint } from "@/lib/types/story";
+import { meetsKnowledgeRequirements } from "@/lib/game/knowledge-manager";
 
 // ---------------------------------------------------------------------------
 // Initial state
@@ -60,9 +61,17 @@ export function createInitialCampaignState(
 /**
  * Returns true if the given story_id may be started.
  *
- * A story is unlocked when every story that appears before it in
- * story_sequence has been completed.
- * The first story is always unlocked.
+ * A story is unlocked when ALL of the following are true:
+ *   1. Every story that appears before it in story_sequence has been completed.
+ *   2. All concept IDs in the story's `required_knowledge` array have been
+ *      `demonstrated` in the player's knowledge map.
+ *
+ * The first story is always unlocked (no preceding stories, no prerequisites).
+ *
+ * Rule reference:
+ *   - Sequence rule: DOCS.md §6, §9–10.
+ *   - Knowledge rule: DOCS.md §11 + knowledge-manager.ts REQUIRED_KNOWLEDGE_THRESHOLD.
+ *   - AND logic: all prerequisites must be satisfied simultaneously.
  */
 export function isStoryUnlocked(
   storyId: string,
@@ -73,11 +82,21 @@ export function isStoryUnlocked(
   if (idx === -1) return false; // story not in this campaign
   if (idx === 0) return true;   // first story always unlocked
 
-  // Every preceding story must be in completed_stories
+  const entry = campaign.story_sequence[idx];
+
+  // Rule 1: every preceding story must be completed
   const preceding = campaign.story_sequence.slice(0, idx);
-  return preceding.every((s) =>
+  const sequenceOk = preceding.every((s) =>
     campaignState.completed_stories.includes(s.story_id)
   );
+  if (!sequenceOk) return false;
+
+  // Rule 2: all required concepts must be demonstrated
+  const knowledgeOk = meetsKnowledgeRequirements(
+    entry.required_knowledge,
+    campaignState.player_knowledge
+  );
+  return knowledgeOk;
 }
 
 /**

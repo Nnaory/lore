@@ -5,19 +5,27 @@
  * Components call this hook to get current scene, current content block,
  * and handlers to advance the story.
  *
- * Milestone 4 additions:
- *   - hp: number — current HP for this story run (0–5).
- *   - isFailed: boolean — derived from hp, never stored separately.
- *     `isFailed = hp <= FAILURE_HP`
- *   - onPuzzleIncorrect() — deducts 1 HP via a pure functional updater.
- *   - retryStory() — resets navigation state and HP without touching
- *     CampaignState.
+ * Milestone 4: HP state, isFailed (derived), onPuzzleIncorrect, retryStory.
+ * Milestone 6: knowledge event callbacks.
  *
- * State purity note:
- *   `isFailed` is NOT stored as independent React state.
- *   It is derived from `hp` on every render. This guarantees that hp and
- *   isFailed are always consistent and that no state update is nested inside
- *   another state updater.
+ * Knowledge design:
+ *   This hook does NOT own CampaignState or player_knowledge. Instead it
+ *   exposes callbacks that StoryViewer passes up to useCampaign:
+ *
+ *   - onSceneEntered(sceneId): called when a new scene becomes active.
+ *     StoryViewer extracts the concept_ids from learning_info blocks and
+ *     calls onKnowledgeUpdate on useCampaign.
+ *
+ *   - onPuzzleAnswer(puzzleId, correct, isFirstAttempt): called when the
+ *     player submits a puzzle answer (via PuzzleInteraction / SceneRenderer).
+ *     StoryViewer wires this to onKnowledgeUpdate on useCampaign.
+ *
+ *   The hook itself tracks per-puzzle attempt counts (to determine isFirstAttempt)
+ *   using a local map that resets on retryStory.
+ *
+ * State purity:
+ *   `isFailed` is NOT stored as independent React state. It is derived from
+ *   `hp` on every render. This guarantees hp and isFailed stay consistent.
  */
 
 "use client";
@@ -42,7 +50,6 @@ import {
 import {
   deductHp,
   initialHp,
-  isStoryFailed,
   FAILURE_HP,
 } from "@/lib/game/hp-manager";
 
@@ -53,48 +60,20 @@ export type StoryPlayerError = {
 };
 
 export type UseStoryPlayerReturn = {
-  // Current navigation state
   playerState: StoryPlayerState;
   currentScene: Scene | null;
-  /** The content block being displayed at the current index, or null. */
   currentContentBlock: SceneContent | null;
-  /** All content blocks of the current scene (for rendering history / chat log). */
   allContentBlocks: SceneContent[] | null;
-  /** Chapter info for the current scene. */
   currentChapter: { chapter_id: string; title: string } | undefined;
-  /** Story completion flag. */
   isComplete: boolean;
-  /** Whether the story player hit an unrecoverable navigation error. */
   error: StoryPlayerError | null;
-  // HP state (Milestone 4)
-  /** Current HP for this story run. Range: 0–5. */
   hp: number;
-  /**
-   * True when hp <= FAILURE_HP.
-   * Derived from hp on every render — never stored as independent state.
-   */
   isFailed: boolean;
-  // Indices
   sceneIndex: SceneIndex;
   characterIndex: CharacterIndex;
-  // Actions
-  /** Reveal the next content block. Blocked when story is failed. */
   advance: () => void;
-  /**
-   * Called by PuzzleInteraction (via SceneRenderer) after a correct puzzle
-   * submission. Moves to the next scene.
-   */
   completePuzzle: () => void;
-  /**
-   * Called by PuzzleInteraction (via SceneRenderer) after an incorrect puzzle
-   * submission. Deducts 1 HP using a pure functional updater.
-   * Guards against deduction when HP is already at FAILURE_HP.
-   */
   onPuzzleIncorrect: () => void;
-  /**
-   * Resets the story to its initial state (first scene, full HP).
-   * CampaignState is NOT touched — only the current story run is reset.
-   */
   retryStory: () => void;
 };
 
@@ -112,11 +91,8 @@ export function useStoryPlayer(
     createInitialPlayerState(story)
   );
   const [error, setError] = useState<StoryPlayerError | null>(null);
-
-  // ── HP state ─────────────────────────────────────────────────────────────
   const [hp, setHp] = useState<number>(() => initialHp());
 
-  // isFailed is derived, not stored — hp and isFailed cannot become inconsistent.
   const isFailed: boolean = hp <= FAILURE_HP;
 
   const currentScene = sceneIndex.get(playerState.currentSceneId) ?? null;
@@ -173,19 +149,8 @@ export function useStoryPlayer(
     setPlayerState(result);
   }, [currentScene, isFailed, playerState, sceneIndex]);
 
-  /**
-   * Pure HP deduction.
-   * The functional updater reads the latest HP value from React, so stale
-   * closures cannot cause incorrect calculations.
-   * The guard `hp <= FAILURE_HP` (read from the current render's value)
-   * prevents deduction once the story is already failed.
-   */
   const onPuzzleIncorrect = useCallback(() => {
-    // Guard: if story is already failed, this is a no-op.
-    // We read `hp` (render-time value) rather than deriving it inside the
-    // updater to keep the updater itself pure.
     if (hp <= FAILURE_HP) return;
-
     setHp((currentHp) => deductHp(currentHp));
   }, [hp]);
 

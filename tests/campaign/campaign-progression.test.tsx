@@ -321,12 +321,23 @@ describe("CampaignLobby", () => {
     expect(onStartStory).toHaveBeenCalledWith("story_01");
   });
 
-  it("should show Available (or Current) badge for story_02 after story_01 is completed", () => {
-    const state = completeStory(
+  it("should show Available (or Current) badge for story_02 after story_01 is completed with demonstrated knowledge", () => {
+    const afterS1 = completeStory(
       createInitialCampaignState(dummyCampaign),
       dummyCampaign,
       dummyStory
     );
+    // story_02 requires concept_linear_combination demonstrated
+    const state = {
+      ...afterS1,
+      player_knowledge: {
+        concept_linear_combination: {
+          concept_id: "concept_linear_combination",
+          status: "demonstrated" as const,
+          evidence: [],
+        },
+      },
+    };
     const view = render(
       <CampaignLobby
         campaign={dummyCampaign}
@@ -335,7 +346,7 @@ describe("CampaignLobby", () => {
       />
     );
     const badge = view.queryByTestId("story-badge-story_02");
-    // After story_01 completes, story_02 becomes current_story_id → shows "Current"
+    // After story_01 completes and concept is demonstrated, story_02 becomes current → "Current"
     expect(badge?.textContent).toMatch(/Current|Available/);
     // And its Start button should be visible (unlocked)
     expect(view.queryByTestId("start-story-story_02")).toBeTruthy();

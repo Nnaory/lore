@@ -160,6 +160,55 @@ export function validateStory(
     }
   }
 
+  // ─── 9. knowledge_mapping concept_ids must match scene learning_info ────
+  // The concept_id in knowledge_mapping must actually appear in the
+  // learning_info blocks of the referenced scene. If it doesn't, the mapping
+  // claims a concept is introduced in a scene that doesn't teach it.
+  for (const entry of story.knowledge_mapping) {
+    if (!seenSceneIds.has(entry.introduced_in_scene_id)) continue; // already reported
+    // Collect concept_ids from learning_info blocks in the referenced scene
+    const sceneConceptIds = new Set<string>();
+    for (const chapter of story.chapters) {
+      const scene = chapter.scenes.find(
+        (s) => s.scene_id === entry.introduced_in_scene_id
+      );
+      if (!scene) continue;
+      if ("content" in scene) {
+        for (const block of scene.content) {
+          if (block.type === "learning_info") {
+            block.concept_ids.forEach((id) => sceneConceptIds.add(id));
+          }
+        }
+      }
+    }
+    if (sceneConceptIds.size > 0 && !sceneConceptIds.has(entry.concept_id)) {
+      errors.push({
+        code: "KNOWLEDGE_MAPPING_CONCEPT_NOT_IN_SCENE",
+        message: `knowledge_mapping entry for concept "${entry.concept_id}" lists scene "${entry.introduced_in_scene_id}" as its introduction scene, but that scene's learning_info blocks do not reference concept "${entry.concept_id}".`,
+        path: `knowledge_mapping[${entry.concept_id}].introduced_in_scene_id`,
+      });
+    }
+  }
+
+  // ─── 10. knowledge_mapping concept_ids must match puzzle.concept_ids ────
+  // The concept_id in knowledge_mapping must appear in the puzzle's concept_ids.
+  // If it doesn't, the mapping claims a concept is tested by a puzzle that
+  // doesn't reference it.
+  for (const entry of story.knowledge_mapping) {
+    if (!knownPuzzleIds.has(entry.tested_in_puzzle_id)) continue; // already reported
+    const puzzle = story.puzzles.find(
+      (p) => p.puzzle_id === entry.tested_in_puzzle_id
+    );
+    if (!puzzle) continue;
+    if (!puzzle.concept_ids.includes(entry.concept_id)) {
+      errors.push({
+        code: "KNOWLEDGE_MAPPING_CONCEPT_NOT_IN_PUZZLE",
+        message: `knowledge_mapping entry for concept "${entry.concept_id}" lists puzzle "${entry.tested_in_puzzle_id}" as its test puzzle, but that puzzle's concept_ids do not include "${entry.concept_id}".`,
+        path: `knowledge_mapping[${entry.concept_id}].tested_in_puzzle_id`,
+      });
+    }
+  }
+
   if (errors.length > 0) {
     return { valid: false, errors };
   }

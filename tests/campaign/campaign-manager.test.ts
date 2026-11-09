@@ -64,8 +64,19 @@ describe("isStoryUnlocked", () => {
     expect(isStoryUnlocked("story_02", dummyCampaign, state)).toBe(false);
   });
 
-  it("second story is unlocked after first is completed", () => {
-    const state = completeStory(freshState(), dummyCampaign, dummyStory);
+  it("second story is unlocked after first is completed AND concept is demonstrated", () => {
+    const afterS1 = completeStory(freshState(), dummyCampaign, dummyStory);
+    // story_02 requires concept_linear_combination to be demonstrated
+    const state: CampaignState = {
+      ...afterS1,
+      player_knowledge: {
+        concept_linear_combination: {
+          concept_id: "concept_linear_combination",
+          status: "demonstrated",
+          evidence: [],
+        },
+      },
+    };
     expect(isStoryUnlocked("story_02", dummyCampaign, state)).toBe(true);
   });
 

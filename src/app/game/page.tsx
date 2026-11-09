@@ -40,6 +40,7 @@ export default function GamePage() {
     onStoryComplete,
     onExitStory,
     onStartStory,
+    onKnowledgeUpdate,
   } = useCampaign(dummyCampaign, STORIES, dummyCampaignState);
 
   if (isAtLobby) {
@@ -62,6 +63,8 @@ export default function GamePage() {
         onStoryComplete={onStoryComplete}
         onExit={onExitStory}
         isCampaignComplete={isCampaignComplete}
+        onKnowledgeUpdate={onKnowledgeUpdate}
+        playerKnowledge={campaignState.player_knowledge}
       />
     </div>
   );
