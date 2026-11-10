@@ -7,6 +7,8 @@
 
 import { IMaterialIntelligenceProvider, AIProviderId } from "@/lib/ai/types";
 import { DummyProvider } from "@/lib/ai/providers/dummy-provider";
+import type { ICampaignPlannerProvider } from "@/lib/ai/campaign-planner-types";
+import { DummyCampaignPlannerProvider } from "@/lib/ai/providers/dummy-campaign-planner-provider";
 
 /**
  * Returns the configured provider instance.
@@ -50,4 +52,50 @@ export function getProviderCached(): IMaterialIntelligenceProvider {
 
 export function resetProviderCache(): void {
   _cachedProvider = null;
+}
+
+// ---------------------------------------------------------------------------
+// Campaign Planner provider registry (Layer 2)
+//
+// Kept separate from the Material Intelligence registry so each service owns
+// its own selection responsibilities. Both read the same AI_PROVIDER variable.
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the configured Campaign Planner provider.
+ * Defaults to DummyCampaignPlannerProvider if AI_PROVIDER is unset or unknown.
+ * Fail-closed: never crashes, always returns a working provider.
+ */
+export function getCampaignPlannerProvider(): ICampaignPlannerProvider {
+  const providerId = (process.env.AI_PROVIDER ?? "dummy") as AIProviderId;
+
+  switch (providerId) {
+    case "dummy":
+      return new DummyCampaignPlannerProvider();
+    // Future providers — NOT implemented in M8:
+    // case "openai":
+    //   return new OpenAICampaignPlannerProvider({ ... });
+    // case "anthropic":
+    //   return new AnthropicCampaignPlannerProvider({ ... });
+    // case "google":
+    //   return new GoogleCampaignPlannerProvider({ ... });
+    default:
+      console.warn(
+        `[AI] Unknown campaign planner provider "${providerId}", falling back to dummy`
+      );
+      return new DummyCampaignPlannerProvider();
+  }
+}
+
+let _cachedCampaignPlannerProvider: ICampaignPlannerProvider | null = null;
+
+export function getCampaignPlannerProviderCached(): ICampaignPlannerProvider {
+  if (!_cachedCampaignPlannerProvider) {
+    _cachedCampaignPlannerProvider = getCampaignPlannerProvider();
+  }
+  return _cachedCampaignPlannerProvider;
+}
+
+export function resetCampaignPlannerProviderCache(): void {
+  _cachedCampaignPlannerProvider = null;
 }

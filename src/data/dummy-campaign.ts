@@ -18,6 +18,7 @@ import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { CampaignState } from "@/lib/types/game";
 import type { StoryState } from "@/lib/types/game";
+import type { CampaignPlannerOptions } from "@/lib/ai/campaign-planner-types";
 
 // ---------------------------------------------------------------------------
 // Material Blueprint
@@ -430,6 +431,102 @@ export const dummyStory2: StoryBlueprint = {
   ],
   continuity_summary: null,
   knowledge_mapping: [],
+};
+
+// ---------------------------------------------------------------------------
+// Planner Fixtures — M8 Campaign Planner integration tests
+//
+// These materials are deliberately SEPARATE from `dummyMaterial` because the
+// planner enforces global concept_id uniqueness. `dummyMaterial`'s concepts
+// ("concept_linear_combination", "concept_vector_span") must not be reused by
+// any other material in the same planner request.
+//
+// `dummyMaterial2` depends on `dummyMaterial` (cross-material prerequisite).
+// `dummyMaterial3` is independent — it exists to prove that the planner
+// preserves input order when no dependency edge exists.
+// ---------------------------------------------------------------------------
+
+/** Second planner material — depends on concept_vector_span from material_01. */
+export const dummyMaterial2: MaterialBlueprint = {
+  material_id: "material_02",
+  title: "Introduction to Matrix Transformations",
+  summary:
+    "Covers how matrices act on vectors as linear transformations, and how composition corresponds to matrix multiplication.",
+  learning_objectives: [
+    "Interpret a matrix as a linear transformation of vectors.",
+    "Compute the image of a vector under a matrix transformation.",
+    "Compose two transformations by multiplying their matrices.",
+  ],
+  concepts: [
+    {
+      concept_id: "concept_matrix_transformation",
+      name: "Matrix Transformation",
+      definition:
+        "A matrix A of size m×n defines a linear transformation T(x) = Ax mapping vectors in ℝⁿ to vectors in ℝᵐ.",
+      principles: [
+        "Matrix-vector multiplication applies the transformation encoded by the matrix.",
+        "Linear transformations map the zero vector to the zero vector and preserve scalar sums.",
+      ],
+      methods: [
+        "Multiply each row of the matrix by the input vector and sum the products.",
+        "Test linearity by checking T(u + v) = T(u) + T(v) and T(cu) = cT(u).",
+      ],
+      prerequisites: ["concept_vector_span"],
+      misconceptions: [
+        "Assuming every vector always has a preimage under a given matrix.",
+      ],
+      source_evidence: [
+        "For a matrix A and vector x, the map x → Ax is linear.",
+      ],
+    },
+  ],
+  scope_limitations: [
+    "Determinants and eigenvalues are not covered.",
+  ],
+};
+
+/** Third planner material — independent of material_01 and material_02. */
+export const dummyMaterial3: MaterialBlueprint = {
+  material_id: "material_03",
+  title: "Introduction to Probability Distributions",
+  summary:
+    "Covers discrete probability distributions, their expected value, and the conditions a valid distribution must satisfy.",
+  learning_objectives: [
+    "Identify the requirements for a valid discrete probability distribution.",
+    "Compute the expected value of a discrete random variable.",
+  ],
+  concepts: [
+    {
+      concept_id: "concept_probability_distribution",
+      name: "Discrete Probability Distribution",
+      definition:
+        "A discrete probability distribution assigns a probability p(x) ≥ 0 to each possible value of a discrete random variable, with all probabilities summing to 1.",
+      principles: [
+        "Probabilities are non-negative and sum to one across all outcomes.",
+        "Expected value is the probability-weighted sum of all outcomes.",
+      ],
+      methods: [
+        "Verify that all probabilities sum to exactly 1 before using a distribution.",
+        "Compute E[X] = Σ x·p(x) over all outcomes x.",
+      ],
+      prerequisites: [],
+      misconceptions: [
+        "Assuming a distribution is valid solely because all probabilities are individually less than 1.",
+      ],
+      source_evidence: [
+        "A valid discrete distribution satisfies p(x) ≥ 0 and Σ p(x) = 1.",
+      ],
+    },
+  ],
+  scope_limitations: [
+    "Continuous distributions and conditional probability are not covered.",
+  ],
+};
+
+/** Standard planner options used by M8 integration tests. */
+export const dummyPlannerOptions: CampaignPlannerOptions = {
+  genre: "fantasy",
+  campaignId: "campaign_planned_001",
 };
 
 // ---------------------------------------------------------------------------

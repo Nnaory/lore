@@ -9,9 +9,9 @@
 **Platform:** Web Application  
 **Framework:** Next.js  
 **Language:** TypeScript  
-**AI Integration:** External LLM API  
-**Current Scope:** Core Game Logic MVP  
-**Document Status:** Initial Architecture & Development Roadmap
+**AI Integration:** Provider abstraction — dummy provider active (real LLM integration deferred)  
+**Current Scope:** Core Game Logic MVP + AI Layer 1 & 2 (dummy-first)  
+**Document Status:** Implementation-aligned architecture & roadmap (reconciled after Milestone 8)
 
 ---
 
@@ -370,6 +370,56 @@ Tugas:
 12. Menentukan hubungan antara ending setiap cerita.
 
 Output: `CampaignBlueprint`.
+
+### 4.3.1. Implementasi Aktual (M8 — Dummy-First)
+
+> Status: **implemented (M8)**. Real LLM campaign planning is **deferred**.
+> The active implementation is a deterministic planner behind the same
+> `ICampaignPlannerProvider` interface a future real provider must implement.
+
+Pipeline:
+
+```text
+PlanCampaignRequest
+  |
+  v
+PlanCampaignRequestSchema (Zod)
+  |
+  v
+ICampaignPlannerProvider (dummy)
+  |
+  v
+Deterministic planning engine
+  |
+  v
+CampaignBlueprintSchema -> planner semantic validator
+  |
+  v
+PlanCampaignResult { ok, blueprint, meta }
+```
+
+Aturan perencanaan yang ditegakkan:
+
+1. **One material → one story.** Setiap materi input menghasilkan tepat satu
+   entri `story_sequence`. Materi yang hilang atau terduplikasi ditolak.
+2. **Global `concept_id` uniqueness.** Seluruh materi dalam satu request harus
+   memiliki `concept_id` yang unik. Duplikasi → `DUPLICATE_CONCEPT_ID`.
+3. **Urutan lintas materi.** Urutan cerita ditentukan oleh topological sort atas
+   edge prasyarat konsep lintas materi. Tie-break memakai urutan input agar
+   deterministik. Siklus prasyarat → `PREREQUISITE_CYCLE`.
+4. **`required_knowledge` hanya dari cerita sebelumnya.** Prasyarat konsep dari
+   materi yang sama atau materi setelahnya tidak pernah dimasukkan.
+5. **Determinisme penuh.** Tidak ada `Date.now()` di dalam engine, tidak ada
+   `Math.random()`, tidak ada network. Input tidak pernah dimutasi.
+
+Catatan penting: fixture legacy (`dummyCampaign`) memiliki dua cerita pada satu
+materi (`material_01`). Aturan one-material-one-story **hanya** berlaku untuk
+Campaign Planner. Validator legacy (`validateCampaign`) dan fixture lama tidak
+diubah; aturan planner diisolasi di `planner-validator.ts`.
+
+Peringatan non-blocking `PREREQUISITE_TESTABILITY_PENDING` dilampirkan pada
+setiap prasyarat turunan, karena apakah sebuah konsep dapat benar-benar
+di-`demonstrated` baru bisa dipastikan setelah Layer 3 menghasilkan puzzle.
 
 Contoh:
 
@@ -1454,65 +1504,91 @@ Buat struktur secara bertahap mengikuti roadmap.
 
 ---
 
-# 15. AI API Integration
+# 15. AI Integration (Dummy-First)
 
-## 15.1. API Key
+> Status: **M7 and M8 implemented with a deterministic dummy provider.**
+> No AI SDK is installed. No external API calls are made. No API key is required.
 
-Untuk MVP, pengguna/developer menyediakan API key melalui environment variable.
+## 15.1. Provider Configuration
 
-Contoh:
+The application talks to AI layers exclusively through provider interfaces:
+
+| Layer | Interface                          | Active implementation                  |
+| ----- | ---------------------------------- | -------------------------------------- |
+| 1     | `IMaterialIntelligenceProvider`    | `DummyProvider` (`dummy-v1`)           |
+| 2     | `ICampaignPlannerProvider`         | `DummyCampaignPlannerProvider` (`dummy-planner-v1`) |
+
+Configuration via environment variables (`.env.example`):
 
 ```env
-AI_API_KEY=your_api_key
-AI_MODEL=your_model_name
+AI_PROVIDER=dummy
+
+# Reserved for future real providers — NOT used in M7/M8.
+# AI_API_KEY=your_api_key_here
+# AI_MODEL=your_model_name
+# AI_MAX_TOKENS=4000
 ```
 
-Jangan menaruh API key di:
+Selection rules:
 
-- Client-side component.
-- Public environment variable.
-- Browser storage.
-- Source code yang di-commit.
+- `AI_PROVIDER` unset or `dummy` → dummy provider.
+- Unknown value → fallback to dummy with a `console.warn`. Never crashes.
+- Real provider values (`openai`, `anthropic`, `google`) are **reserved and
+  unimplemented**; they currently fall back to dummy.
 
-Gunakan server-side Route Handler untuk seluruh permintaan ke AI.
+API keys, when a real provider is eventually added, must stay server-side only:
+
+- Not in client components.
+- Not in `NEXT_PUBLIC_*` variables.
+- Not in browser storage.
+- Not committed to source.
+
+All AI requests must go through server-side Route Handlers.
 
 ## 15.2. API Routes
 
-| Route                           | Responsibility          |
-| ------------------------------- | ----------------------- |
-| `POST /api/ai/analyze-material` | Layer 1                 |
-| `POST /api/ai/plan-campaign`    | Layer 2                 |
-| `POST /api/ai/generate-story`   | Layer 3                 |
-| `POST /api/ai/generate-scene`   | Layer 4 jika diperlukan |
+| Route                           | Responsibility                     | Status      |
+| ------------------------------- | ---------------------------------- | ----------- |
+| `POST /api/ai/analyze-material` | Layer 1 — Material Intelligence     | Implemented |
+| `POST /api/ai/plan-campaign`    | Layer 2 — Campaign Planner          | Implemented |
+| `POST /api/ai/generate-story`   | Layer 3 — Story Generation          | Not built   |
+| `POST /api/ai/generate-scene`   | Layer 4 — Scene Generation (opt.)   | Not built   |
 
-API routes bertugas:
+Shared envelope (both implemented routes):
 
-1. Menerima input.
-2. Memvalidasi input.
-3. Memanggil AI provider.
-4. Memproses respons.
-5. Memvalidasi output dengan Zod.
-6. Mengembalikan data terstruktur.
+```ts
+// success
+{ ok: true, data: { blueprint, meta } }
+// failure
+{ ok: false, error: { code, message, detail? } }
+```
 
-Game engine tidak perlu mengetahui detail provider AI yang digunakan.
+`POST /api/ai/plan-campaign` status codes:
+
+| Status | Condition                                                        |
+| ------ | ---------------------------------------------------------------- |
+| 200    | Blueprint produced and validated                                  |
+| 400    | Malformed request (`INVALID_REQUEST`)                             |
+| 422    | Semantically invalid input (`DUPLICATE_MATERIAL_ID`, `DUPLICATE_CONCEPT_ID`, `INVALID_PREREQUISITE_REF`, `PREREQUISITE_CYCLE`, `REQUIRED_KNOWLEDGE_ORDER`) |
+| 502    | Upstream provider output invalid (`OUTPUT_PARSE_FAILED`, `VALIDATION_FAILED`) |
+| 500    | Unexpected internal error (`UNKNOWN`, `PROVIDER_UNAVAILABLE`)      |
+
+Route handlers validate input, invoke the service, validate output with Zod,
+and return structured data. The game engine never sees provider details.
+Secrets, stack traces, and provider internals are never exposed.
 
 ## 15.3. Error Handling
 
-Sistem harus menangani:
+Handled conditions:
 
-- API key tidak tersedia.
-- Provider gagal dihubungi.
-- Request timeout.
-- Rate limit.
-- Output bukan JSON valid.
-- Output tidak sesuai schema.
-- Materi terlalu panjang.
-- Output terpotong.
-- Generasi cerita tidak lengkap.
+- Provider unavailable / not configured.
+- Provider output not valid JSON or fails schema validation.
+- Planner-semantic violations (duplicate IDs, cycles, unusable prerequisites).
+- Invalid or malformed request body.
+- Unexpected provider exceptions (contained by the service, never propagated).
 
-Jangan menganggap setiap kegagalan AI sebagai kegagalan game.
-
-Pemain harus mendapatkan pesan error yang jelas dan tidak kehilangan progress yang sudah ada.
+Expected failures are always returned as structured results — never thrown.
+A failed AI call is not a game failure; existing player progress is preserved.
 
 ---
 
@@ -1608,14 +1684,14 @@ Prioritasnya adalah memastikan game engine bekerja sebelum mengintegrasikan AI s
 
 Tasks:
 
-- [ ] Membuat Next.js project.
-- [ ] Mengaktifkan TypeScript.
-- [ ] Menyiapkan styling.
-- [ ] Membuat struktur direktori dasar.
-- [ ] Menyiapkan environment variable.
-- [ ] Menyiapkan linting.
-- [ ] Menyiapkan testing.
-- [ ] Membuat halaman utama sederhana.
+- [x] Membuat Next.js project.
+- [x] Mengaktifkan TypeScript.
+- [x] Menyiapkan styling.
+- [x] Membuat struktur direktori dasar.
+- [x] Menyiapkan environment variable.
+- [x] Menyiapkan linting.
+- [x] Menyiapkan testing.
+- [x] Membuat halaman utama sederhana.
 
 Deliverable:
 
@@ -1627,15 +1703,15 @@ Next.js application yang dapat dijalankan secara lokal.
 
 Tasks:
 
-- [ ] Membuat MaterialBlueprint type.
-- [ ] Membuat CampaignBlueprint type.
-- [ ] Membuat StoryBlueprint type.
-- [ ] Membuat Scene type.
-- [ ] Membuat Puzzle type.
-- [ ] Membuat CampaignState type.
-- [ ] Membuat StoryState type.
-- [ ] Membuat Zod schemas.
-- [ ] Membuat sample JSON untuk pengujian.
+- [x] Membuat MaterialBlueprint type.
+- [x] Membuat CampaignBlueprint type.
+- [x] Membuat StoryBlueprint type.
+- [x] Membuat Scene type.
+- [x] Membuat Puzzle type.
+- [x] Membuat CampaignState type.
+- [x] Membuat StoryState type.
+- [x] Membuat Zod schemas.
+- [x] Membuat sample JSON untuk pengujian.
 
 Deliverable:
 
@@ -1647,15 +1723,15 @@ Seluruh struktur data utama sudah ditentukan dan dapat divalidasi.
 
 Tasks:
 
-- [ ] Membuat story container.
-- [ ] Membuat narrative renderer.
-- [ ] Membuat dialogue renderer.
-- [ ] Membuat character name dan expression.
-- [ ] Membuat textbox.
-- [ ] Membuat continue interaction.
-- [ ] Membuat scene transition.
-- [ ] Membuat character display sederhana.
-- [ ] Membuat dummy story JSON.
+- [x] Membuat story container.
+- [x] Membuat narrative renderer.
+- [x] Membuat dialogue renderer.
+- [x] Membuat character name dan expression.
+- [x] Membuat textbox.
+- [x] Membuat continue interaction.
+- [x] Membuat scene transition.
+- [x] Membuat character display sederhana.
+- [x] Membuat dummy story JSON.
 
 Deliverable:
 
@@ -1667,15 +1743,15 @@ Pemain dapat membaca dan menjalankan cerita statis tanpa AI.
 
 Tasks:
 
-- [ ] Membuat puzzle component.
-- [ ] Menampilkan pilihan jawaban.
-- [ ] Membuat choice resolver.
-- [ ] Memvalidasi jawaban.
-- [ ] Menangani jawaban benar.
-- [ ] Menangani jawaban salah.
-- [ ] Membuat learning feedback.
-- [ ] Membuat consequence display.
-- [ ] Membuat retry flow.
+- [x] Membuat puzzle component.
+- [x] Menampilkan pilihan jawaban.
+- [x] Membuat choice resolver.
+- [x] Memvalidasi jawaban.
+- [x] Menangani jawaban benar.
+- [x] Menangani jawaban salah.
+- [x] Membuat learning feedback.
+- [x] Membuat consequence display.
+- [x] Membuat retry flow.
 
 Deliverable:
 
@@ -1687,14 +1763,14 @@ Pemain dapat menyelesaikan puzzle dengan konsekuensi yang sesuai.
 
 Tasks:
 
-- [ ] HP awal 5.
-- [ ] Mengurangi HP ketika jawaban salah.
-- [ ] Tidak mengurangi HP ketika jawaban benar.
-- [ ] Membuat HP indicator.
-- [ ] Membuat STORY_FAILED state.
-- [ ] Membuat retry story.
-- [ ] Membuat exit story.
-- [ ] Memastikan retry tidak menghapus campaign sebelumnya.
+- [x] HP awal 5.
+- [x] Mengurangi HP ketika jawaban salah.
+- [x] Tidak mengurangi HP ketika jawaban benar.
+- [x] Membuat HP indicator.
+- [x] Membuat STORY_FAILED state.
+- [x] Membuat retry story.
+- [x] Membuat exit story.
+- [x] Memastikan retry tidak menghapus campaign sebelumnya.
 
 Deliverable:
 
@@ -1706,15 +1782,15 @@ Sistem HP dan pengulangan cerita berfungsi.
 
 Tasks:
 
-- [ ] Membuat campaign manager.
-- [ ] Membuat story manager.
-- [ ] Memisahkan StoryState dan CampaignState.
-- [ ] Menyimpan keputusan penting.
-- [ ] Membuat story transition.
-- [ ] Membuat HP reset per cerita.
-- [ ] Membuat previous story summary.
-- [ ] Membuat next story initialization.
-- [ ] Membuat campaign completion.
+- [x] Membuat campaign manager.
+- [x] Membuat story manager.
+- [x] Memisahkan StoryState dan CampaignState.
+- [x] Menyimpan keputusan penting.
+- [x] Membuat story transition.
+- [x] Membuat HP reset per cerita.
+- [x] Membuat previous story summary.
+- [x] Membuat next story initialization.
+- [x] Membuat campaign completion.
 
 Deliverable:
 
@@ -1726,13 +1802,13 @@ Tiga cerita dummy dapat dijalankan berurutan dengan status yang saling terhubung
 
 Tasks:
 
-- [ ] Membuat knowledge manager.
-- [ ] Menghubungkan puzzle dengan concept ID.
-- [ ] Mencatat setiap percobaan.
-- [ ] Mencatat kesalahan.
-- [ ] Mencatat jawaban benar setelah feedback.
-- [ ] Menentukan knowledge status.
-- [ ] Membuat learning summary.
+- [x] Membuat knowledge manager.
+- [x] Menghubungkan puzzle dengan concept ID.
+- [x] Mencatat setiap percobaan.
+- [x] Mencatat kesalahan.
+- [x] Mencatat jawaban benar setelah feedback.
+- [x] Menentukan knowledge status.
+- [x] Membuat learning summary.
 
 Deliverable:
 
@@ -1742,37 +1818,52 @@ Sistem dapat menunjukkan perkembangan pemahaman pemain.
 
 **Goal:** mengubah materi menjadi blueprint terstruktur.
 
+**Status:** selesai (dummy-first). Real LLM integration ditunda.
+
 Tasks:
 
-- [ ] Menyiapkan AI API client.
-- [ ] Menyiapkan material analysis prompt.
-- [ ] Mengirim materi ke API.
-- [ ] Menerima output JSON.
-- [ ] Memvalidasi output.
-- [ ] Menangani kegagalan API.
-- [ ] Menguji beberapa jenis materi.
+- [x] Membuat `IMaterialIntelligenceProvider` dan tipe request/response.
+- [x] Membuat `DummyProvider` deterministik (`dummy-v1`).
+- [x] Membuat Zod schema `MaterialBlueprint` + parser output.
+- [x] Memvalidasi output dan menangani kegagalan provider.
+- [x] Membuat semantic validator untuk MaterialBlueprint.
+- [x] Membuat service `analyzeMaterial()`.
+- [x] Membuat `POST /api/ai/analyze-material`.
+- [x] Menguji beberapa jenis materi.
+- [ ] Menyiapkan AI API client nyata (ditunda).
+- [ ] Mengirim materi ke LLM eksternal (ditunda).
 
 Deliverable:
 
-Materi pengguna dapat diubah menjadi MaterialBlueprint.
+Materi pengguna dapat diubah menjadi MaterialBlueprint melalui provider dummy
+yang deterministik, dengan antarmuka siap untuk provider nyata di masa depan.
 
 ## Milestone 8 — AI Layer 2: Campaign Planner
 
 **Goal:** membuat rancangan campaign dari beberapa materi.
 
+**Status:** selesai (dummy-first). Real LLM campaign planning ditunda.
+
 Tasks:
 
-- [ ] Menyiapkan campaign planner prompt.
-- [ ] Memproses beberapa MaterialBlueprint.
-- [ ] Menghasilkan genre dan worldbuilding.
-- [ ] Menghasilkan karakter.
-- [ ] Menghasilkan story sequence.
-- [ ] Menghasilkan campaign structure.
-- [ ] Memvalidasi hubungan antarcerita.
+- [x] Membuat `ICampaignPlannerProvider` dan `PlanCampaignRequestSchema`.
+- [x] Membuat deterministic planning engine (topological ordering).
+- [x] Menegakkan one-material-one-story.
+- [x] Menegakkan global `concept_id` uniqueness.
+- [x] Menurunkan `required_knowledge` lintas materi.
+- [x] Mendeteksi siklus dan referensi prasyarat tidak valid.
+- [x] Membuat `planner-validator.ts` (terisolasi dari `validateCampaign`).
+- [x] Membuat `DummyCampaignPlannerProvider` (`dummy-planner-v1`).
+- [x] Membuat campaign output parser + service `planCampaign()`.
+- [x] Membuat `POST /api/ai/plan-campaign`.
+- [x] Menambahkan fixture materi planner dan integration test ke game engine.
+- [ ] Menyiapkan campaign planner prompt nyata (ditunda).
+- [ ] Menghasilkan konten campaign dengan LLM (ditunda).
 
 Deliverable:
 
-Satu campaign blueprint dapat dihasilkan dari beberapa materi.
+Satu `CampaignBlueprint` valid dan deterministik dapat dihasilkan dari beberapa
+materi, dan langsung dapat dikonsumsi game engine tanpa perubahan pada engine.
 
 ## Milestone 9 — AI Layer 3 and 4: Story Generation
 
@@ -2006,33 +2097,30 @@ LORE harus benar-benar terasa seperti sebuah petualangan interaktif yang mengaja
 
 # 22. Development Starting Point
 
-Pengembangan harus dimulai dari **Milestone 0**, kemudian dilanjutkan secara berurutan.
+> **Status:** Milestone 0–8 selesai. Milestone 9–11 belum dikerjakan.
 
-Jangan langsung mengintegrasikan AI.
+Pengembangan mengikuti urutan milestone. Integrasi AI nyata **belum** dilakukan:
+M7 dan M8 diimplementasikan dengan provider dummy deterministik di balik
+interface provider yang sama dengan yang akan dipakai provider nyata.
 
 Urutan prioritas:
 
-1. Foundation.
-2. Data contracts.
-3. Story viewer.
-4. Puzzle system.
-5. Consequence system.
-6. HP and retry.
-7. Campaign state.
-8. Learning progression.
-9. AI integration.
-10. End-to-end testing.
-11. Polish.
+1. Foundation. ✅
+2. Data contracts. ✅
+3. Story viewer. ✅
+4. Puzzle system. ✅
+5. Consequence system. ✅
+6. HP and retry. ✅
+7. Campaign state. ✅
+8. Learning progression. ✅
+9. AI Layer 1 & 2 (dummy-first). ✅
+10. AI Layer 3 & 4 (story generation). ⏳
+11. End-to-end testing. ⏳
+12. Polish. ⏳
 
-**First development target:**
-
-Buat sebuah campaign dummy dengan satu cerita sederhana, satu karakter, beberapa scene, dan satu puzzle.
-
-Pastikan seluruh gameplay loop berjalan tanpa AI terlebih dahulu.
-
-Setelah satu cerita berhasil, kembangkan menjadi tiga cerita yang saling terhubung.
-
-Barulah integrasikan AI secara bertahap.
+**Next target:** Milestone 9 — Story Generation (Layer 3), mengikuti pola yang
+sama: kontrak tipe → engine/parser → provider dummy → service → API route →
+integration test. Real LLM tetap ditunda sampai pola dummy terbukti stabil.
 
 ---
 
