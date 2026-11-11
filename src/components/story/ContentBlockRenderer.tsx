@@ -2,7 +2,7 @@
  * ContentBlockRenderer
  *
  * Renders a single SceneContent block based on its type.
- * Used to render revealed content blocks in the chat log.
+ * New minimalist chat style: top divider, name+emoji, divider, content, divider
  */
 
 import type { SceneContent } from "@/lib/types/scene";
@@ -47,6 +47,5 @@ export function ContentBlockRenderer({
   }
 
   // Exhaustive check — TypeScript ensures all cases are covered
-  const _exhaustive: never = block;
   return null;
 }

@@ -1,26 +1,14 @@
 /**
  * PuzzleInteraction
  *
- * The full, interactive puzzle component. Replaces PuzzlePlaceholder from M2.
- *
- * Interaction states:
- *   "idle"      — Player has not yet submitted an answer.
- *   "incorrect" — Player submitted a wrong answer. Retry is available.
- *   "correct"   — Player submitted the correct answer. Continue is available.
- *
- * Rules enforced by this component:
- *   - Submission is blocked when no choice is selected.
- *   - Submission is blocked after a correct answer (puzzle already solved).
- *   - Submission is blocked when isFailed is true (story is over).
- *   - The selected choice cannot be changed after a correct answer.
- *   - The correct answer is never revealed before submission.
- *   - Correctness is determined by validateMultipleChoice, not by the component.
- *
- * Milestone 4 additions:
- *   - onIncorrect?: () => void — called ONCE per submission when the answer is
- *     incorrect. The parent (useStoryPlayer) uses this to deduct HP.
- *   - isFailed?: boolean — when true, all interaction is disabled. The parent
- *     (StoryViewer) will overlay the StoryFailure screen instead.
+ * Full interactive puzzle component with new minimalist gold theme.
+ * Interaction states: "idle" | "incorrect" | "correct"
+ * Rules:
+ *   - Submission blocked when no choice selected
+ *   - Submission blocked after correct answer
+ *   - Submission blocked when isFailed
+ *   - Selected choice locked after correct answer
+ *   - Correct answer never revealed before submission
  */
 
 "use client";
@@ -38,8 +26,7 @@ type PuzzleInteractionProps = {
   onComplete: () => void;
   /**
    * Called exactly once per incorrect submission.
-   * Used by the parent to deduct HP. Optional so existing tests
-   * without this prop continue to pass.
+   * Used by the parent to deduct HP.
    */
   onIncorrect?: () => void;
   /**
@@ -48,10 +35,7 @@ type PuzzleInteractionProps = {
    * @param correct  Whether this submission was correct.
    */
   onAnswerSubmitted?: (correct: boolean) => void;
-  /**
-   * When true, all input is disabled. Set by the parent when the story
-   * has failed (HP = 0). Optional for backward compatibility.
-   */
+  /** When true, all input is disabled (story failed). */
   isFailed?: boolean;
 };
 
@@ -66,19 +50,15 @@ export function PuzzleInteraction({
   const [interactionState, setInteractionState] =
     useState<PuzzleInteractionState>("idle");
   const [lastResult, setLastResult] = useState<ValidationResult | null>(null);
-  // Guard: prevent double-submission while a result is being shown
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isCorrect = interactionState === "correct";
-  // Also disable when story has already failed
   const canSubmit =
     selectedChoiceId !== null && !isCorrect && !isSubmitting && !isFailed;
 
   function handleSelect(choiceId: string) {
-    // Selection locked after correct answer or failure
     if (isCorrect || isFailed) return;
     setSelectedChoiceId(choiceId);
-    // If showing incorrect feedback, reset to idle on new selection
     if (interactionState === "incorrect") {
       setInteractionState("idle");
       setLastResult(null);
@@ -94,39 +74,38 @@ export function PuzzleInteraction({
 
     if (result.outcome === "correct") {
       setInteractionState("correct");
-      // Notify parent of any valid submission for knowledge/attempt tracking.
       onAnswerSubmitted?.(true);
     } else if (result.outcome === "incorrect") {
       setInteractionState("incorrect");
-      // Notify parent of valid submission for knowledge/attempt tracking.
       onAnswerSubmitted?.(false);
-      // Notify parent of incorrect specifically for HP deduction.
       onIncorrect?.();
     }
-    // empty / unknown_choice: no notification — not a valid puzzle attempt.
     setIsSubmitting(false);
   }
 
   return (
     <div
       data-testid="puzzle-interaction"
-      className="rounded-lg p-5 my-2"
+      className="w-full max-w-4xl mx-auto"
       style={{
+        border: "1px solid var(--border)",
+        borderRadius: "0.5rem",
+        overflow: "hidden",
         backgroundColor: "var(--background-panel)",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "var(--accent)",
       }}
       role="region"
       aria-label={`Puzzle: ${puzzle.question}`}
     >
       {/* ── Header ── */}
-      <div className="flex items-center gap-2 mb-4">
+      <div
+        className="px-4 py-3 border-b flex items-center gap-2"
+        style={{ borderBottomColor: "var(--border-dim)" }}
+      >
         <span
           className="text-xs font-semibold tracking-widest uppercase px-2 py-0.5 rounded"
           style={{
-            backgroundColor: "var(--accent)",
-            color: "var(--foreground)",
+            backgroundColor: "var(--accent-gold)",
+            color: "var(--background)",
           }}
         >
           Puzzle
@@ -134,51 +113,50 @@ export function PuzzleInteraction({
       </div>
 
       {/* ── Narrative context ── */}
-      <p
-        className="text-sm leading-6 mb-4"
-        style={{ color: "var(--foreground-muted)" }}
-        data-testid="puzzle-narrative-context"
-      >
-        {puzzle.narrative_context}
-      </p>
+      <div className="px-4 py-3 border-b" style={{ borderBottomColor: "var(--border-dim)" }}>
+        <p
+          className="text-sm leading-6"
+          style={{ color: "var(--foreground-muted)" }}
+          data-testid="puzzle-narrative-context"
+        >
+          {puzzle.narrative_context}
+        </p>
+      </div>
 
       {/* ── Question ── */}
-      <p
-        className="text-sm font-medium leading-6 mb-5"
-        style={{ color: "var(--foreground)" }}
-        data-testid="puzzle-question"
-      >
-        {puzzle.question}
-      </p>
+      <div className="px-4 py-3 border-b" style={{ borderBottomColor: "var(--border-dim)" }}>
+        <p
+          className="text-sm font-medium leading-6"
+          style={{ color: "var(--foreground)" }}
+          data-testid="puzzle-question"
+        >
+          {puzzle.question}
+        </p>
+      </div>
 
       {/* ── Choices ── */}
-      <div
-        className="flex flex-col gap-2 mb-5"
-        role="radiogroup"
-        aria-label="Answer choices"
-        data-testid="puzzle-choices"
-      >
+      <div className="px-4 py-3" data-testid="puzzle-choices" role="radiogroup" aria-label="Answer choices">
         {puzzle.choices.map((choice) => {
           const isSelected = selectedChoiceId === choice.choice_id;
           const isLockedIn = isCorrect && isSelected;
 
-          // Choice border/bg changes based on state
-          let borderColor = "var(--border)";
-          let bgColor = "var(--background-surface, var(--background-panel))";
+          const _borderColor = "transparent";
+          let bgColor = "transparent";
           let textColor = "var(--foreground-muted)";
+          let leftBorderColor = "transparent";
 
           if (isSelected && interactionState === "idle") {
-            borderColor = "var(--accent-gold)";
-            bgColor = "var(--background-panel)";
+            bgColor = "rgba(232, 197, 71, 0.08)";
             textColor = "var(--foreground)";
+            leftBorderColor = "var(--accent-gold)";
           } else if (isSelected && interactionState === "incorrect") {
-            borderColor = "#6a2d2d";
-            bgColor = "#1a0a0a";
-            textColor = "#eb5757";
+            bgColor = "rgba(216, 74, 58, 0.1)";
+            textColor = "var(--danger)";
+            leftBorderColor = "var(--danger)";
           } else if (isLockedIn) {
-            borderColor = "#2d6a4a";
-            bgColor = "#0a1a10";
+            bgColor = "rgba(111, 207, 151, 0.1)";
             textColor = "#6fcf97";
+            leftBorderColor = "#6fcf97";
           }
 
           return (
@@ -188,15 +166,13 @@ export function PuzzleInteraction({
               onClick={() => handleSelect(choice.choice_id)}
               disabled={isCorrect}
               aria-pressed={isSelected}
-              className="text-left rounded px-4 py-3 text-sm leading-6 transition-opacity"
+              className="w-full text-left py-3 px-3 transition-all relative"
               style={{
-                borderWidth: "1px",
-                borderStyle: "solid",
-                borderColor,
                 backgroundColor: bgColor,
                 color: textColor,
+                borderLeft: `3px solid ${leftBorderColor}`,
                 cursor: isCorrect ? "default" : "pointer",
-                opacity: isCorrect && !isSelected ? 0.4 : 1,
+                opacity: isCorrect && !isSelected ? 0.5 : 1,
               }}
             >
               {choice.text}
@@ -209,31 +185,28 @@ export function PuzzleInteraction({
       {lastResult && lastResult.outcome !== "empty" && (
         <div
           data-testid="puzzle-feedback"
-          className="rounded p-3 mb-4 text-sm leading-6"
+          className="px-4 py-3 border-t"
+          style={{
+            borderTopColor: "var(--border-dim)",
+            backgroundColor:
+              lastResult.outcome === "correct"
+                ? "rgba(111, 207, 151, 0.08)"
+                : "rgba(216, 74, 58, 0.08)",
+          }}
           role="status"
           aria-live="polite"
-          style={{
-            backgroundColor:
-              lastResult.outcome === "correct" ? "#0a1a10" : "#1a0a0a",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            borderColor:
-              lastResult.outcome === "correct" ? "#2d6a4a" : "#6a2d2d",
-            color:
-              lastResult.outcome === "correct" ? "#6fcf97" : "#eb5757",
-          }}
         >
-          <p className="font-medium mb-1">
-            {lastResult.outcome === "correct" ? "Correct!" : "Incorrect"}
+          <p className="font-medium mb-1" style={{ color: "var(--foreground)" }}>
+            {lastResult.outcome === "correct" ? "Correct" : "Incorrect"}
           </p>
           <p style={{ color: "var(--foreground-muted)" }}>
             {lastResult.feedback}
           </p>
           {lastResult.outcome === "correct" && (
             <p
-              className="mt-2 text-xs"
+              className="mt-2 text-sm"
               data-testid="puzzle-explanation"
-              style={{ color: "var(--foreground-muted)" }}
+              style={{ color: "var(--accent-gold-dim)" }}
             >
               {lastResult.explanation}
             </p>
@@ -241,50 +214,54 @@ export function PuzzleInteraction({
         </div>
       )}
 
-      {/* Empty/unknown choice error (inline, no panel) */}
+      {/* Empty/unknown choice error */}
       {lastResult &&
         (lastResult.outcome === "empty" ||
           lastResult.outcome === "unknown_choice") && (
-          <p
+          <div
             data-testid="puzzle-empty-error"
-            className="text-xs mb-4"
-            style={{ color: "#eb5757" }}
+            className="px-4 py-3 border-t"
+            style={{ borderTopColor: "var(--border-dim)" }}
             role="alert"
           >
-            {lastResult.feedback}
-          </p>
+            <p className="text-sm" style={{ color: "var(--danger)" }}>
+              {lastResult.feedback}
+            </p>
+          </div>
         )}
 
       {/* ── Actions ── */}
-      {!isCorrect ? (
-        <button
-          data-testid="puzzle-submit"
-          onClick={handleSubmit}
-          disabled={!canSubmit}
-          className="px-5 py-2 rounded text-sm font-medium transition-opacity"
-          style={{
-            backgroundColor: canSubmit ? "var(--accent)" : "var(--border)",
-            color: canSubmit ? "var(--foreground)" : "var(--foreground-faint)",
-            cursor: canSubmit ? "pointer" : "not-allowed",
-            opacity: canSubmit ? 1 : 0.6,
-          }}
-          aria-disabled={!canSubmit}
-        >
-          Submit Answer
-        </button>
-      ) : (
-        <button
-          data-testid="puzzle-continue"
-          onClick={onComplete}
-          className="px-5 py-2 rounded text-sm font-medium transition-opacity hover:opacity-80 active:opacity-60"
-          style={{
-            backgroundColor: "var(--accent)",
-            color: "var(--foreground)",
-          }}
-        >
-          Continue →
-        </button>
-      )}
+      <div className="px-4 py-3 border-t" style={{ borderTopColor: "var(--border-dim)" }}>
+        {!isCorrect ? (
+          <button
+            data-testid="puzzle-submit"
+            onClick={handleSubmit}
+            disabled={!canSubmit}
+            className="w-full px-5 py-2.5 rounded text-sm font-medium transition-all"
+            style={{
+              backgroundColor: canSubmit ? "var(--accent-gold)" : "var(--border-dim)",
+              color: canSubmit ? "var(--background)" : "var(--foreground-faint)",
+              cursor: canSubmit ? "pointer" : "not-allowed",
+              opacity: canSubmit ? 1 : 0.5,
+            }}
+            aria-disabled={!canSubmit}
+          >
+            {isSubmitting ? "Submitting…" : "Submit Answer"}
+          </button>
+        ) : (
+          <button
+            data-testid="puzzle-continue"
+            onClick={onComplete}
+            className="w-full px-5 py-2.5 rounded text-sm font-medium transition-all"
+            style={{
+              backgroundColor: "var(--accent-gold)",
+              color: "var(--background)",
+            }}
+          >
+            Continue →
+          </button>
+        )}
+      </div>
     </div>
   );
 }

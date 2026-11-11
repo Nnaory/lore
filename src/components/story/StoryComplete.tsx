@@ -2,14 +2,7 @@
  * StoryComplete
  *
  * Displayed when a story reaches its ending and isComplete is true.
- * Replaces the passive "— End of Story —" text from earlier milestones.
- *
- * Provides two actions:
- *   - "Continue Campaign" → calls onContinue (triggers campaign progression).
- *   - "Exit Story"        → calls onExit (returns to lobby without completing).
- *
- * When the full campaign is complete, shows a campaign-complete message
- * instead of the continue button.
+ * Minimalist gold/black theme with divider lines.
  */
 
 type StoryCompleteProps = {
@@ -31,100 +24,100 @@ export function StoryComplete({
   return (
     <div
       data-testid="story-complete-screen"
-      className="flex flex-col items-center justify-center flex-1 px-8 py-12 text-center"
+      className="w-full max-w-md mx-auto px-4 py-6"
     >
       <div
-        className="rounded-lg p-8 max-w-sm w-full"
+        className="w-full"
         style={{
           backgroundColor: "var(--background-panel)",
-          borderWidth: "1px",
-          borderStyle: "solid",
-          borderColor: "var(--accent-gold)",
+          border: "1px solid var(--accent-gold)",
+          borderRadius: "0.5rem",
+          overflow: "hidden",
         }}
+        role="region"
+        aria-label={`${isCampaignComplete ? "Campaign complete" : "Story complete"}: ${storyTitle}`}
       >
-        <div className="lore-divider mb-6" />
+        {/* Top divider */}
+        <div className="chat-divider" aria-hidden="true" />
 
-        <span
-          className="inline-block text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-5"
-          style={{
-            backgroundColor: "#0a1a10",
-            borderWidth: "1px",
-            borderStyle: "solid",
-            borderColor: "#2d6a4a",
-            color: "#6fcf97",
-          }}
-        >
-          {isCampaignComplete ? "Campaign Complete" : "Story Complete"}
-        </span>
+        {/* Status badge */}
+        <div className="px-6 py-4 text-center">
+          <span
+            className="inline-block text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full"
+            style={{
+              backgroundColor: "rgba(111, 207, 151, 0.1)",
+              border: "1px solid #2d6a4a",
+              color: "#6fcf97",
+            }}
+          >
+            {isCampaignComplete ? "Campaign Complete" : "Story Complete"}
+          </span>
+        </div>
 
-        <h2
-          className="text-base font-semibold mb-3"
-          style={{ color: "var(--foreground)" }}
-          data-testid="story-complete-title"
-        >
-          {storyTitle}
-        </h2>
+        {/* Divider */}
+        <div className="chat-divider" aria-hidden="true" />
 
-        {isCampaignComplete ? (
-          <>
-            <p
-              className="text-sm leading-6 mb-6"
-              style={{ color: "var(--foreground-muted)" }}
-              data-testid="campaign-complete-message"
-            >
-              You have completed the full campaign. The Veiled City endures.
-            </p>
+        {/* Title */}
+        <div className="px-6 py-4 text-center">
+          <h2
+            className="text-lg font-semibold"
+            style={{ color: "var(--foreground)" }}
+            data-testid="story-complete-title"
+          >
+            {storyTitle}
+          </h2>
+        </div>
+
+        {/* Divider */}
+        <div className="chat-divider" aria-hidden="true" />
+
+        {/* Message */}
+        <div className="px-6 py-4 text-sm leading-6 text-center" style={{ color: "var(--foreground-muted)" }}>
+          {isCampaignComplete ? (
+            <>
+              <p data-testid="campaign-complete-message">
+                You have completed the full campaign. The Veiled City endures.
+              </p>
+            </>
+          ) : (
+            <p>The story has ended. Your progress has been recorded.</p>
+          )}
+        </div>
+
+        {/* Divider */}
+        <div className="chat-divider" aria-hidden="true" />
+
+        {/* Actions */}
+        <div className="px-6 py-4 space-y-3">
+          {!isCampaignComplete && (
             <button
-              data-testid="exit-button"
-              onClick={onExit}
-              className="w-full px-6 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
+              data-testid="continue-campaign-button"
+              onClick={onContinue}
+              className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
               style={{
-                backgroundColor: "var(--accent)",
-                color: "var(--foreground)",
+                backgroundColor: "var(--accent-gold)",
+                color: "var(--background)",
               }}
             >
-              Return to Lobby
+              Continue Campaign →
             </button>
-          </>
-        ) : (
-          <>
-            <p
-              className="text-sm leading-6 mb-6"
-              style={{ color: "var(--foreground-muted)" }}
-            >
-              The story has ended. Your progress has been recorded.
-            </p>
-            <div className="flex flex-col gap-3">
-              <button
-                data-testid="continue-campaign-button"
-                onClick={onContinue}
-                className="w-full px-6 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
-                style={{
-                  backgroundColor: "var(--accent)",
-                  color: "var(--foreground)",
-                }}
-              >
-                Continue Campaign →
-              </button>
-              <button
-                data-testid="exit-button"
-                onClick={onExit}
-                className="w-full px-6 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-70"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "var(--foreground-faint)",
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: "var(--border-subtle)",
-                }}
-              >
-                Exit Story
-              </button>
-            </div>
-          </>
-        )}
+          )}
+          <button
+            data-testid="exit-button"
+            onClick={onExit}
+            className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
+            style={{
+              backgroundColor: "transparent",
+              color: "var(--foreground-faint)",
+              border: "1px solid var(--border-dim)",
+            }}
+          >
+            {isCampaignComplete ? "Return to Lobby" : "Exit Story"}
+          </button>
+        </div>
 
-        <div className="lore-divider mt-6" />
+        {/* Bottom divider */}
+        <div className="chat-divider" aria-hidden="true" />
       </div>
     </div>
   );

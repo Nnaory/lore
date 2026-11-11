@@ -2,13 +2,12 @@
  * SceneRenderer
  *
  * Dispatches rendering based on the current scene type.
- * Manages the "revealed so far" content log and handles interaction:
- * - Content scenes: show blocks one by one, continue button reveals next.
- * - Puzzle scenes: show PuzzlePlaceholder.
+ * Manages the "revealed so far" content log.
+ * - Content scenes: show blocks one by one, click anywhere to advance.
+ * - Puzzle scenes: show PuzzleInteraction.
  * - Ending scenes: show EndingDisplay.
  *
- * The story log grows as blocks are revealed. This creates the visual
- * novel chat-log feel described in DESIGN.md §5.3.
+ * No continue button — click anywhere on chat area to advance.
  */
 
 "use client";
@@ -48,7 +47,7 @@ export function SceneRenderer({
   contentIndex,
   status,
   characterIndex,
-  onAdvance,
+  onAdvance: _onAdvance,
   onPuzzleComplete,
   onPuzzleIncorrect,
   onPuzzleAnswerSubmitted,
@@ -69,10 +68,10 @@ export function SceneRenderer({
         <div
           data-testid="scene-error"
           className="p-4 rounded"
-          style={{ backgroundColor: "var(--background-panel)", color: "#eb5757" }}
+          style={{ backgroundColor: "var(--background-panel)", color: "var(--danger)" }}
           role="alert"
         >
-          Ending &quot;{scene.ending_id}&quot; not found.
+          Ending not found for {scene.ending_id}.
         </div>
       );
     }
@@ -87,10 +86,10 @@ export function SceneRenderer({
         <div
           data-testid="scene-error"
           className="p-4 rounded"
-          style={{ backgroundColor: "var(--background-panel)", color: "#eb5757" }}
+          style={{ backgroundColor: "var(--background-panel)", color: "var(--danger)" }}
           role="alert"
         >
-          Puzzle &quot;{scene.puzzle_id}&quot; not found.
+          Puzzle not found for {scene.puzzle_id}.
         </div>
       );
     }
@@ -109,10 +108,10 @@ export function SceneRenderer({
   const allBlocks = getSceneContentBlocks(scene) ?? [];
   // Show only blocks up to and including the current index
   const revealedBlocks = allBlocks.slice(0, contentIndex + 1);
-  const isSceneEnd = status === "scene_end";
+  const _isSceneEnd = status === "scene_end";
 
   return (
-    <div className="flex flex-col gap-4" data-testid="scene-content">
+    <div className="flex flex-col gap-3" data-testid="scene-content">
       {revealedBlocks.map((block, idx) => (
         <ContentBlockRenderer
           key={`${scene.scene_id}-block-${idx}`}
@@ -124,29 +123,7 @@ export function SceneRenderer({
       {/* Scroll anchor */}
       <div ref={bottomRef} />
 
-      {/* Continue button — hidden only when story is complete */}
-      {status !== "story_complete" && (
-        <div className="flex justify-center pt-2 pb-4">
-          <button
-            onClick={onAdvance}
-            data-testid="continue-button"
-            className="flex items-center gap-2 px-6 py-2 rounded text-sm font-medium transition-opacity hover:opacity-80 active:opacity-60"
-            style={{
-              backgroundColor: "var(--background-panel)",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "var(--border)",
-              color: "var(--foreground-muted)",
-            }}
-            aria-label="Continue story"
-          >
-            <span>{isSceneEnd ? "Next ›" : "Continue"}</span>
-            <span aria-hidden="true" style={{ color: "var(--accent-gold)" }}>
-              ▾
-            </span>
-          </button>
-        </div>
-      )}
+      {/* No continue button — click anywhere on chat area to advance */}
     </div>
   );
 }

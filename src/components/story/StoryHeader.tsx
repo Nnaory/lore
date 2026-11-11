@@ -3,8 +3,7 @@
  *
  * Sticky header displayed above the story content area.
  * Shows the current location and chapter information.
- *
- * Follows DESIGN.md §5.3 A — always visible, does not scroll with content.
+ * Desktop only — mobile uses navbar.
  */
 
 type StoryHeaderProps = {
@@ -21,30 +20,25 @@ export function StoryHeader({
   return (
     <div
       data-testid="story-header"
-      className="flex-shrink-0 px-6 py-4"
-      style={{
-        backgroundColor: "var(--background-panel)",
-        borderBottomWidth: "1px",
-        borderBottomStyle: "solid",
-        borderBottomColor: "var(--border)",
-      }}
+      className="hidden md:flex-shrink-0 border-b px-6 py-3"
+      style={{ borderBottomColor: "var(--border-dim)" }}
     >
-      {/* Location */}
-      <h2
-        className="text-base font-semibold tracking-wide"
-        style={{ color: "var(--foreground)" }}
-      >
-        {location ?? storyTitle}
-      </h2>
-      {/* Chapter info */}
-      {chapterTitle && (
-        <p
-          className="text-xs tracking-widest uppercase mt-0.5"
-          style={{ color: "var(--foreground-muted)" }}
+      <div className="max-w-4xl mx-auto">
+        <h2
+          className="text-base font-semibold tracking-wide"
+          style={{ color: "var(--foreground)" }}
         >
-          {chapterTitle}
-        </p>
-      )}
+          {location ?? storyTitle}
+        </h2>
+        {chapterTitle && (
+          <p
+            className="text-xs tracking-widest uppercase mt-0.5"
+            style={{ color: "var(--foreground-faint)" }}
+          >
+            {chapterTitle}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

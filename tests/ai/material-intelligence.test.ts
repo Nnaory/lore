@@ -71,7 +71,7 @@ describe("Material Intelligence Service — Pipeline", () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.blueprint.material_id).toBe("material_01");
+      expect(result.blueprint.material_id).toMatch(/^material_la_[a-z0-9]+$/);
       expect(result.blueprint.concepts.length).toBe(2);
     }
   });

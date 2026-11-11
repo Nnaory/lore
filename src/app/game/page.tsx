@@ -12,8 +12,6 @@
 
 "use client";
 
-import { useMemo } from "react";
-import type { Metadata } from "next";
 import {
   dummyStory,
   dummyStory2,

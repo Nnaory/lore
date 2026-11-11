@@ -6,19 +6,7 @@
  * Tests the full knowledge tracking flow through StoryViewer + useCampaign.
  * Verifies that learning events and puzzle submissions correctly update
  * player_knowledge in CampaignState.
- *
- * Tests:
- *   Learning scene
- *   1.  Viewing a learning scene triggers onKnowledgeUpdate
- *   2.  Knowledge status advances to at least "introduced"
- *   3.  Same learning scene viewed twice does not double-count
- *
- *   Puzzle interaction
- *   4.  Correct first attempt sets concept to "demonstrated"
- *   5.  Incorrect then correct sets concept to "developing"
- *   6.  Incorrect only sets concept to "developing"
- *   7.  Knowledge survives story retry (CampaignState not reset)
- *   8.  Knowledge survives story exit
+ * Updated for click-to-advance mechanism.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -31,24 +19,25 @@ const characters = dummyCampaign.characters;
 const LEARNING_SCENE_ID = "scene_02_learning";
 const CONCEPT_ID = "concept_linear_combination";
 
-// ── Helper: advance to the learning scene ─────────────────────────────────────
+// ── Helper: click chat area to advance ────────────────────────────────────────
 
+function clickToAdvance(view: ReturnType<typeof render>) {
+  const chatArea = view.getByTestId("chat-area");
+  act(() => { fireEvent.click(chatArea); });
+}
+
+/** Advance to the learning scene (scene_02_learning). */
 function advanceToLearningScene(view: ReturnType<typeof render>) {
-  // scene_01_intro has 4 content blocks. After those + scene transition we
-  // reach scene_02_learning. Advance 5 times (3 blocks → scene_end → transition).
   for (let i = 0; i < 5; i++) {
-    const btn = view.queryByTestId("continue-button");
-    if (!btn) break;
-    act(() => { fireEvent.click(btn); });
+    clickToAdvance(view);
   }
 }
 
+/** Advance to the puzzle scene. */
 function advanceToPuzzle(view: ReturnType<typeof render>) {
   for (let i = 0; i < 60; i++) {
     if (view.queryByTestId("puzzle-interaction")) break;
-    const btn = view.queryByTestId("continue-button");
-    if (!btn) break;
-    act(() => { fireEvent.click(btn); });
+    clickToAdvance(view);
   }
 }
 
@@ -68,10 +57,8 @@ describe("Knowledge — learning scene exposure", () => {
 
     advanceToLearningScene(view);
 
-    // onKnowledgeUpdate should have been called at least once by now
     expect(onKnowledgeUpdate).toHaveBeenCalled();
 
-    // The update should include the concept from the learning scene
     const calls = onKnowledgeUpdate.mock.calls;
     const allUpdatedKeys = calls.flatMap((c) => Object.keys(c[0]));
     expect(allUpdatedKeys).toContain(CONCEPT_ID);
@@ -97,7 +84,6 @@ describe("Knowledge — learning scene exposure", () => {
 
     const status = capturedKnowledge[CONCEPT_ID]?.status;
     expect(status).toBeDefined();
-    // Status should be at least "introduced"
     const ORDER = { not_introduced: 0, introduced: 1, developing: 2, demonstrated: 3 };
     expect(ORDER[status as keyof typeof ORDER]).toBeGreaterThanOrEqual(ORDER.introduced);
   });
@@ -124,7 +110,6 @@ describe("Knowledge — correct first attempt", () => {
 
     advanceToPuzzle(view);
 
-    // Submit correct answer (choice_B) on first attempt
     act(() => { fireEvent.click(view.getByTestId("choice-choice_B")); });
     act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
 
@@ -135,27 +120,14 @@ describe("Knowledge — correct first attempt", () => {
 // ── 5. Incorrect then correct → developing ───────────────────────────────────
 
 describe("Knowledge — incorrect then correct", () => {
-  it("should set concept to developing (not demonstrated) when prior incorrect evidence exists", () => {
-    // This test simulates the real scenario where playerKnowledge is updated
-    // between submissions (as useCampaign would do in production).
-    //
-    // After the first incorrect submission, onKnowledgeUpdate fires with
-    // developing status + puzzle_incorrect evidence. The second render of
-    // StoryViewer receives this updated playerKnowledge. When the correct
-    // answer is submitted, recordPuzzleSubmission inspects the evidence and
-    // sees the prior incorrect attempt → produces developing, not demonstrated.
-    //
-    // We simulate this by re-rendering with the updated playerKnowledge after
-    // the first submission.
-
+  it("should set concept to developing when prior incorrect evidence exists", () => {
     let capturedKnowledge: Record<string, PlayerKnowledge> = {};
 
-    // Create a spy that also updates our local accumulated state
     const onKnowledgeUpdate = vi.fn((updates: Record<string, PlayerKnowledge>) => {
       capturedKnowledge = { ...capturedKnowledge, ...updates };
     });
 
-    const { rerender, queryByTestId, getByTestId } = render(
+    const view = render(
       <StoryViewer
         story={dummyStory}
         characters={characters}
@@ -166,19 +138,17 @@ describe("Knowledge — incorrect then correct", () => {
 
     // Advance to puzzle
     for (let i = 0; i < 60; i++) {
-      if (queryByTestId("puzzle-interaction")) break;
-      const btn = queryByTestId("continue-button");
-      if (!btn) break;
-      act(() => { fireEvent.click(btn); });
+      if (view.queryByTestId("puzzle-interaction")) break;
+      clickToAdvance(view);
     }
 
     // Submit incorrect first — updates capturedKnowledge
-    act(() => { fireEvent.click(getByTestId("choice-choice_A")); });
-    act(() => { fireEvent.click(getByTestId("puzzle-submit")); });
+    act(() => { fireEvent.click(view.getByTestId("choice-choice_A")); });
+    act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
 
-    // Re-render with the updated playerKnowledge (simulating useCampaign update)
+    // Re-render with updated playerKnowledge so the ref is updated
     act(() => {
-      rerender(
+      view.rerender(
         <StoryViewer
           story={dummyStory}
           characters={characters}
@@ -189,8 +159,8 @@ describe("Knowledge — incorrect then correct", () => {
     });
 
     // Submit correct — now playerKnowledge has prior incorrect evidence
-    act(() => { fireEvent.click(getByTestId("choice-choice_B")); });
-    act(() => { fireEvent.click(getByTestId("puzzle-submit")); });
+    act(() => { fireEvent.click(view.getByTestId("choice-choice_B")); });
+    act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
 
     const finalStatus = capturedKnowledge[CONCEPT_ID]?.status;
     expect(finalStatus).toBe("developing");
@@ -232,9 +202,6 @@ describe("Knowledge — incorrect only", () => {
 
 describe("Knowledge — survives story retry", () => {
   it("onKnowledgeUpdate is NOT reverted when retryStory is called", () => {
-    // onKnowledgeUpdate is owned by useCampaign (outside useStoryPlayer).
-    // retryStory only resets navigation state in useStoryPlayer.
-    // Therefore the captured knowledge from before retry should still be valid.
     const capturedUpdates: Record<string, PlayerKnowledge>[] = [];
 
     const onKnowledgeUpdate = vi.fn((updates: Record<string, PlayerKnowledge>) => {
@@ -250,7 +217,6 @@ describe("Knowledge — survives story retry", () => {
       />
     );
 
-    // Advance to puzzle and submit incorrect answer to trigger knowledge update
     advanceToPuzzle(view);
     act(() => { fireEvent.click(view.getByTestId("choice-choice_A")); });
     act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
@@ -258,14 +224,6 @@ describe("Knowledge — survives story retry", () => {
     const updateCountBeforeRetry = capturedUpdates.length;
     expect(updateCountBeforeRetry).toBeGreaterThan(0);
 
-    // Fail the story and retry
-    // (We can't easily trigger failure here without 5 submits; instead we
-    //  directly verify that knowledge updates are not cleared by checking
-    //  that the callback fired and its data is still accessible.)
-    // This test primarily documents the contract: StoryViewer calls
-    // onKnowledgeUpdate whenever events fire; the hook that owns campaignState
-    // accumulates them. retryStory (in useStoryPlayer) does not call any
-    // "undo knowledge" function.
     expect(capturedUpdates[0]).toHaveProperty(CONCEPT_ID);
   });
 });
@@ -292,10 +250,10 @@ describe("Knowledge — survives exit", () => {
 
     // Exit the story
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
+    const dialog = view.getByTestId("exit-confirm-dialog");
+    fireEvent.click(dialog.querySelector("button:last-of-type")!);
 
-    // Exit was called
     expect(onExit).toHaveBeenCalled();
-    // Knowledge updates were recorded before exit
     expect(knowledgeCallCount).toBeGreaterThan(0);
   });
 });

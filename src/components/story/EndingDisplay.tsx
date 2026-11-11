@@ -2,7 +2,7 @@
  * EndingDisplay
  *
  * Renders the story ending — shown when an ending scene is reached.
- * Displays the ending title, type badge, and narration.
+ * Minimalist gold/black theme with divider lines.
  */
 
 import type { Ending } from "@/lib/types/scene";
@@ -18,55 +18,67 @@ const endingTypeLabel: Record<Ending["type"], string> = {
 };
 
 const endingTypeStyle: Record<Ending["type"], React.CSSProperties> = {
-  success: { backgroundColor: "#1a3a2a", borderColor: "#2d6a4a", color: "#6fcf97" },
-  failure: { backgroundColor: "#3a1a1a", borderColor: "#6a2d2d", color: "#eb5757" },
-  partial_success: { backgroundColor: "#2a2a1a", borderColor: "#6a5a2d", color: "#f2c94c" },
+  success: { backgroundColor: "rgba(111, 207, 151, 0.1)", borderColor: "#2d6a4a", color: "#6fcf97" },
+  failure: { backgroundColor: "rgba(216, 74, 58, 0.1)", borderColor: "#6a2d2d", color: "#eb5757" },
+  partial_success: { backgroundColor: "rgba(242, 201, 76, 0.1)", borderColor: "#6a5a2d", color: "#f2c94c" },
 };
 
 export function EndingDisplay({ ending }: EndingDisplayProps) {
   return (
     <div
       data-testid="ending-display"
-      className="rounded-lg p-6 my-4 text-center"
+      className="w-full max-w-2xl mx-auto"
       style={{
         backgroundColor: "var(--background-panel)",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "var(--accent-gold)",
+        border: "1px solid var(--accent-gold)",
+        borderRadius: "0.5rem",
+        overflow: "hidden",
       }}
       role="region"
       aria-label={`Story ending: ${ending.title}`}
     >
-      {/* Decorative gold line */}
-      <div className="lore-divider mb-5" />
+      {/* Top divider */}
+      <div className="chat-divider" aria-hidden="true" />
 
       {/* Type badge */}
-      <span
-        data-testid="ending-type-badge"
-        className="inline-block text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-4"
-        style={endingTypeStyle[ending.type]}
-      >
-        {endingTypeLabel[ending.type]}
-      </span>
+      <div className="px-6 py-4 text-center">
+        <span
+          data-testid="ending-type-badge"
+          className="inline-block text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full"
+          style={endingTypeStyle[ending.type]}
+        >
+          {endingTypeLabel[ending.type]}
+        </span>
+      </div>
+
+      {/* Divider */}
+      <div className="chat-divider" aria-hidden="true" />
 
       {/* Title */}
-      <h2
-        className="text-xl font-semibold tracking-wide mb-4"
-        style={{ color: "var(--accent-gold)" }}
-      >
-        {ending.title}
-      </h2>
+      <div className="px-6 py-4 text-center">
+        <h2
+          className="text-xl font-semibold tracking-wide"
+          style={{ color: "var(--accent-gold)" }}
+        >
+          {ending.title}
+        </h2>
+      </div>
+
+      {/* Divider */}
+      <div className="chat-divider" aria-hidden="true" />
 
       {/* Narration */}
-      <p
-        className="text-sm leading-7 italic max-w-lg mx-auto"
-        style={{ color: "var(--foreground-muted)" }}
-      >
-        {ending.narration}
-      </p>
+      <div className="px-6 py-4">
+        <p
+          className="text-base leading-7 italic text-center"
+          style={{ color: "var(--foreground-muted)" }}
+        >
+          {ending.narration}
+        </p>
+      </div>
 
-      {/* Decorative gold line */}
-      <div className="lore-divider mt-5" />
+      {/* Bottom divider */}
+      <div className="chat-divider" aria-hidden="true" />
     </div>
   );
 }

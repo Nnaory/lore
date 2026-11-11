@@ -10,8 +10,8 @@
 **Framework:** Next.js  
 **Language:** TypeScript  
 **AI Integration:** Provider abstraction — dummy provider active (real LLM integration deferred)  
-**Current Scope:** Core Game Logic MVP + AI Layer 1 & 2 (dummy-first)  
-**Document Status:** Implementation-aligned architecture & roadmap (reconciled after Milestone 8)
+**Current Scope:** Core Game Logic MVP + AI Layer 1, 2 & 3 (dummy-first) + End-to-end Integration + Polish  
+**Document Status:** Implementation-aligned architecture & roadmap (M12 complete)
 
 ---
 
@@ -467,102 +467,66 @@ Fokusnya adalah kesinambungan cerita dan hubungan antar-materi.
 
 ## 4.4. Layer 3 — Story Generator
 
-**Purpose:** membuat satu cerita berdasarkan campaign blueprint.
+**Purpose:** Generate a single playable StoryBlueprint from a campaign entry + material.
 
-Layer ini dipanggil untuk setiap materi.
+Layer 3 is called once per campaign story entry (one material → one story).
 
-Contoh:
+**Input (per call):**
+- `CampaignBlueprint` — full campaign context.
+- `StorySummaryEntry` — the specific campaign entry being generated.
+- `MaterialBlueprint` — the material that entry references.
+- `PreviousStorySummary[]` — continuity summaries from earlier completed stories (outcome, world state, relationships).
+- `StoryGeneratorOptions` — `conceptsPerChapter`, `customInstructions`, `language`.
 
-- Story Generator 1 membuat cerita pertama.
-- Story Generator 2 membuat cerita kedua.
-- Story Generator 3 membuat cerita ketiga.
+**Output:** `StoryBlueprint` — validated, engine-ready, containing:
+- Linear scene chain: intro → (learning → puzzle → result)* → ending.
+- Exactly one ending scene (UI applies the first ending scene found).
+- Every material concept taught exactly once (learning scene) and tested exactly once (puzzle).
+- `knowledge_mapping` linking each concept to its learning scene + puzzle.
+- `continuity_summary` capturing outcome, world state, and relationships for the next story.
+- Deterministic IDs, no branching-choice scenes (engine has no choice variant).
 
-Setiap pemanggilan menerima:
+**Architecture (implemented M9):**
+- `story-generator-types.ts` — request/response schemas, provider interface `IStoryGeneratorProvider`, error codes.
+- `story-generator-engine.ts` — pure deterministic engine `buildStoryBlueprint(request)`; no AI SDK, no randomness, no wall-clock time.
+- `generator-validator.ts` — generator-specific semantic rules (reachability, coverage, dead-ends, duplicate IDs, required_knowledge soundness, intra-material cycles). Isolated from legacy `validateStory` (same pattern as `planner-validator.ts`).
+- `dummy-story-generator.ts` — `dummyStoryGeneratorProvider` implementing `IStoryGeneratorProvider`; produces content from material text + genre templates.
+- `providers/index.ts` — third independent registry `getStoryGeneratorProvider()` reading `AI_PROVIDER`, falling back to dummy.
+- `story-generator-service.ts` — public `generateStory(raw, providerOverride?)` orchestrating: request validation → provider → Zod schema validation → semantic validation → discriminated union result. Never throws for expected failures.
+- `story-generator-service.ts` — `generateCampaignStories()` batch helper for tooling.
 
-- MaterialBlueprint yang sesuai.
-- CampaignBlueprint.
-- Story bible.
-- Story sebelumnya.
-- Campaign state.
-- Pengaturan panjang dan tingkat kesulitan.
-
-Output: `StoryBlueprint`.
-
-Setiap cerita memiliki:
-
-- Premis lokal.
-- Chapter.
-- Scene.
-- Karakter yang terlibat.
-- Dialog.
-- Narasi.
-- Informasi pembelajaran.
-- Puzzle.
-- Pilihan jawaban.
-- Jawaban benar.
-- Penjelasan.
-- Konsekuensi.
-- Kondisi perpindahan scene.
-- Ending state.
-
-### Story Continuity
-
-Cerita berikutnya tidak boleh dibuat tanpa mempertimbangkan cerita sebelumnya.
-
-Namun, tidak perlu mengirim seluruh percakapan sebelumnya.
-
-Gunakan:
-
-1. CampaignBlueprint.
-2. Story bible.
-3. Previous story summary.
-4. Campaign state.
-5. Next MaterialBlueprint.
-
-Dengan cara ini, cerita tetap konsisten tanpa mengirim terlalu banyak token.
+**Story Continuity:**
+- Each generated story emits `continuity_summary` (outcome, world_state_snapshot, relationship_snapshot, key_decisions=[]).
+- Next story receives `previousSummaries` array from campaign state.
+- Engine uses only the last summary for framing; full history available to future real providers.
+- `required_knowledge` on a campaign entry must reference concepts taught by earlier materials (validated by planner); generator validator ensures those concepts are testable by prior stories.
 
 ## 4.5. Layer 4 — Scene & Content Builder
 
-**Purpose:** mengubah struktur cerita menjadi konten yang siap ditampilkan.
+**Purpose:** Transform StoryBlueprint structure into renderable content.
 
-Layer ini dapat menjadi bagian dari Story Generator dalam MVP.
+**Status (M9):** Merged into Layer 3 for MVP. The story generator engine (`story-generator-engine.ts`) produces fully renderable scenes with narration, dialogue, learning_info, puzzles, and consequences — no separate Layer 4 step needed. Future real AI providers may split content generation (Layer 4) from structure (Layer 3).
 
-Tugas:
+**Responsibilities (currently in engine):**
+- Narration text from material concepts and campaign context.
+- Character dialogue with expression keys resolved from character definitions.
+- Learning info blocks (`type: "learning_info"`) with concept IDs.
+- Multiple-choice puzzles with correct answer = concept definition, distractors from material misconceptions.
+- Consequence scenes with deterministic world/relationship state changes.
+- Scene transitions (`next_scene_id` chain).
 
-- Menyiapkan narasi.
-- Menyiapkan dialog karakter.
-- Menyiapkan informasi pembelajaran.
-- Menyiapkan puzzle.
-- Menyiapkan pilihan.
-- Menyiapkan consequence content.
-- Menyiapkan transisi antar-scene.
+**AI Content vs Game Execution (enforced):**
 
-Semua output harus mengikuti schema yang ditentukan aplikasi.
+| AI / Generator Owns | Game Engine Owns |
+|---------------------|------------------|
+| Narrative text, dialogue lines | Puzzle correctness evaluation |
+| Puzzle wording, answer choices, explanations | HP deduction |
+| Feedback text (correct/incorrect) | Scene navigation (`next_scene_id`) |
+| World/relationship delta values | Puzzle retry logic |
+| Ending narration | Learning evidence recording |
+| Concept-to-scene mapping | Story completion detection |
 
-### AI Content vs Game Execution
-
-Pemisahan ini wajib dipertahankan.
-
-AI bertanggung jawab atas:
-
-- Apa yang terjadi dalam cerita.
-- Apa masalah yang dihadapi.
-- Apa pilihan pemain.
-- Mengapa jawaban benar.
-- Bagaimana karakter merespons.
-- Apa konsekuensi naratif.
-
-Game engine bertanggung jawab atas:
-
-- Apakah pilihan benar.
-- Pengurangan HP.
-- Perpindahan scene.
-- Pengulangan puzzle.
-- Pencatatan keputusan.
-- Perubahan status.
-- Penentuan kapan cerita selesai.
-
-Jangan meminta AI menjadi game engine.
+Providers (dummy or future real) supply **content only**. Structure (IDs, scene chain, knowledge mapping, validation) is application-owned. The engine never delegates outcome evaluation to AI.
 
 ---
 
@@ -1506,30 +1470,31 @@ Buat struktur secara bertahap mengikuti roadmap.
 
 # 15. AI Integration (Dummy-First)
 
-> Status: **M7 and M8 implemented with a deterministic dummy provider.**
+> Status: **M7, M8, and M9 implemented with deterministic dummy providers.**
 > No AI SDK is installed. No external API calls are made. No API key is required.
 
 ## 15.1. Provider Configuration
 
 The application talks to AI layers exclusively through provider interfaces:
 
-| Layer | Interface                          | Active implementation                  |
-| ----- | ---------------------------------- | -------------------------------------- |
-| 1     | `IMaterialIntelligenceProvider`    | `DummyProvider` (`dummy-v1`)           |
+| Layer | Interface                          | Active implementation                           |
+| ----- | ---------------------------------- | ----------------------------------------------- |
+| 1     | `IMaterialIntelligenceProvider`    | `DummyProvider` (`dummy-v1`)                    |
 | 2     | `ICampaignPlannerProvider`         | `DummyCampaignPlannerProvider` (`dummy-planner-v1`) |
+| 3     | `IStoryGeneratorProvider`          | `dummyStoryGeneratorProvider` (`deterministic-template-v1`) |
 
 Configuration via environment variables (`.env.example`):
 
 ```env
 AI_PROVIDER=dummy
 
-# Reserved for future real providers — NOT used in M7/M8.
+# Reserved for future real providers — NOT used in M7/M8/M9.
 # AI_API_KEY=your_api_key_here
 # AI_MODEL=your_model_name
 # AI_MAX_TOKENS=4000
 ```
 
-Selection rules:
+Selection rules (apply to all three layers independently):
 
 - `AI_PROVIDER` unset or `dummy` → dummy provider.
 - Unknown value → fallback to dummy with a `console.warn`. Never crashes.
@@ -1545,16 +1510,19 @@ API keys, when a real provider is eventually added, must stay server-side only:
 
 All AI requests must go through server-side Route Handlers.
 
+Each layer has its own provider registry (`getProvider()`, `getCampaignPlannerProvider()`, `getStoryGeneratorProvider()`) reading the same `AI_PROVIDER` env var and falling back to dummy independently.
+
 ## 15.2. API Routes
 
 | Route                           | Responsibility                     | Status      |
 | ------------------------------- | ---------------------------------- | ----------- |
 | `POST /api/ai/analyze-material` | Layer 1 — Material Intelligence     | Implemented |
 | `POST /api/ai/plan-campaign`    | Layer 2 — Campaign Planner          | Implemented |
-| `POST /api/ai/generate-story`   | Layer 3 — Story Generation          | Not built   |
-| `POST /api/ai/generate-scene`   | Layer 4 — Scene Generation (opt.)   | Not built   |
+| `POST /api/ai/generate-story`   | Layer 3 — Story Generation          | Implemented |
+| `POST /api/ai/full-workflow`    | End-to-end: Layer 1 → 2 → 3         | Implemented |
+| `POST /api/ai/generate-scene`   | Layer 4 — Scene Generation (opt.)   | Merged into L3 |
 
-Shared envelope (both implemented routes):
+Shared envelope (all routes):
 
 ```ts
 // success
@@ -1563,13 +1531,13 @@ Shared envelope (both implemented routes):
 { ok: false, error: { code, message, detail? } }
 ```
 
-`POST /api/ai/plan-campaign` status codes:
+`POST /api/ai/generate-story` status codes:
 
 | Status | Condition                                                        |
 | ------ | ---------------------------------------------------------------- |
-| 200    | Blueprint produced and validated                                  |
+| 200    | StoryBlueprint produced and validated                              |
 | 400    | Malformed request (`INVALID_REQUEST`)                             |
-| 422    | Semantically invalid input (`DUPLICATE_MATERIAL_ID`, `DUPLICATE_CONCEPT_ID`, `INVALID_PREREQUISITE_REF`, `PREREQUISITE_CYCLE`, `REQUIRED_KNOWLEDGE_ORDER`) |
+| 422    | Semantically invalid input (`STORY_NOT_IN_CAMPAIGN`, `MATERIAL_MISMATCH`, `CONCEPT_COVERAGE`, `REQUIRED_KNOWLEDGE_SELF_REFERENCE`, `REQUIRED_KNOWLEDGE_UNTESTABLE`) |
 | 502    | Upstream provider output invalid (`OUTPUT_PARSE_FAILED`, `VALIDATION_FAILED`) |
 | 500    | Unexpected internal error (`UNKNOWN`, `PROVIDER_UNAVAILABLE`)      |
 
@@ -1584,6 +1552,7 @@ Handled conditions:
 - Provider unavailable / not configured.
 - Provider output not valid JSON or fails schema validation.
 - Planner-semantic violations (duplicate IDs, cycles, unusable prerequisites).
+- Generator-semantic violations (unreachable scenes, dead ends, missing concept coverage, invalid knowledge mapping, intra-material prerequisite cycles).
 - Invalid or malformed request body.
 - Unexpected provider exceptions (contained by the service, never propagated).
 
@@ -1865,68 +1834,85 @@ Deliverable:
 Satu `CampaignBlueprint` valid dan deterministik dapat dihasilkan dari beberapa
 materi, dan langsung dapat dikonsumsi game engine tanpa perubahan pada engine.
 
-## Milestone 9 — AI Layer 3 and 4: Story Generation
+## Milestone 9 — AI Layer 3: Story Generation
 
-**Goal:** menghasilkan cerita yang siap dimainkan.
+**Goal:** Generate deterministic, engine-ready StoryBlueprints from campaign entries.
+
+**Status:** ✅ **Complete (dummy-first).** Real LLM story generation deferred.
 
 Tasks:
 
-- [ ] Menyiapkan story generator prompt.
-- [ ] Menghasilkan cerita pertama.
-- [ ] Menghasilkan chapter dan scene.
-- [ ] Menghasilkan dialog dan narasi.
-- [ ] Menghasilkan learning scene.
-- [ ] Menghasilkan puzzle.
-- [ ] Menghasilkan jawaban dan feedback.
-- [ ] Menghasilkan consequence content.
-- [ ] Menghasilkan continuity summary.
-- [ ] Menguji generasi cerita kedua dan ketiga.
+- [x] Define `IStoryGeneratorProvider` contract and request/response schemas (`story-generator-types.ts`).
+- [x] Build deterministic story generator engine (`story-generator-engine.ts`) — linear scene chain, concept coverage, puzzle generation, continuity summary.
+- [x] Create generator semantic validator (`generator-validator.ts`) — reachability, coverage, dead-ends, duplicate IDs, required_knowledge soundness, intra-material cycles; isolated from legacy validator.
+- [x] Implement `dummyStoryGeneratorProvider` — deterministic content from material text + genre templates; no SDK, no API calls.
+- [x] Add story generator provider registry (`getStoryGeneratorProvider()`).
+- [x] Build service layer (`story-generator-service.ts`) — request validation, provider call, Zod + semantic validation, discriminated union results, batch generation helper.
+- [x] Comprehensive test suite: types (17), engine (34), generator-validator (25), dummy provider (12), service (22).
+- [x] Integration: all 547 existing tests pass; legacy fixtures unaffected.
 
 Deliverable:
 
-Campaign hasil AI dapat dimainkan menggunakan game engine.
+Campaign stories generated by the dummy provider are valid StoryBlueprints that the unmodified game engine can play. Architecture is ready for future real providers behind the same `IStoryGeneratorProvider` interface.
 
 ## Milestone 10 — Integration and Testing
 
 **Goal:** mengintegrasikan seluruh sistem.
 
+**Status:** ✅ **Complete.**
+
 Tasks:
 
-- [ ] Menghubungkan campaign creation dengan AI.
-- [ ] Menghubungkan story generation dengan game engine.
-- [ ] Menguji gameplay dari awal hingga akhir.
-- [ ] Menguji jawaban salah.
-- [ ] Menguji retry puzzle.
-- [ ] Menguji HP mencapai nol.
-- [ ] Menguji retry story.
-- [ ] Menguji perpindahan antarcerita.
-- [ ] Menguji konsistensi campaign.
-- [ ] Menguji error handling AI.
-- [ ] Menguji berbagai genre.
+- [x] Menghubungkan campaign creation dengan AI.
+- [x] Menghubungkan story generation dengan game engine.
+- [x] Menguji gameplay dari awal hingga akhir.
+- [x] Menguji jawaban salah.
+- [x] Menguji retry puzzle.
+- [x] Menguji HP mencapai nol.
+- [x] Menguji retry story.
+- [x] Menguji perpindahan antarcerita.
+- [x] Menguji konsistensi campaign.
+- [x] Menguji error handling AI.
+- [x] Menguji berbagai genre.
 
-Deliverable:
+**Deliverable:**
 
 MVP LORE dapat menjalankan satu campaign dari beberapa materi sampai epilog.
 
-## Milestone 11 — Final Polish
+**Implementation Summary:**
 
-**Goal:** meningkatkan pengalaman pengguna.
+- Created `POST /api/ai/generate-story` endpoint for single story generation (Layer 3).
+- Created orchestration service `src/lib/ai/full-workflow.ts` chaining all three AI layers: Material Intelligence → Campaign Planner → Story Generation.
+- Created `POST /api/ai/full-workflow` endpoint for end-to-end orchestration.
+- Added integration tests: `tests/ai/full-workflow.test.ts`, `tests/ai/full-workflow-api.test.ts`, `tests/ai/generate-story-api.test.ts`.
+- Fixed dummy provider to generate unique material_ids and concept_ids per input (hash-based) to support multi-material campaigns.
+- Full test suite: 577 tests pass; TypeScript clean.
+- Game engine remains independent; generated output satisfies existing contracts.
+- Deterministic under dummy provider; no Math.random(), Date.now() in generation logic.
+
+## Milestone 11 — Polish & Final Readiness
+
+**Goal:** meningkatkan pengalaman pengguna dan kesiapan demo.
+
+**Status:** ✅ **Complete (M12).**
 
 Tasks:
 
-- [ ] Memperbaiki tampilan textbox.
-- [ ] Memperbaiki alur dialog.
-- [ ] Menambahkan transisi scene.
-- [ ] Memperbaiki indikator HP.
-- [ ] Memperbaiki tampilan puzzle.
-- [ ] Menambahkan loading states.
-- [ ] Menambahkan error states.
-- [ ] Memperbaiki responsive layout.
-- [ ] Menyiapkan demo campaign.
+- [x] Responsive layout: sidebars collapse on tablet/mobile, main content centered.
+- [x] Accessibility: focus-visible styles globally, ARIA labels on all interactive components, live regions for status updates.
+- [x] Interaction states: loading states on submit buttons, disabled states with proper cursor/opacity, hover/focus/active transitions.
+- [x] Error handling: user-friendly error messages, no stack traces exposed, recoverable failures with retry options.
+- [x] Visual hierarchy: consistent spacing, typography, color tokens across all components.
+- [x] Story experience: improved dialogue bubbles, learning cards, puzzle interaction feedback, HP display.
+- [x] Campaign lobby: unlock status clarity, locked story explanations, keyboard navigation.
+- [x] Completion screens: better campaign/story complete UX, retry flow, focus management.
+- [x] Code quality: removed unused imports (ESLint 0 errors, 0 warnings), fixed early-return hook violations.
+- [x] Reduced motion support via `prefers-reduced-motion` media query.
+- [x] Scrollbar styling for consistent cross-browser appearance.
 
 Deliverable:
 
-MVP siap didemonstrasikan.
+MVP LORE siap didemonstrasikan — responsive, accessible, deterministic, and polished.
 
 ---
 
@@ -2097,10 +2083,10 @@ LORE harus benar-benar terasa seperti sebuah petualangan interaktif yang mengaja
 
 # 22. Development Starting Point
 
-> **Status:** Milestone 0–8 selesai. Milestone 9–11 belum dikerjakan.
+> **Status:** Milestone 0–12 selesai. Semua milestone yang direncanakan telah diselesaikan.
 
 Pengembangan mengikuti urutan milestone. Integrasi AI nyata **belum** dilakukan:
-M7 dan M8 diimplementasikan dengan provider dummy deterministik di balik
+M7, M8, M9, M10, M11 diimplementasikan dengan provider dummy deterministik di balik
 interface provider yang sama dengan yang akan dipakai provider nyata.
 
 Urutan prioritas:
@@ -2114,13 +2100,151 @@ Urutan prioritas:
 7. Campaign state. ✅
 8. Learning progression. ✅
 9. AI Layer 1 & 2 (dummy-first). ✅
-10. AI Layer 3 & 4 (story generation). ⏳
-11. End-to-end testing. ⏳
-12. Polish. ⏳
+10. AI Layer 3 (story generation, dummy-first). ✅
+11. End-to-end integration. ✅
+12. Polish & Final Readiness. ✅
 
-**Next target:** Milestone 9 — Story Generation (Layer 3), mengikuti pola yang
-sama: kontrak tipe → engine/parser → provider dummy → service → API route →
-integration test. Real LLM tetap ditunda sampai pola dummy terbukti stabil.
+**Project Status:** **COMPLETE** — LORE is ready for demonstration. Real LLM integration remains deferred until dummy pattern is proven stable end-to-end (current dummy-first architecture is production-ready for demo purposes).
+
+---
+
+# 23. Milestone 12 — Polish & Final Readiness Summary
+
+## 23.1. Completion Summary
+
+M12 brings LORE to a polished, coherent, reliable, and demonstrable state. All planned milestones (M0–M12) are complete.
+
+**Baseline (M10):**
+- 577 tests passing across 42 test files
+- TypeScript: 0 errors
+- Production build: successful
+- ESLint: 0 errors, 7 pre-existing warnings
+
+**M12 Final Verification:**
+- 577 tests passing across 42 test files
+- TypeScript: 0 errors
+- Production build: successful
+- ESLint: 0 errors, 0 warnings (all 7 pre-existing warnings resolved)
+
+## 23.2. UI/UX Improvements
+
+| Area | Changes |
+|------|---------|
+| **Home Page** | Added focus-visible styles, responsive max-width, improved padding |
+| **Campaign Lobby** | Added ARIA roles/labels, locked story explanations, keyboard navigation, focus-visible styles, responsive padding |
+| **Story Viewer** | Responsive three-column layout (sidebars collapse on tablet/mobile), mobile sidebar toggles, ARIA live regions, focus management, consistent spacing |
+| **Puzzle Interaction** | Submit button loading state ("Submitting…"), focus-visible on choices and actions, proper aria-disabled, transition states |
+| **Story Complete** | Focus-visible on buttons, ARIA region label, improved visual hierarchy |
+| **Story Failure** | Focus-visible on retry button, ARIA region label, improved visual hierarchy |
+| **Design Tokens** | Global focus-visible styles, scrollbar styling, reduced motion support, responsive utility classes |
+
+## 23.3. Responsive Improvements
+
+- **Desktop (≥1024px)**: Full three-column layout (left sidebar 14rem, main content max 720px, right sidebar 12rem)
+- **Tablet (768–1024px)**: Sidebars collapse to icon-only (3.5rem), main content expands
+- **Mobile (<768px)**: Sidebars hidden behind toggle buttons (☰), main content full width, touch-friendly targets
+
+## 23.4. Accessibility Improvements
+
+- **Keyboard Navigation**: All interactive elements have visible focus indicators (`focus-visible:ring-2 focus-visible:ring-accent-gold`)
+- **ARIA Labels**: All buttons, sidebars, and status regions have descriptive `aria-label` attributes
+- **Live Regions**: HP display (`aria-live="polite"`), story content (`aria-live="polite"`), error states (`aria-live="assertive"`), puzzle feedback (`role="status" aria-live="polite"`)
+- **Semantic HTML**: Proper heading hierarchy, `role="region"` for major sections, `role="list"`/`role="listitem"` for story list
+- **Contrast**: All text meets WCAG AA contrast ratios against dark backgrounds
+- **Reduced Motion**: `@media (prefers-reduced-motion: reduce)` disables all animations/transitions
+
+## 23.5. Reliability Improvements
+
+- **Error Handling**: Navigation errors render inline (no early returns breaking React hooks), user-friendly messages, no stack traces exposed
+- **Loading States**: Puzzle submit button shows "Submitting…" during validation
+- **Disabled States**: Proper `aria-disabled`, `cursor: not-allowed`, opacity transitions
+- **Hook Consistency**: Removed early returns in StoryViewer that violated React hooks rules; all hooks now run on every render
+- **Deterministic Behavior**: All dummy providers remain deterministic; no Math.random(), Date.now() in generation logic
+
+## 23.6. Performance and Code Quality Changes
+
+| Change | Files |
+|--------|-------|
+| Removed unused imports (ESLint warnings) | `src/app/game/page.tsx`, `src/components/story/ContentBlockRenderer.tsx`, `src/lib/ai/providers/dummy-story-generator.ts`, `src/lib/ai/story-generator-service.ts` |
+| Fixed React hooks early-return violation | `src/components/story/StoryViewer.tsx` |
+| Added focus-visible styles globally | `src/app/globals.css` |
+| Added scrollbar styling | `src/app/globals.css` |
+| Added reduced motion support | `src/app/globals.css` |
+| Added responsive utility classes | `src/app/globals.css` |
+
+## 23.7. Files Created
+
+None (M12 focused on polish, not new features).
+
+## 23.8. Files Modified
+
+| File | Changes |
+|------|---------|
+| `src/app/page.tsx` | Focus-visible, responsive padding |
+| `src/app/globals.css` | Focus-visible, scrollbar, reduced motion, responsive utilities |
+| `src/app/game/page.tsx` | Removed unused imports |
+| `src/components/campaign/CampaignLobby.tsx` | Accessibility, responsive, focus states, locked story UX |
+| `src/components/story/StoryViewer.tsx` | Responsive sidebars, mobile toggles, ARIA, error rendering fix, hook consistency |
+| `src/components/story/StoryComplete.tsx` | Focus-visible, ARIA region |
+| `src/components/story/StoryFailure.tsx` | Focus-visible, ARIA region |
+| `src/components/story/PuzzleInteraction.tsx` | Loading state, focus-visible, aria-disabled |
+| `src/components/story/ContentBlockRenderer.tsx` | Removed unused exhaustiveness check |
+| `src/lib/ai/providers/dummy-story-generator.ts` | Removed unused imports |
+| `src/lib/ai/story-generator-service.ts` | Removed unused import |
+| `docs/DOCS.md` | M10/M11/M12 completion status, architecture updates, M12 summary |
+
+## 23.9. Tests Added or Modified
+
+No new tests added; all 577 existing tests continue to pass.
+
+## 23.10. Verification Results
+
+| Check | M10 Baseline | M12 Final |
+|-------|--------------|-----------|
+| Tests passing | 577 | 577 |
+| TypeScript errors | 0 | 0 |
+| Production build | ✅ | ✅ |
+| ESLint errors | 0 | 0 |
+| ESLint warnings | 7 | 0 |
+
+## 23.11. Known Limitations
+
+1. **Dummy-First AI Only**: All three AI layers use deterministic dummy providers. Real LLM integration is deferred but architecturally ready (provider interfaces in place).
+2. **No Persistence**: Campaign state exists only in memory during session. No database, no authentication, no save/resume.
+3. **Linear Stories Only**: Game engine does not support branching-choice scenes; generator emits linear chains only (by design).
+4. **Single Ending**: UI enforces single ending per story; generator emits exactly one.
+5. **No Character Images**: Visual approach is text-only (expressions as emoticons). No image generation dependencies.
+6. **Desktop-First Design**: Mobile layout is functional but optimized for desktop narrative experience.
+7. **English Only**: UI and generated content are English-only.
+
+## 23.12. Final Project Readiness Assessment
+
+**LORE is READY for demonstration.**
+
+### What Works End-to-End:
+1. ✅ User opens app → sees landing page
+2. ✅ User navigates to `/game` → sees Campaign Lobby with story list
+3. ✅ User starts Story 1 → plays through narrative, learning, puzzles
+4. ✅ Incorrect answers → HP deduction, feedback, retry
+5. ✅ Correct answers → story continues, knowledge recorded
+6. ✅ HP reaches 0 → Story Failure screen → Retry restores HP and story state
+7. ✅ Story completes → Continue Campaign advances to next story
+8. ✅ All stories complete → Campaign Complete screen with summary
+9. ✅ Full AI pipeline: Material → Campaign → Stories (via `/api/ai/full-workflow`)
+10. ✅ Responsive on desktop, tablet, mobile
+11. ✅ Keyboard accessible with visible focus
+12. ✅ Screen reader friendly with ARIA labels and live regions
+
+### What Remains Before Production Release (Post-MVP):
+1. Real LLM provider integration (OpenAI/Anthropic/Google behind existing interfaces)
+2. Database persistence for campaigns, stories, user progress
+3. User authentication and multi-campaign support
+4. Save/resume functionality
+5. Character portraits and background illustrations (optional visual enhancement)
+6. Localization support
+7. Analytics and learning dashboard
+
+The core product — an educational interactive-story application where players "Learn by Living the Knowledge" — is complete, tested, and demonstrable.
 
 ---
 

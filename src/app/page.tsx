@@ -12,7 +12,7 @@ export default function Home() {
     <div
       className="lore-bg flex flex-col flex-1 items-center justify-center min-h-screen"
     >
-      <main className="flex flex-col items-center gap-8 text-center px-8 py-16 max-w-md">
+      <main className="flex flex-col items-center gap-8 text-center px-6 py-16 max-w-md w-full">
         {/* Wordmark */}
         <div className="flex flex-col items-center gap-2">
           <div
@@ -39,7 +39,7 @@ export default function Home() {
         <div className="lore-divider w-full" />
 
         {/* Campaign preview */}
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1 w-full">
           <p
             className="text-xs tracking-widest uppercase"
             style={{ color: "var(--foreground-faint)" }}
@@ -62,7 +62,7 @@ export default function Home() {
 
         <Link
           href="/game"
-          className="px-8 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60"
+          className="w-full px-8 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           style={{
             backgroundColor: "var(--accent)",
             color: "var(--foreground)",

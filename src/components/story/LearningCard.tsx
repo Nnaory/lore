@@ -2,11 +2,8 @@
  * LearningCard
  *
  * Renders a learning_info content block — an in-world presentation of a
- * learning concept, styled as a document or archival entry the player
- * "discovers" within the story.
- *
- * Visually distinct from both narration and dialogue to signal that this
- * is educational content worth noting.
+ * learning concept, styled as a discovered document.
+ * Minimalist gold/black theme with divider lines.
  */
 
 type LearningCardProps = {
@@ -19,20 +16,22 @@ export function LearningCard({ title, body, conceptIds }: LearningCardProps) {
   return (
     <div
       data-testid="learning-card"
-      className="rounded-lg p-4 my-2"
+      className="w-full max-w-4xl mx-auto"
       style={{
-        backgroundColor: "var(--background-surface)",
-        borderWidth: "1px",
-        borderStyle: "solid",
-        borderColor: "var(--accent-gold)",
-        borderLeftWidth: "3px",
+        backgroundColor: "var(--background-panel)",
+        border: "1px solid var(--border)",
+        borderLeft: "3px solid var(--accent-gold)",
+        borderRadius: "0.5rem",
+        overflow: "hidden",
       }}
       role="region"
       aria-label={`Learning: ${title}`}
     >
+      {/* Top divider */}
+      <div className="chat-divider" aria-hidden="true" />
+
       {/* Header */}
-      <div className="flex items-center gap-2 mb-3">
-        {/* Small decorative square accent */}
+      <div className="px-4 py-3 flex items-center gap-2">
         <span
           className="inline-block w-2 h-2 rounded-sm flex-shrink-0"
           style={{ backgroundColor: "var(--accent-gold)" }}
@@ -46,34 +45,40 @@ export function LearningCard({ title, body, conceptIds }: LearningCardProps) {
         </h3>
       </div>
 
-      {/* Body */}
-      <p
-        className="text-sm leading-7"
-        style={{ color: "var(--foreground)" }}
-      >
-        {body}
-      </p>
+      {/* Divider */}
+      <div className="chat-divider" aria-hidden="true" />
 
-      {/* Concept tags — for context/debugging; subtle */}
+      {/* Body */}
+      <div className="px-4 py-3">
+        <p className="text-sm leading-7" style={{ color: "var(--foreground)" }}>
+          {body}
+        </p>
+      </div>
+
+      {/* Concept tags */}
       {conceptIds.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {conceptIds.map((id) => (
-            <span
-              key={id}
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: "var(--background-panel)",
-                color: "var(--foreground-faint)",
-                borderWidth: "1px",
-                borderStyle: "solid",
-                borderColor: "var(--border-subtle)",
-              }}
-            >
-              {id}
-            </span>
-          ))}
-        </div>
+        <>
+          <div className="chat-divider" aria-hidden="true" />
+          <div className="px-4 py-3 flex flex-wrap gap-1">
+            {conceptIds.map((id) => (
+              <span
+                key={id}
+                className="text-xs px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: "var(--background)",
+                  color: "var(--foreground-faint)",
+                  border: "1px solid var(--border-dim)",
+                }}
+              >
+                {id}
+              </span>
+            ))}
+          </div>
+        </>
       )}
+
+      {/* Bottom divider */}
+      <div className="chat-divider" aria-hidden="true" />
     </div>
   );
 }

@@ -26,29 +26,34 @@ describe("DummyProvider — Deterministic Behavior", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("returns dummyMaterial for linear algebra content", async () => {
+  it("returns linear algebra blueprint with unique ID for linear algebra content", async () => {
     const request: AnalyzeMaterialRequest = {
       material: "This material covers linear combinations and vector span in linear algebra.",
     };
     const result = await provider.analyzeMaterial(request);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.blueprint.material_id).toBe(dummyMaterial.material_id);
-      expect(result.value.blueprint.title).toBe(dummyMaterial.title);
+      // material_id is now unique per input (material_la_<hash>)
+      expect(result.value.blueprint.material_id).toMatch(/^material_la_[a-z0-9]+$/);
+      expect(result.value.blueprint.title).toBe("Introduction to Linear Combinations");
       expect(result.value.blueprint.concepts).toHaveLength(dummyMaterial.concepts.length);
+      // Concept IDs are also unique per input
+      for (const concept of result.value.blueprint.concepts) {
+        expect(concept.concept_id).toMatch(/^concept_(linear_combination|vector_span)_[a-z0-9]+$/);
+      }
     }
   });
 
-  it("returns generic blueprint for unknown content", async () => {
+  it("returns generic blueprint with unique ID for unknown content", async () => {
     const request: AnalyzeMaterialRequest = {
       material: "The history of ancient Rome spans many centuries and includes many emperors.",
     };
     const result = await provider.analyzeMaterial(request);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.value.blueprint.material_id).toBe("material_generic");
+      expect(result.value.blueprint.material_id).toMatch(/^material_gen_[a-z0-9]+$/);
       expect(result.value.blueprint.concepts).toHaveLength(1);
-      expect(result.value.blueprint.concepts[0].concept_id).toBe("concept_core");
+      expect(result.value.blueprint.concepts[0].concept_id).toMatch(/^concept_core_[a-z0-9]+$/);
     }
   });
 

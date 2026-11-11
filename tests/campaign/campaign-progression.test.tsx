@@ -5,33 +5,7 @@
  *
  * Tests story completion, campaign advancement, and exit behavior
  * using StoryViewer and the useCampaign hook via GamePage-like setup.
- *
- * Tests:
- *   Story completion
- *   1. StoryComplete screen appears after story ends
- *   2. Continue Campaign button is present (non-final story)
- *   3. Clicking Continue Campaign calls onStoryComplete
- *   4. Exit button is present on completion screen
- *   5. Clicking Exit calls onExit
- *   6. Campaign complete message on final story
- *
- *   Exit mid-story
- *   7. Sidebar exit button is present and functional
- *   8. Exit does not trigger story completion
- *
- *   Story state isolation
- *   9. Retry does not modify campaign state (onStoryComplete not called)
- *   10. HP is 5 after completing a story and starting the next
- *
- *   Campaign lobby
- *   11. Lobby shows campaign title
- *   12. Lobby shows story list
- *   13. First story is available
- *   14. Second story is locked until first is complete
- *   15. Start story button starts the story
- *
- *   Regression
- *   16. Puzzle, HP, failure, and retry still work with new props
+ * Updated for click-to-advance mechanism.
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -53,17 +27,18 @@ const characters = dummyCampaign.characters;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/** Click the chat area to advance story. */
+function clickToAdvance(view: ReturnType<typeof render>) {
+  const chatArea = view.getByTestId("chat-area");
+  act(() => { fireEvent.click(chatArea); });
+}
+
 /** Advance through all scenes of dummyStory and reach the ending. */
-function advanceToEnding(
-  view: ReturnType<typeof render>,
-  onComplete = vi.fn(),
-) {
+function advanceToEnding(view: ReturnType<typeof render>) {
   for (let i = 0; i < 100; i++) {
     if (view.queryByTestId("story-complete-screen")) break;
     if (view.queryByTestId("ending-display")) {
-      // Ending is showing — continue once more to trigger the complete screen
-      const btn = view.queryByTestId("continue-button");
-      if (btn) act(() => { fireEvent.click(btn); });
+      clickToAdvance(view);
       break;
     }
     const puzzleInteraction = view.queryByTestId("puzzle-interaction");
@@ -78,9 +53,15 @@ function advanceToEnding(
         continue;
       }
     }
-    const btn = view.queryByTestId("continue-button");
-    if (!btn) break;
-    act(() => { fireEvent.click(btn); });
+    clickToAdvance(view);
+  }
+}
+
+/** Advance until puzzle interaction is visible. */
+function advanceToPuzzle(view: ReturnType<typeof render>) {
+  for (let i = 0; i < 60; i++) {
+    if (view.queryByTestId("puzzle-interaction")) break;
+    clickToAdvance(view);
   }
 }
 
@@ -158,7 +139,6 @@ describe("StoryViewer — story completion screen", () => {
     );
     advanceToEnding(view);
     expect(view.queryByTestId("campaign-complete-message")).toBeTruthy();
-    // No Continue Campaign button when campaign is done
     expect(view.queryByTestId("continue-campaign-button")).toBeNull();
   });
 });
@@ -179,6 +159,8 @@ describe("StoryViewer — exit mid-story", () => {
       <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
     );
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
+    const dialog = view.getByTestId("exit-confirm-dialog");
+    fireEvent.click(dialog.querySelector("button:last-of-type")!); // Exit Anyway
     expect(onExit).toHaveBeenCalledTimes(1);
   });
 
@@ -194,11 +176,13 @@ describe("StoryViewer — exit mid-story", () => {
       />
     );
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
+    const dialog = view.getByTestId("exit-confirm-dialog");
+    fireEvent.click(dialog.querySelector("button:last-of-type")!); // Exit Anyway
     expect(onStoryComplete).not.toHaveBeenCalled();
   });
 });
 
-// ── Retry does not affect campaign ───────────────────────────────────────────
+// ── Retry does not affect campaign ────────────────────────────────────────────
 
 describe("StoryViewer — retry isolation from campaign", () => {
   function submitNIncorrect(view: ReturnType<typeof render>, n: number) {
@@ -215,15 +199,6 @@ describe("StoryViewer — retry isolation from campaign", () => {
       if (clearBtn && !view.queryByTestId("story-failure")) {
         act(() => { fireEvent.click(clearBtn); });
       }
-    }
-  }
-
-  function advanceToPuzzle(view: ReturnType<typeof render>) {
-    for (let i = 0; i < 60; i++) {
-      if (view.queryByTestId("puzzle-interaction")) break;
-      const btn = view.queryByTestId("continue-button");
-      if (!btn) break;
-      act(() => { fireEvent.click(btn); });
     }
   }
 
@@ -291,7 +266,6 @@ describe("CampaignLobby", () => {
         onStartStory={vi.fn()}
       />
     );
-    // story_02 is locked because story_01 is not completed
     expect(view.queryByTestId("start-story-story_02")).toBeNull();
   });
 
@@ -327,7 +301,6 @@ describe("CampaignLobby", () => {
       dummyCampaign,
       dummyStory
     );
-    // story_02 requires concept_linear_combination demonstrated
     const state = {
       ...afterS1,
       player_knowledge: {
@@ -346,9 +319,7 @@ describe("CampaignLobby", () => {
       />
     );
     const badge = view.queryByTestId("story-badge-story_02");
-    // After story_01 completes and concept is demonstrated, story_02 becomes current → "Current"
     expect(badge?.textContent).toMatch(/Current|Available/);
-    // And its Start button should be visible (unlocked)
     expect(view.queryByTestId("start-story-story_02")).toBeTruthy();
   });
 });
@@ -360,17 +331,10 @@ describe("Regression — existing features still work with new props", () => {
     const view = render(
       <StoryViewer story={dummyStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
     );
-    // Advance to puzzle
-    for (let i = 0; i < 60; i++) {
-      if (view.queryByTestId("puzzle-interaction")) break;
-      const btn = view.queryByTestId("continue-button");
-      if (!btn) break;
-      act(() => { fireEvent.click(btn); });
-    }
+    advanceToPuzzle(view);
     act(() => { fireEvent.click(view.getByTestId("choice-choice_B")); });
     act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
     expect(view.queryByTestId("puzzle-continue")).toBeTruthy();
-    // HP unchanged
     expect(view.getByTestId("hp-value").textContent).toContain("5");
   });
 
@@ -378,14 +342,7 @@ describe("Regression — existing features still work with new props", () => {
     const view = render(
       <StoryViewer story={dummyStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
     );
-    // Advance to puzzle
-    for (let i = 0; i < 60; i++) {
-      if (view.queryByTestId("puzzle-interaction")) break;
-      const btn = view.queryByTestId("continue-button");
-      if (!btn) break;
-      act(() => { fireEvent.click(btn); });
-    }
-    // 5 incorrect answers
+    advanceToPuzzle(view);
     for (let i = 0; i < 5; i++) {
       if (view.queryByTestId("story-failure")) break;
       if (!view.queryByTestId("puzzle-interaction")) break;

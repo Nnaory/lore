@@ -1,0 +1,1 @@
+npx vitest run tests/ai/story-generator-service.test.ts 2>&1

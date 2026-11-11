@@ -9,6 +9,8 @@ import { IMaterialIntelligenceProvider, AIProviderId } from "@/lib/ai/types";
 import { DummyProvider } from "@/lib/ai/providers/dummy-provider";
 import type { ICampaignPlannerProvider } from "@/lib/ai/campaign-planner-types";
 import { DummyCampaignPlannerProvider } from "@/lib/ai/providers/dummy-campaign-planner-provider";
+import type { IStoryGeneratorProvider } from "@/lib/ai/story-generator-types";
+import { dummyStoryGeneratorProvider } from "@/lib/ai/providers/dummy-story-generator";
 
 /**
  * Returns the configured provider instance.
@@ -98,4 +100,50 @@ export function getCampaignPlannerProviderCached(): ICampaignPlannerProvider {
 
 export function resetCampaignPlannerProviderCache(): void {
   _cachedCampaignPlannerProvider = null;
+}
+
+// ---------------------------------------------------------------------------
+// Story Generator provider registry (Layer 3)
+//
+// Third independent registry — each service owns its selection. All read
+// AI_PROVIDER and fall back to dummy independently.
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the configured Story Generator provider.
+ * Defaults to dummyStoryGeneratorProvider if AI_PROVIDER is unset or unknown.
+ * Fail-closed: never crashes, always returns a working provider.
+ */
+export function getStoryGeneratorProvider(): IStoryGeneratorProvider {
+  const providerId = (process.env.AI_PROVIDER ?? "dummy") as AIProviderId;
+
+  switch (providerId) {
+    case "dummy":
+      return dummyStoryGeneratorProvider;
+    // Future providers — NOT implemented in M9:
+    // case "openai":
+    //   return new OpenAIStoryGeneratorProvider({ ... });
+    // case "anthropic":
+    //   return new AnthropicStoryGeneratorProvider({ ... });
+    // case "google":
+    //   return new GoogleStoryGeneratorProvider({ ... });
+    default:
+      console.warn(
+        `[AI] Unknown story generator provider "${providerId}", falling back to dummy`
+      );
+      return dummyStoryGeneratorProvider;
+  }
+}
+
+let _cachedStoryGeneratorProvider: IStoryGeneratorProvider | null = null;
+
+export function getStoryGeneratorProviderCached(): IStoryGeneratorProvider {
+  if (!_cachedStoryGeneratorProvider) {
+    _cachedStoryGeneratorProvider = getStoryGeneratorProvider();
+  }
+  return _cachedStoryGeneratorProvider;
+}
+
+export function resetStoryGeneratorProviderCache(): void {
+  _cachedStoryGeneratorProvider = null;
 }
