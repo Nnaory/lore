@@ -227,67 +227,56 @@ export function StoryViewer({
           <StoryFailure storyTitle={story.title} onRetry={retryStory} />
         ) : (
           <>
-            {/* ── Scrollable story content ─────────────────────────────────── */}
-            <div
-              className="flex-1 overflow-y-auto p-4 md:p-6"
-              style={{ maxWidth: "100%" }}
-              aria-live="polite"
-              aria-atomic="false"
-              aria-label="Story content"
-              onClick={handleCenterClick}
-              data-testid="chat-area"
-            >
-              {currentScene ? (
-                <SceneRenderer
-                  scene={currentScene}
-                  story={story}
-                  contentIndex={playerState.contentIndex}
-                  status={playerState.status}
-                  characterIndex={characterIndex}
-                  onAdvance={advance}
-                  onPuzzleComplete={completePuzzle}
-                  onPuzzleIncorrect={onPuzzleIncorrect}
-                  onPuzzleAnswerSubmitted={handlePuzzleAnswerSubmitted}
-                  isFailed={isFailed}
-                />
-              ) : (
-                <p style={{ color: "var(--foreground-faint)" }}>Loading scene…</p>
-              )}
+            {currentScene ? (
+              <SceneRenderer
+                scene={currentScene}
+                story={story}
+                contentIndex={playerState.contentIndex}
+                status={playerState.status}
+                characterIndex={characterIndex}
+                onAdvance={advance}
+                onPuzzleComplete={completePuzzle}
+                onPuzzleIncorrect={onPuzzleIncorrect}
+                onPuzzleAnswerSubmitted={handlePuzzleAnswerSubmitted}
+                isFailed={isFailed}
+              />
+            ) : (
+              <p style={{ color: "var(--foreground-faint)" }}>Loading scene…</p>
+            )}
 
-              {/* Story Complete panel — shown below the ending scene content */}
-              {isComplete && (
-                <StoryComplete
-                  storyTitle={story.title}
-                  onContinue={handleContinueCampaign}
-                  onExit={onExit ?? (() => {})}
-                  isCampaignComplete={isCampaignComplete}
-                />
-              )}
+            {/* Story Complete panel — shown below the ending scene content */}
+            {isComplete && (
+              <StoryComplete
+                storyTitle={story.title}
+                onContinue={handleContinueCampaign}
+                onExit={onExit ?? (() => {})}
+                isCampaignComplete={isCampaignComplete}
+              />
+            )}
 
-              {/* Click hint */}
-              {currentScene &&
-                currentScene.type !== "puzzle" &&
-                !isComplete &&
-                !isFailed &&
-                playerState.status !== "story_complete" && (
-                  <div
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none animate-pulse-gold"
-                    style={{ zIndex: 10 }}
-                    aria-hidden="true"
+            {/* Click hint */}
+            {currentScene &&
+              currentScene.type !== "puzzle" &&
+              !isComplete &&
+              !isFailed &&
+              playerState.status !== "story_complete" && (
+                <div
+                  className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none animate-pulse-gold"
+                  style={{ zIndex: 10 }}
+                  aria-hidden="true"
+                >
+                  <span
+                    className="px-3 py-1.5 rounded text-xs font-mono"
+                    style={{
+                      backgroundColor: "rgba(232, 197, 71, 0.1)",
+                      border: "1px solid var(--border-dim)",
+                      color: "var(--accent-gold-dim)",
+                    }}
                   >
-                    <span
-                      className="px-3 py-1.5 rounded text-xs font-mono"
-                      style={{
-                        backgroundColor: "rgba(232, 197, 71, 0.1)",
-                        border: "1px solid var(--border-dim)",
-                        color: "var(--accent-gold-dim)",
-                      }}
-                    >
-                      Click anywhere to continue
-                    </span>
-                  </div>
-                )}
-            </div>
+                    Click anywhere to continue
+                  </span>
+                </div>
+              )}
           </>
         )}
       </>
@@ -356,11 +345,12 @@ export function StoryViewer({
       <main
         data-testid="story-main"
         className="lore-center-bg flex flex-col flex-1 min-w-0 overflow-hidden relative"
+        onClick={handleCenterClick}
       >
         {/* Sticky header — only on desktop, hidden on mobile (navbar shows info) */}
         <div
           data-testid="story-header"
-          className="hidden md:flex-shrink-0 border-b px-6 py-3"
+          className="hidden md:flex md:flex-shrink-0 border-b px-6 py-3"
           style={{ borderBottomColor: "var(--border-dim)" }}
         >
           <div className="max-w-4xl mx-auto">
@@ -383,7 +373,7 @@ export function StoryViewer({
 
         {/* Vertically scrolling content area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto w-full">
+          <div className="max-w-4xl mx-auto w-full p-4 md:p-6">
             {renderContent()}
           </div>
         </div>

@@ -258,6 +258,12 @@ textarea:focus-visible {
   align-items: center;
 }
 
+@media (min-width: 768px) {
+  .navbar {
+    display: none;
+  }
+}
+
 .navbar-btn {
   background: transparent;
   border: 1px solid var(--border-dim);

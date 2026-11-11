@@ -29,7 +29,7 @@ const characters = dummyCampaign.characters;
 
 /** Click the chat area to advance story. */
 function clickToAdvance(view: ReturnType<typeof render>) {
-  const chatArea = view.getByTestId("chat-area");
+  const chatArea = view.getByTestId("story-main");
   act(() => { fireEvent.click(chatArea); });
 }
 

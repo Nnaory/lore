@@ -17,7 +17,7 @@ const characters = dummyCampaign.characters;
 
 // Helper to click the chat area to advance
 function clickToAdvance(view: ReturnType<typeof render>) {
-  const chatArea = view.getByTestId("chat-area");
+  const chatArea = view.getByTestId("story-main");
   act(() => { fireEvent.click(chatArea); });
 }
 
@@ -121,7 +121,7 @@ describe("StoryViewer — first scene", () => {
 
   it("should display the chat-area", () => {
     render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByTestId("chat-area")).toBeTruthy();
+    expect(screen.getByTestId("story-main")).toBeTruthy();
   });
 });
 

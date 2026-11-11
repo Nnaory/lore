@@ -17,7 +17,7 @@ const characters = dummyCampaign.characters;
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function clickToAdvance(view: ReturnType<typeof render>) {
-  const chatArea = view.getByTestId("chat-area");
+  const chatArea = view.getByTestId("story-main");
   act(() => { fireEvent.click(chatArea); });
 }
 
