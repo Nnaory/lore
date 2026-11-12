@@ -81,6 +81,8 @@ export function StoryViewer({
     advance,
     completePuzzle,
     onPuzzleIncorrect,
+    onPuzzleBadBranch,
+    returnToPuzzle,
     retryStory,
   } = useStoryPlayer(story, characters);
 
@@ -168,24 +170,38 @@ export function StoryViewer({
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   // Mobile navbar state
   const [mobileSidebar, setMobileSidebar] = useState<"left" | "right" | null>(null);
+  // Right progress panel hover state
+  const [progressHovered, setProgressHovered] = useState(false);
 
   // Navigation error state
   const navigationError = error;
 
   // Click handler for center area - advance story
   const handleCenterClick = useCallback(() => {
-    // Only advance if not in a puzzle, not complete, not failed, not showing error
+    // Block click-advance when: puzzle, complete, failed, error,
+    // or bad_branch sequence that's reached the end (waiting for button click)
+    const allBlocks = currentScene ? (
+      currentScene.type !== "puzzle" && currentScene.type !== "ending"
+        ? currentScene.content
+        : null
+    ) : null;
+    const badBranchDone =
+      playerState.status === "bad_branch" &&
+      allBlocks !== null &&
+      playerState.contentIndex >= allBlocks.length;
+
     if (
       currentScene &&
       currentScene.type !== "puzzle" &&
       !isComplete &&
       !isFailed &&
       !navigationError &&
-      playerState.status !== "story_complete"
+      playerState.status !== "story_complete" &&
+      !badBranchDone
     ) {
       advance();
     }
-  }, [currentScene, isComplete, isFailed, navigationError, playerState.status, advance]);
+  }, [currentScene, isComplete, isFailed, navigationError, playerState, advance]);
 
   // Render error or main content
   function renderContent() {
@@ -237,15 +253,20 @@ export function StoryViewer({
                 onAdvance={advance}
                 onPuzzleComplete={completePuzzle}
                 onPuzzleIncorrect={onPuzzleIncorrect}
+                onPuzzleBadBranch={onPuzzleBadBranch}
                 onPuzzleAnswerSubmitted={handlePuzzleAnswerSubmitted}
                 isFailed={isFailed}
+                onReturnToPuzzle={
+                  playerState.returnToPuzzleSceneId ? returnToPuzzle : undefined
+                }
               />
             ) : (
               <p style={{ color: "var(--foreground-faint)" }}>Loading scene…</p>
             )}
 
-            {/* Story Complete panel — shown below the ending scene content */}
-            {isComplete && (
+            {/* Story Complete panel — shown below the ending scene content
+                NOT shown when this is a bad-branch ending (returnToPuzzleSceneId set) */}
+            {isComplete && !playerState.returnToPuzzleSceneId && (
               <StoryComplete
                 storyTitle={story.title}
                 onContinue={handleContinueCampaign}
@@ -288,56 +309,45 @@ export function StoryViewer({
       data-testid="story-viewer"
       className="lore-bg flex h-screen overflow-hidden relative"
     >
-      {/* ── Left Sidebar: Navigation / Exit ───────────────────────────────── */}
+      {/* ── Left Ghost Column: Exit Icon ──────────────────────────────────── */}
       <aside
         data-testid="left-sidebar"
-        className="flex-shrink-0 flex flex-col lore-panel-bg border-r sidebar-width hidden md:flex"
+        className="flex-shrink-0 flex flex-col hidden md:flex"
         style={{
-          borderRightColor: "var(--border)",
+          width: "3.5rem",
+          minWidth: "3.5rem",
+          backgroundColor: "var(--background)",
         }}
         aria-label="Navigation"
       >
-        <div className="w-full flex flex-col items-center gap-6 h-full p-6">
-          {/* LORE logo mark */}
-          <div
-            className="w-12 h-12 rounded flex items-center justify-center text-lg font-bold"
-            style={{
-              backgroundColor: "var(--accent-gold)",
-              color: "var(--background)",
-              border: "1px solid var(--accent-gold-dim)",
-            }}
-            aria-label="LORE"
+        {/* Exit icon button — top left corner */}
+        <div className="flex items-start justify-center pt-5">
+          <button
+            data-testid="sidebar-exit-button"
+            onClick={() => setShowExitConfirm(true)}
+            disabled={!onExit}
+            className="story-exit-btn"
+            aria-label="Exit story"
+            title="Exit story"
           >
-            L
-          </div>
-
-          {/* Exit button with warning */}
-          <div className="w-full flex flex-col items-center gap-3 mt-auto">
-            <button
-              data-testid="sidebar-exit-button"
-              onClick={() => setShowExitConfirm(true)}
-              disabled={!onExit}
-              className="w-full px-4 py-2.5 rounded text-sm font-medium transition-all"
-              style={{
-                backgroundColor: "var(--danger-bg)",
-                color: "var(--danger)",
-                border: "1px solid var(--danger)",
-                cursor: onExit ? "pointer" : "not-allowed",
-                opacity: onExit ? 1 : 0.5,
-              }}
-              aria-label="Exit story"
+            {/* Door with arrow exit SVG */}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
             >
-              Exit Story
-            </button>
-
-            {/* Unsaved progress warning */}
-            <p
-              className="text-xs text-center"
-              style={{ color: "var(--foreground-faint)" }}
-            >
-              Progress is not saved until you complete the story.
-            </p>
-          </div>
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+          </button>
         </div>
       </aside>
 
@@ -379,18 +389,78 @@ export function StoryViewer({
         </div>
       </main>
 
-      {/* ── Right Sidebar: Story Progress ─────────────────────────────────── */}
+      {/* ── Right Ghost Column: Hover-reveal Progress ─────────────────────── */}
       <aside
         data-testid="right-sidebar"
-        className="flex-shrink-0 flex flex-col lore-panel-bg border-l sidebar-width hidden md:flex"
+        className="flex-shrink-0 hidden md:flex flex-col items-center"
         style={{
-          borderLeftColor: "var(--border)",
+          width: "2rem",
+          minWidth: "2rem",
+          backgroundColor: "var(--background)",
+          position: "relative",
         }}
         aria-label="Story progress"
+        onMouseEnter={() => setProgressHovered(true)}
+        onMouseLeave={() => setProgressHovered(false)}
       >
-        <div className="w-full flex flex-col gap-6 h-full p-6">
+        {/* The "O" ring — vertically centred */}
+        <div
+          className="absolute top-1/2 left-1/2"
+          style={{ transform: "translate(-50%, -50%)" }}
+          aria-hidden="true"
+        >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 20 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            style={{
+              color: progressHovered ? "var(--accent-gold-dim)" : "var(--foreground-faint)",
+              transition: "color 0.2s ease",
+            }}
+          >
+            <circle
+              cx="10"
+              cy="10"
+              r="7"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </div>
+      </aside>
+
+      {/* ── Right Panel Flyout (hover reveal) ─────────────────────────────── */}
+      <div
+        data-testid="right-sidebar-panel"
+        className="hidden md:block"
+        role="region"
+        aria-label="Story progress details"
+        onMouseEnter={() => setProgressHovered(true)}
+        onMouseLeave={() => setProgressHovered(false)}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          position: "fixed",
+          top: 0,
+          right: "2rem",
+          bottom: 0,
+          width: "15rem",
+          backgroundColor: "var(--background)",
+          backgroundImage:
+            "linear-gradient(180deg, rgba(232,197,71,0.03) 0%, transparent 50%, rgba(232,197,71,0.03) 100%)",
+          borderLeft: "1px solid var(--border)",
+          overflowY: "auto",
+          zIndex: 20,
+          opacity: progressHovered ? 1 : 0,
+          pointerEvents: progressHovered ? "auto" : "none",
+          transform: progressHovered ? "translateX(0)" : "translateX(0.75rem)",
+          transition: "opacity 0.25s ease, transform 0.25s ease",
+        }}
+      >
+        <div className="w-full flex flex-col gap-5 p-5">
           {/* Story title */}
-          <div className="w-full border-b pb-4" style={{ borderBottomColor: "var(--border-dim)" }}>
+          <div className="w-full border-b pb-3" style={{ borderBottomColor: "var(--border-dim)" }}>
             <p
               className="text-xs tracking-widest uppercase mb-1"
               style={{ color: "var(--foreground-faint)" }}
@@ -399,24 +469,22 @@ export function StoryViewer({
             </p>
             <p
               data-testid="sidebar-story-title"
-              className="text-sm font-medium leading-5 truncate"
+              className="text-sm font-medium leading-5"
               style={{ color: "var(--foreground)" }}
             >
               {story.title}
             </p>
           </div>
 
-          <div className="chat-divider" />
-
           {/* Chapter progress */}
-          <div className="w-full flex-1 overflow-y-auto pr-2">
+          <div className="w-full">
             <p
               className="text-xs tracking-widest uppercase mb-3"
               style={{ color: "var(--foreground-faint)" }}
             >
-              Chapter Progress
+              Chapters
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {story.chapters.map((chapter, idx) => {
                 const isCurrent = chapter.chapter_id === currentChapter?.chapter_id;
                 const chapterIndex = story.chapters.findIndex(c => c.chapter_id === currentChapter?.chapter_id);
@@ -425,10 +493,10 @@ export function StoryViewer({
                   <div
                     key={chapter.chapter_id}
                     data-testid={`sidebar-chapter-${chapter.chapter_id}`}
-                    className="flex items-center gap-3 p-2.5 rounded transition-all"
+                    className="flex items-center gap-3 px-2.5 py-2 rounded transition-all"
                     style={{
                       backgroundColor: isCurrent
-                        ? "rgba(232, 197, 71, 0.1)"
+                        ? "rgba(232, 197, 71, 0.08)"
                         : "transparent",
                       borderWidth: isCurrent ? "1px" : 0,
                       borderStyle: "solid",
@@ -436,7 +504,7 @@ export function StoryViewer({
                     }}
                   >
                     <span
-                      className="text-xs font-mono flex-shrink-0 w-6 text-center"
+                      className="text-xs font-mono flex-shrink-0 w-5 text-center"
                       style={{
                         color: isCurrent
                           ? "var(--accent-gold)"
@@ -449,7 +517,7 @@ export function StoryViewer({
                     </span>
                     <span
                       data-testid={`sidebar-chapter-name-${chapter.chapter_id}`}
-                      className="text-xs leading-5 truncate"
+                      className="text-xs leading-5"
                       style={{
                         color: isCurrent
                           ? "var(--foreground)"
@@ -469,8 +537,8 @@ export function StoryViewer({
 
           <div className="chat-divider" />
 
-          {/* HP display — live state */}
-          <div data-testid="hp-display" className="w-full text-center border-t pt-4" style={{ borderTopColor: "var(--border-dim)" }}>
+          {/* HP display */}
+          <div data-testid="hp-display" className="w-full text-center">
             <p
               className="text-xs tracking-widest uppercase mb-1"
               style={{ color: "var(--foreground-faint)" }}
@@ -478,7 +546,7 @@ export function StoryViewer({
               HP
             </p>
             <p
-              className="text-lg font-mono mb-2"
+              className="text-base font-mono mb-2"
               data-testid="hp-value"
               aria-label={`HP: ${hp} of ${MAX_HP}`}
               aria-live="polite"
@@ -496,14 +564,13 @@ export function StoryViewer({
                   style={{
                     backgroundColor:
                       i < hp ? "var(--accent-gold)" : "var(--border-dim)",
-                    opacity: 1,
                   }}
                 />
               ))}
             </div>
           </div>
         </div>
-      </aside>
+      </div>
 
       {/* ── Mobile Navbar ─────────────────────────────────────────────────── */}
       <nav

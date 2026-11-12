@@ -40,6 +40,7 @@ import {
   createInitialPlayerState,
   advanceContent,
   advanceScene,
+  branchToIncorrectScene,
   getSceneContentBlocks,
   getChapterForScene,
   type StoryPlayerState,
@@ -74,6 +75,10 @@ export type UseStoryPlayerReturn = {
   advance: () => void;
   completePuzzle: () => void;
   onPuzzleIncorrect: () => void;
+  /** Branch into a bad-ending sequence for a wrong choice. */
+  onPuzzleBadBranch: (choiceId: string) => void;
+  /** Return from the bad-branch sequence back to the puzzle. */
+  returnToPuzzle: () => void;
   retryStory: () => void;
 };
 
@@ -121,8 +126,11 @@ export function useStoryPlayer(
     if (isFailed) return;
     if (playerState.status === "story_complete") return;
 
-    if (playerState.status === "reading") {
-      setPlayerState(advanceContent(playerState, currentScene));
+    if (playerState.status === "reading" || playerState.status === "bad_branch") {
+      const next = advanceContent(playerState, currentScene);
+      setPlayerState(next);
+      // If bad_branch reached end of content, stay put — SceneRenderer will
+      // show the "Try Again" button. Don't auto-advance.
       return;
     }
 
@@ -134,6 +142,9 @@ export function useStoryPlayer(
       }
       setPlayerState(result);
     }
+
+    // bad_branch with all content consumed — stay put until returnToPuzzle is called
+    // (the SceneRenderer will render a "Return to Puzzle" button)
   }, [currentScene, error, isFailed, playerState, sceneIndex]);
 
   const completePuzzle = useCallback(() => {
@@ -153,6 +164,46 @@ export function useStoryPlayer(
     if (hp <= FAILURE_HP) return;
     setHp((currentHp) => deductHp(currentHp));
   }, [hp]);
+
+  /**
+   * Branch to the bad-consequence scene linked to a specific wrong choice.
+   * HP is deducted here, then navigation proceeds to the branch scene.
+   */
+  const onPuzzleBadBranch = useCallback(
+    (choiceId: string) => {
+      if (!currentScene || currentScene.type !== "puzzle") return;
+
+      // Deduct HP first
+      if (hp > FAILURE_HP) {
+        setHp((currentHp) => deductHp(currentHp));
+      }
+
+      const branchSceneId = currentScene.on_incorrect_scene_id?.[choiceId];
+      if (!branchSceneId) return; // no branch configured — caller should fall back
+
+      const result = branchToIncorrectScene(currentScene, branchSceneId, sceneIndex);
+      if ("error" in result) {
+        setError({ message: result.error });
+        return;
+      }
+      setPlayerState(result);
+    },
+    [currentScene, hp, sceneIndex]
+  );
+
+  /**
+   * Return from a bad-branch sequence back to the puzzle scene.
+   * Called when the player clicks "Try Again" at the end of a bad ending.
+   */
+  const returnToPuzzle = useCallback(() => {
+    const puzzleSceneId = playerState.returnToPuzzleSceneId;
+    if (!puzzleSceneId) return;
+
+    const puzzleScene = sceneIndex.get(puzzleSceneId);
+    if (!puzzleScene || puzzleScene.type !== "puzzle") return;
+
+    setPlayerState({ currentSceneId: puzzleSceneId, contentIndex: 0, status: "puzzle" });
+  }, [playerState.returnToPuzzleSceneId, sceneIndex]);
 
   const retryStory = useCallback(() => {
     setPlayerState(createInitialPlayerState(story));
@@ -175,6 +226,8 @@ export function useStoryPlayer(
     advance,
     completePuzzle,
     onPuzzleIncorrect,
+    onPuzzleBadBranch,
+    returnToPuzzle,
     retryStory,
   };
 }

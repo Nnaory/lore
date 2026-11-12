@@ -25,10 +25,15 @@ type PuzzleInteractionProps = {
   /** Called when the player solves the puzzle and clicks "Continue". */
   onComplete: () => void;
   /**
-   * Called exactly once per incorrect submission.
+   * Called exactly once per incorrect submission that has no bad-branch scene.
    * Used by the parent to deduct HP.
    */
   onIncorrect?: () => void;
+  /**
+   * Called when the player submits an incorrect choice that has a bad-branch
+   * consequence scene. The parent deducts HP and navigates to that scene.
+   */
+  onBadBranch?: (choiceId: string) => void;
   /**
    * Called once per valid answer submission (correct or incorrect).
    * Used by the parent to record knowledge evidence and puzzle attempts.
@@ -37,14 +42,21 @@ type PuzzleInteractionProps = {
   onAnswerSubmitted?: (correct: boolean) => void;
   /** When true, all input is disabled (story failed). */
   isFailed?: boolean;
+  /**
+   * Map of choice_id → true for choices that have a bad-branch scene.
+   * Used to show a different submit label ("See what happens…") for those choices.
+   */
+  badBranchChoiceIds?: Set<string>;
 };
 
 export function PuzzleInteraction({
   puzzle,
   onComplete,
   onIncorrect,
+  onBadBranch,
   onAnswerSubmitted,
   isFailed = false,
+  badBranchChoiceIds,
 }: PuzzleInteractionProps) {
   const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
   const [interactionState, setInteractionState] =
@@ -76,8 +88,17 @@ export function PuzzleInteraction({
       setInteractionState("correct");
       onAnswerSubmitted?.(true);
     } else if (result.outcome === "incorrect") {
-      setInteractionState("incorrect");
       onAnswerSubmitted?.(false);
+
+      // If this choice has a bad-branch scene, hand off to the branch handler
+      // instead of staying in the puzzle with inline feedback.
+      if (selectedChoiceId && badBranchChoiceIds?.has(selectedChoiceId) && onBadBranch) {
+        setIsSubmitting(false);
+        onBadBranch(selectedChoiceId);
+        return;
+      }
+
+      setInteractionState("incorrect");
       onIncorrect?.();
     }
     setIsSubmitting(false);
@@ -246,7 +267,11 @@ export function PuzzleInteraction({
             }}
             aria-disabled={!canSubmit}
           >
-            {isSubmitting ? "Submitting…" : "Submit Answer"}
+            {isSubmitting
+              ? "Submitting…"
+              : selectedChoiceId && badBranchChoiceIds?.has(selectedChoiceId)
+              ? "Confirm choice →"
+              : "Submit Answer"}
           </button>
         ) : (
           <button

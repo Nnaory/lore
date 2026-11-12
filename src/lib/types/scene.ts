@@ -108,6 +108,16 @@ export type PuzzleScene = SceneBase & {
   puzzle_id: string;
   /** Scene to navigate to after the puzzle is solved correctly. */
   next_scene_id: string | null;
+  /**
+   * Optional mapping from a wrong choice_id to a "bad branch" scene_id.
+   * When present, selecting that incorrect choice navigates the player through
+   * a consequence/ending sequence instead of simply showing inline feedback.
+   * After the bad branch plays out, the player is offered a "Return to Puzzle"
+   * option that brings them back here (with HP already deducted).
+   * If a wrong choice_id is NOT listed here, the classic inline-feedback
+   * behaviour applies.
+   */
+  on_incorrect_scene_id?: Record<string, string>;
 };
 
 /** A scene that shows the consequence of a player decision. */

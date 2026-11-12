@@ -315,3 +315,38 @@ textarea:focus-visible {
 .animate-pulse-gold {
   animation: pulse-gold 2s ease-in-out infinite;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Story Exit Button (left ghost column)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.story-exit-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--foreground-faint);
+  cursor: pointer;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.story-exit-btn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+  background: rgba(216, 74, 58, 0.08);
+}
+
+.story-exit-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Story Progress — hover-reveal ring (right ghost column)
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* no additional CSS needed — ring and panel handled via React state inline styles */

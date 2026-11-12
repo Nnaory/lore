@@ -69,6 +69,7 @@ export type StoryPlayerStatus =
   | "reading"      // Player is reading content blocks within a scene
   | "scene_end"    // All content blocks consumed; ready to advance to next scene
   | "puzzle"       // Waiting on puzzle interaction
+  | "bad_branch"   // Navigated into a wrong-choice consequence branch; reading it
   | "story_complete"; // Reached an ending scene
 
 /**
@@ -80,6 +81,12 @@ export type StoryPlayerState = {
   /** Index into the content block array of the current scene. */
   contentIndex: number;
   status: StoryPlayerStatus;
+  /**
+   * When status is "bad_branch" (or any scene navigated from a bad branch),
+   * this holds the scene_id of the puzzle the player should return to after
+   * the bad ending sequence finishes.
+   */
+  returnToPuzzleSceneId?: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -101,28 +108,48 @@ export function createInitialPlayerState(story: StoryBlueprint): StoryPlayerStat
   return deriveStatusForScene(firstScene, 0);
 }
 
-/** Derive the correct status for a given scene at a given content index. */
+/**
+ * Derive the correct status for a given scene at a given content index.
+ * Pass `returnToPuzzleSceneId` to carry the bad-branch return pointer
+ * through the entire consequence/ending sequence.
+ */
 export function deriveStatusForScene(
   scene: Scene,
-  contentIndex: number
+  contentIndex: number,
+  returnToPuzzleSceneId?: string
 ): StoryPlayerState {
   if (scene.type === "ending") {
-    return { currentSceneId: scene.scene_id, contentIndex: 0, status: "story_complete" };
+    return {
+      currentSceneId: scene.scene_id,
+      contentIndex: 0,
+      status: "story_complete",
+      returnToPuzzleSceneId,
+    };
   }
   if (scene.type === "puzzle") {
     return { currentSceneId: scene.scene_id, contentIndex: 0, status: "puzzle" };
   }
   const blocks = getSceneContentBlocks(scene);
   if (!blocks || blocks.length === 0 || contentIndex >= blocks.length) {
-    // No content or all consumed — ready to advance
-    return { currentSceneId: scene.scene_id, contentIndex: contentIndex, status: "scene_end" };
+    return {
+      currentSceneId: scene.scene_id,
+      contentIndex,
+      status: returnToPuzzleSceneId ? "bad_branch" : "scene_end",
+      returnToPuzzleSceneId,
+    };
   }
-  return { currentSceneId: scene.scene_id, contentIndex, status: "reading" };
+  return {
+    currentSceneId: scene.scene_id,
+    contentIndex,
+    status: returnToPuzzleSceneId ? "bad_branch" : "reading",
+    returnToPuzzleSceneId,
+  };
 }
 
 /**
  * Advance one content block forward within the current scene.
  * If all blocks are consumed, marks the scene as ready to transition.
+ * Preserves `returnToPuzzleSceneId` throughout bad-branch traversal.
  *
  * Returns a new state object (pure — does not mutate).
  */
@@ -130,14 +157,20 @@ export function advanceContent(
   state: StoryPlayerState,
   scene: Scene
 ): StoryPlayerState {
-  if (state.status !== "reading") return state;
+  if (state.status !== "reading" && state.status !== "bad_branch") return state;
 
   const blocks = getSceneContentBlocks(scene);
-  if (!blocks) return { ...state, status: "scene_end" };
+  const rtp = state.returnToPuzzleSceneId;
+
+  if (!blocks) return { ...state, status: rtp ? "bad_branch" : "scene_end" };
 
   const nextIndex = state.contentIndex + 1;
   if (nextIndex >= blocks.length) {
-    return { ...state, contentIndex: nextIndex, status: "scene_end" };
+    return {
+      ...state,
+      contentIndex: nextIndex,
+      status: rtp ? "bad_branch" : "scene_end",
+    };
   }
   return { ...state, contentIndex: nextIndex };
 }
@@ -145,6 +178,8 @@ export function advanceContent(
 /**
  * Transition to the next scene.
  * Returns a new state, or an error string if the reference is invalid.
+ * Preserves `returnToPuzzleSceneId` so the whole bad-branch chain
+ * knows where to send the player when it finishes.
  */
 export function advanceScene(
   state: StoryPlayerState,
@@ -153,12 +188,10 @@ export function advanceScene(
 ): StoryPlayerState | { error: string } {
   if (state.status === "story_complete") return state;
 
-  // Puzzle scenes advance via advanceScene too (after the puzzle UI resolves)
   const nextSceneId =
     currentScene.type !== "ending" ? currentScene.next_scene_id : null;
 
   if (nextSceneId === null) {
-    // No next scene — treat as story complete
     return { ...state, status: "story_complete" };
   }
 
@@ -169,7 +202,31 @@ export function advanceScene(
     };
   }
 
-  return deriveStatusForScene(nextScene, 0);
+  // Carry the return pointer through the branch
+  return deriveStatusForScene(nextScene, 0, state.returnToPuzzleSceneId);
+}
+
+/**
+ * Branch into a wrong-choice consequence scene.
+ * Called by the puzzle engine when the player picks an incorrect choice
+ * that has an `on_incorrect_scene_id` mapping.
+ *
+ * @param puzzleScene   The current PuzzleScene (source of the branch).
+ * @param branchSceneId The scene_id to navigate to.
+ * @param index         The flat scene index.
+ */
+export function branchToIncorrectScene(
+  puzzleScene: Scene & { type: "puzzle" },
+  branchSceneId: string,
+  index: SceneIndex
+): StoryPlayerState | { error: string } {
+  const branchScene = index.get(branchSceneId);
+  if (!branchScene) {
+    return {
+      error: `Bad-branch scene "${branchSceneId}" referenced by puzzle "${puzzleScene.scene_id}" does not exist.`,
+    };
+  }
+  return deriveStatusForScene(branchScene, 0, puzzleScene.scene_id);
 }
 
 // ---------------------------------------------------------------------------

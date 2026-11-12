@@ -193,47 +193,103 @@ export const dummyStory: StoryBlueprint = {
   material_id: "material_01",
   title: "The Fading Light",
   summary:
-    "The player arrives at the Veiled City's primary beacon just as it begins to fail. By working with Eldric and Lyra, they must understand the resonance system and find the correct crystal combination to restore the beacon.",
+    "The player arrives at the Veiled City's primary beacon just as it begins to fail. Working with Eldric and Lyra, they must master crystal vector resonance — a linear combination — to restore the beacon before the city goes dark forever.",
   character_ids: ["eldric", "lyra"],
   chapters: [
+    // ══════════════════════════════════════════════════════════════════════
+    // Chapter 1 — Arrival
+    // ══════════════════════════════════════════════════════════════════════
     {
       chapter_id: "chapter_01",
-      title: "The Fading Light",
+      title: "Arrival at the Dying Light",
       scenes: [
-        // ── Scene 1: Narrative introduction ──────────────────────────────
+        // ── Scene 1: Arrival ───────────────────────────────────────────────
         {
-          scene_id: "scene_01_intro",
+          scene_id: "scene_01_arrival",
           type: "narrative",
-          location: "The Beacon Antechamber",
+          location: "The Outer Gate, Veiled City",
           characters_present: ["eldric"],
           content: [
             {
               type: "narration",
-              text: "The stone corridor smells of old smoke. At the far end, a faint amber glow pulses like a dying heartbeat. Each pulse is a little weaker than the last.",
+              text: "The city of Vel Thyras greets you in silence. Where there should be the hum of a thousand amber lanterns, there is only the scrape of your boots on cold stone.",
+            },
+            {
+              type: "narration",
+              text: "The sky above the city's spire flickers — a great, pulsing amber light that skips a beat, then two, then three. Like a heart forgetting how to beat.",
             },
             {
               type: "dialogue",
               character_id: "eldric",
               expression: "worried",
-              text: "You arrived just in time. Or perhaps just too late. I haven't decided which.",
+              text: "You came. Good. I wasn't sure the message would reach the outer roads in time.",
             },
             {
               type: "narration",
-              text: "The old keeper does not look up from the diagrams scattered across the stone floor.",
+              text: "Eldric, Keeper of the Primary Beacon, looks older than the last time you saw him. The lines on his face run deeper. He clutches a rolled diagram to his chest.",
             },
             {
               type: "dialogue",
               character_id: "eldric",
               expression: "thinking",
-              text: "The beacon requires a specific harmonic resonance. Without the correct combination, it will simply… stop.",
+              text: "The Primary Beacon is failing. If it goes dark, every district beacon loses its anchor. The whole lattice collapses within the hour.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "We don't have the luxury of caution. Follow me.",
             },
           ],
-          next_scene_id: "scene_02_learning",
+          next_scene_id: "scene_02_antechamber",
         },
 
-        // ── Scene 2: Learning scene ───────────────────────────────────────
+        // ── Scene 2: The Antechamber ───────────────────────────────────────
         {
-          scene_id: "scene_02_learning",
+          scene_id: "scene_02_antechamber",
+          type: "narrative",
+          location: "The Beacon Antechamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The antechamber smells of hot copper and old smoke. Lyra, Eldric's apprentice, is already at the stone table, mapping resonance vectors with a piece of chalk.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "You're here. Good. Eldric's been pacing since dawn.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "thinking",
+              text: "Every beacon runs on harmonic resonance — a precise combination of crystal energies that must match the beacon's required frequency exactly.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "Too little, and the beacon starves. Too much of the wrong kind, and it inverts — which is considerably worse than simply going dark.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "curious",
+              text: "Think of each crystal as a vector — a direction and a magnitude of energy. We scale them and combine them to hit a target.",
+            },
+            {
+              type: "narration",
+              text: "She taps the chalk diagram. Two vectors are drawn: one steep, one shallow. A third vector — the target — is marked in gold.",
+            },
+          ],
+          next_scene_id: "scene_03_learning",
+        },
+
+        // ── Scene 3: Learning — Linear Combinations ────────────────────────
+        {
+          scene_id: "scene_03_learning",
           type: "learning",
           location: "The Beacon Antechamber",
           characters_present: ["eldric", "lyra"],
@@ -241,122 +297,698 @@ export const dummyStory: StoryBlueprint = {
             {
               type: "dialogue",
               character_id: "lyra",
-              expression: "curious",
-              text: "The resonance works through crystal vectors. Think of each crystal type as a direction and magnitude of energy.",
+              expression: "focused",
+              text: "We have two crystal types in the vault. Crystal A resonates at vector (2, 1) — heavy on vertical energy, lighter on lateral. Crystal B resonates at (1, 2) — the reverse.",
             },
             {
               type: "learning_info",
-              title: "Crystal Vector Resonance",
-              body: "Each crystal contributes energy in the form of a vector — a quantity with both direction and magnitude. Crystal A provides a resonance of (2, 1): two units of vertical energy and one unit of lateral energy. Crystal B provides a resonance of (1, 2): one unit vertical and two lateral. To reach the beacon's required resonance, you must combine crystals using scalar multiples and add the results. For example, using two Crystal A and one Crystal B gives: 2×(2,1) + 1×(1,2) = (4,2) + (1,2) = (5,4). This technique is called a linear combination.",
+              title: "Crystal Vector Resonance — Linear Combinations",
+              body: "Each crystal emits energy as a vector: a quantity with both direction (vertical vs. lateral) and magnitude. Crystal A = (2, 1). Crystal B = (1, 2).\n\nTo produce a target resonance, you scale each crystal by how many you use and add the results component-wise. This is a linear combination:\n\n  c₁ · v₁ + c₂ · v₂ = target\n\nExample — 2 Crystal A and 1 Crystal B:\n  2 × (2, 1) + 1 × (1, 2)\n  = (4, 2) + (1, 2)\n  = (5, 4)  ✓\n\nThe coefficients (c₁ = 2, c₂ = 1) are the scalar multipliers. Change them and you get a different resonance.",
               concept_ids: ["concept_linear_combination"],
             },
             {
               type: "dialogue",
               character_id: "eldric",
               expression: "stern",
-              text: "The beacon requires a target resonance of exactly (5, 4). Any deviation will accelerate the collapse.",
+              text: "The Primary Beacon's required resonance is (5, 4). That is what we must produce. Exactly.",
             },
             {
               type: "dialogue",
               character_id: "lyra",
-              expression: "focused",
-              text: "We have crystals available. We need to figure out how many of each type to use.",
+              expression: "curious",
+              text: "What happens if we get it wrong?",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "worried",
+              text: "An undersupplied resonance causes the beacon to draw energy from the surrounding districts to compensate. It will strip them dark one by one before it finally fails itself.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "And an oversupplied lateral resonance?",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "thinking",
+              text: "… Let us not find out.",
             },
           ],
-          next_scene_id: "scene_03_puzzle",
+          next_scene_id: "scene_04_before_puzzle",
         },
 
-        // ── Scene 3: Puzzle scene ─────────────────────────────────────────
+        // ── Scene 4: Before the Puzzle ─────────────────────────────────────
         {
-          scene_id: "scene_03_puzzle",
+          scene_id: "scene_04_before_puzzle",
+          type: "narrative",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The inner chamber opens like a wound in the stone. At its centre, the Primary Beacon — a column of crystal lattice three metres tall — shudders with each failing pulse.",
+            },
+            {
+              type: "narration",
+              text: "Along the base of the column, three crystal slots wait. The correct number and type of crystals must be placed before the next pulse cycle begins.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "We have about two minutes before the next cycle. If we haven't stabilised it by then…",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "Then choose carefully. The city is watching — even if it doesn't know it.",
+            },
+          ],
+          next_scene_id: "scene_05_puzzle",
+        },
+
+        // ── Scene 5: Puzzle ────────────────────────────────────────────────
+        {
+          scene_id: "scene_05_puzzle",
           type: "puzzle",
           location: "The Beacon Chamber",
           characters_present: ["eldric", "lyra"],
           puzzle_id: "puzzle_01",
-          next_scene_id: "scene_04_consequence",
+          next_scene_id: "scene_06_success_reaction",
+          on_incorrect_scene_id: {
+            choice_A: "scene_bad_A_start",
+            choice_C: "scene_bad_C_start",
+          },
         },
 
-        // ── Scene 4: Consequence scene ────────────────────────────────────
+        // ── Scene 6: Correct — Reaction ────────────────────────────────────
         {
-          scene_id: "scene_04_consequence",
+          scene_id: "scene_06_success_reaction",
           type: "consequence",
           location: "The Beacon Chamber",
           characters_present: ["eldric", "lyra"],
           content: [
             {
               type: "narration",
-              text: "The moment the correct crystals are placed, the beacon pulses — once, twice — and then erupts in a steady warm light that fills the entire chamber.",
+              text: "The crystals click into place. For a moment — silence. Then the column ignites.",
+            },
+            {
+              type: "narration",
+              text: "A deep, resonant tone fills the chamber, rising in pitch until it settles into a steady, warm hum. The amber light stops flickering. It holds.",
             },
             {
               type: "dialogue",
               character_id: "eldric",
               expression: "approving",
-              text: "The resonance holds. You've bought us time.",
+              text: "It holds. By the old frequencies — it actually holds.",
             },
             {
               type: "dialogue",
               character_id: "lyra",
               expression: "relieved",
-              text: "That was the right combination. Two Crystal A and one Crystal B — the linear combination that reaches the target (5,4).",
+              text: "Two Crystal A, one Crystal B. 2×(2,1) + 1×(1,2) = (5,4). The exact linear combination.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "thinking",
+              text: "You've bought the city time. Perhaps enough to reach the outer districts before they fail too.",
             },
           ],
-          next_scene_id: "scene_05_ending",
+          next_scene_id: "scene_07_chapter1_end",
         },
 
-        // ── Scene 5: Ending scene ─────────────────────────────────────────
+        // ── Scene 7: Chapter 1 close ───────────────────────────────────────
         {
-          scene_id: "scene_05_ending",
+          scene_id: "scene_07_chapter1_end",
+          type: "narrative",
+          location: "The Beacon Antechamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The antechamber feels warmer now. The diagrams on the stone floor are no longer urgent — they are reference material.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "curious",
+              text: "The district beacons draw from the same resonance principles. We'll need to know more than just one combination.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "thinking",
+              text: "She's right. The question isn't just what we can combine — it's what range of resonances we can even reach with the crystals we have.",
+            },
+            {
+              type: "narration",
+              text: "He pauses, spreading a new diagram across the table. This one shows not two vectors — but the entire region they can cover.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "The span of a set of vectors. That is what determines whether a district can be saved.",
+            },
+          ],
+          next_scene_id: "scene_08_ch2_intro",
+        },
+      ],
+    },
+
+    // ══════════════════════════════════════════════════════════════════════
+    // Chapter 2 — The Span
+    // ══════════════════════════════════════════════════════════════════════
+    {
+      chapter_id: "chapter_02",
+      title: "The Reach of Vectors",
+      scenes: [
+        // ── Scene 8: Chapter 2 intro ───────────────────────────────────────
+        {
+          scene_id: "scene_08_ch2_intro",
+          type: "narrative",
+          location: "The Keeper's Map Room",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The Map Room is a circular chamber whose walls are covered in overlapping vector diagrams, each annotated in Eldric's cramped handwriting. At the centre is a table-sized topographical map of the Veiled City.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "curious",
+              text: "Every district beacon needs a different target resonance. We can't just reuse the same crystal combination everywhere.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "thinking",
+              text: "Correct. Each district's beacon was calibrated when the city was built. The Northern Ward needs (3, 3). The Eastern Ward needs (4, 5).",
+            },
+            {
+              type: "narration",
+              text: "He sets two crystals on the table. One amber, one deep blue.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "We have new crystal types available here. Crystal C resonates at (1, 1). Crystal D resonates at (2, 3). The question is: which of those district targets can we actually reach?",
+            },
+          ],
+          next_scene_id: "scene_09_span_learning",
+        },
+
+        // ── Scene 9: Learning — Span ───────────────────────────────────────
+        {
+          scene_id: "scene_09_span_learning",
+          type: "learning",
+          location: "The Keeper's Map Room",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "focused",
+              text: "The span of two vectors is the set of every resonance we can possibly produce using those two crystals — any amount, any ratio.",
+            },
+            {
+              type: "learning_info",
+              title: "Vector Span — The Set of All Reachable Resonances",
+              body: "The span of vectors v₁ and v₂ is the set of all vectors expressible as c₁v₁ + c₂v₂ for any real scalars c₁ and c₂.\n\nIf v₁ and v₂ point in genuinely different directions (non-parallel), their span covers the entire plane — meaning any target is reachable.\n\nIf v₁ and v₂ are parallel (one is a scalar multiple of the other), their span is just a single line.\n\nTo check if a specific target t is in the span of {v₁, v₂}, set up the system:\n  c₁v₁ + c₂v₂ = t\nand solve for c₁ and c₂. If a real solution exists, t is reachable.\n\nCrystal C = (1, 1). Crystal D = (2, 3).\nAre these parallel? (2, 3) = k × (1, 1) would require k = 2 and k = 3 simultaneously — impossible. So they span the full plane.",
+              concept_ids: ["concept_vector_span"],
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "excited",
+              text: "So Crystal C and Crystal D together can reach any resonance. Including both district targets.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "approving",
+              text: "In theory. But we only have enough crystal stock for one district tonight. We must choose the correct combination for the Eastern Ward — resonance (4, 5) — and get it right.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "And if we apply the wrong combination to the Eastern Ward?",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "worried",
+              text: "The Eastern Ward's beacon will invert. It will begin drawing resonance from the Northern Ward instead of contributing to it. We'd lose both.",
+            },
+          ],
+          next_scene_id: "scene_10_before_puzzle2",
+        },
+
+        // ── Scene 10: Before Puzzle 2 ──────────────────────────────────────
+        {
+          scene_id: "scene_10_before_puzzle2",
+          type: "narrative",
+          location: "The Eastern Ward Beacon",
+          characters_present: ["lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The Eastern Ward is a residential district — narrow streets, low buildings, lanterns that haven't been lit in two days. The people here have started burning furniture for light.",
+            },
+            {
+              type: "narration",
+              text: "The district beacon stands in a small courtyard at the ward's centre. It's smaller than the Primary Beacon, but its failure has felt larger here.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "focused",
+              text: "Eldric stayed at the Map Room to monitor the primary. It's just us. We need to find c₁ and c₂ such that c₁ × (1,1) + c₂ × (2,3) = (4,5).",
+            },
+            {
+              type: "narration",
+              text: "She lays the crystals out in a row, counting quietly under her breath.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "Take your time. But not too much of it.",
+            },
+          ],
+          next_scene_id: "scene_11_puzzle2",
+        },
+
+        // ── Scene 11: Puzzle 2 ─────────────────────────────────────────────
+        {
+          scene_id: "scene_11_puzzle2",
+          type: "puzzle",
+          location: "The Eastern Ward Beacon",
+          characters_present: ["lyra"],
+          puzzle_id: "puzzle_02",
+          next_scene_id: "scene_12_success2",
+          on_incorrect_scene_id: {
+            choice_P: "scene_bad_P_start",
+            choice_R: "scene_bad_R_start",
+          },
+        },
+
+        // ── Scene 12: Success 2 ────────────────────────────────────────────
+        {
+          scene_id: "scene_12_success2",
+          type: "consequence",
+          location: "The Eastern Ward Beacon",
+          characters_present: ["lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The beacon lights. Not the sputtering amber of a dying flame — a clean, steady gold that pushes the darkness back down the street.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "relieved",
+              text: "c₁ = 2, c₂ = 1. Two Crystal C and one Crystal D: 2×(1,1) + 1×(2,3) = (2,2) + (2,3) = (4,5). The Eastern Ward is restored.",
+            },
+            {
+              type: "narration",
+              text: "Somewhere above the rooftops, a window opens. A child looks out at the lit street below, surprised. Someone laughs.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "curious",
+              text: "One ward at a time. We still have the Northern Ward, the Docks, and whatever Eldric isn't telling us about.",
+            },
+          ],
+          next_scene_id: "scene_13_good_ending",
+        },
+
+        // ── Scene 13: Good Ending ──────────────────────────────────────────
+        {
+          scene_id: "scene_13_good_ending",
+          type: "ending",
+          location: "The Eastern Ward",
+          characters_present: ["eldric", "lyra"],
+          ending_id: "ending_city_holds",
+        },
+
+        // ══════════════════════════════════════════════════════════════════
+        // BAD BRANCH — Choice A (wrong: 1 Crystal A + 1 Crystal B = (3,3))
+        // ══════════════════════════════════════════════════════════════════
+        {
+          scene_id: "scene_bad_A_start",
+          type: "consequence",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "You place one Crystal A and one Crystal B into the beacon's base. The column pulses — once, eagerly — and then begins to whine.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "Wait. That's not right. The hum is too low — it's under-resonating.",
+            },
+            {
+              type: "narration",
+              text: "1×(2,1) + 1×(1,2) = (3,3). The beacon needs (5,4). The vertical axis is starved by two units, the lateral by one.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "worried",
+              text: "It's compensating. Drawing energy from the outer districts to make up the deficit.",
+            },
+          ],
+          next_scene_id: "scene_bad_A_collapse",
+        },
+        {
+          scene_id: "scene_bad_A_collapse",
+          type: "consequence",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "The light across the entire lower city goes out in sequence. Ward by ward, the smaller beacons extinguish as the Primary drains them dry.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "The Southern Ward just went dark. The Markets too.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "One Crystal A and one Crystal B gives a resonance of (3,3). We needed (5,4). The combination was insufficient — a correct linear combination requires the right scalar coefficients, not just any combination.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "worried",
+              text: "Remove the crystals. Carefully. We may still have time to try again if we're fast.",
+            },
+          ],
+          next_scene_id: "scene_bad_A_ending",
+        },
+        {
+          scene_id: "scene_bad_A_ending",
           type: "ending",
           location: "The Beacon Antechamber",
           characters_present: ["eldric", "lyra"],
-          ending_id: "ending_beacon_restored",
+          ending_id: "ending_bad_underpowered",
+        },
+
+        // ══════════════════════════════════════════════════════════════════
+        // BAD BRANCH — Choice C (wrong: 1 Crystal A + 2 Crystal B = (4,5))
+        // ══════════════════════════════════════════════════════════════════
+        {
+          scene_id: "scene_bad_C_start",
+          type: "consequence",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "You place one Crystal A and two Crystal B into the base. The column ignites — faster than expected, brighter than expected.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "It's too much lateral energy. The vertical axis is a full unit short of the target.",
+            },
+            {
+              type: "narration",
+              text: "1×(2,1) + 2×(1,2) = (4,5). The beacon received (4,5) instead of (5,4). The vertical and lateral components are transposed.",
+            },
+          ],
+          next_scene_id: "scene_bad_C_inversion",
+        },
+        {
+          scene_id: "scene_bad_C_inversion",
+          type: "consequence",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          content: [
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "worried",
+              text: "The resonance is inverted. It's not pulling from the districts yet — but the beacon is already trying to correct itself by reshaping its own lattice.",
+            },
+            {
+              type: "narration",
+              text: "A deep crack appears in the lower third of the crystal column. The amber light turns white, then orange, then dims.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "If that lattice fractures, we lose the housing entirely. We'd need a new column, and we don't have one.",
+            },
+            {
+              type: "dialogue",
+              character_id: "eldric",
+              expression: "stern",
+              text: "The resonance (4,5) has the right components — but in the wrong proportions for this beacon. The vertical energy was (5) units; we gave it (4). One Crystal A provides only 2 units of vertical resonance. We needed to scale it up.",
+            },
+          ],
+          next_scene_id: "scene_bad_C_ending",
+        },
+        {
+          scene_id: "scene_bad_C_ending",
+          type: "ending",
+          location: "The Beacon Chamber",
+          characters_present: ["eldric", "lyra"],
+          ending_id: "ending_bad_inverted",
+        },
+
+        // ══════════════════════════════════════════════════════════════════
+        // BAD BRANCH — Puzzle 2, Choice P (wrong: 3 C + 0 D = (3,3) ≠ (4,5))
+        // ══════════════════════════════════════════════════════════════════
+        {
+          scene_id: "scene_bad_P_start",
+          type: "consequence",
+          location: "The Eastern Ward Beacon",
+          characters_present: ["lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "Three Crystal C, no Crystal D. The resonance produced is (3,3) — clean, symmetrical, and completely wrong.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "That's not (4,5). The lateral component is short by two and the vertical is short by one.",
+            },
+            {
+              type: "narration",
+              text: "The beacon accepts the input and immediately begins to oscillate. The ward lanterns flicker once — then go out entirely as the beacon draws emergency power from the grid.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "Using only Crystal C gives us resonance vectors along the line c₁ × (1,1) — always equal vertical and lateral. We can never reach (4,5) with C alone since 4 ≠ 5.",
+            },
+          ],
+          next_scene_id: "scene_bad_P_ending",
+        },
+        {
+          scene_id: "scene_bad_P_ending",
+          type: "ending",
+          location: "The Eastern Ward",
+          characters_present: ["lyra"],
+          ending_id: "ending_bad_eastern_dark",
+        },
+
+        // ══════════════════════════════════════════════════════════════════
+        // BAD BRANCH — Puzzle 2, Choice R (wrong: 1 C + 2 D = (5,7) ≠ (4,5))
+        // ══════════════════════════════════════════════════════════════════
+        {
+          scene_id: "scene_bad_R_start",
+          type: "consequence",
+          location: "The Eastern Ward Beacon",
+          characters_present: ["lyra"],
+          content: [
+            {
+              type: "narration",
+              text: "One Crystal C and two Crystal D. 1×(1,1) + 2×(2,3) = (1,1) + (4,6) = (5,7). The beacon overloads instantly.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "Too much! The resonance is (5,7) — lateral is overdriven by two full units.",
+            },
+            {
+              type: "narration",
+              text: "The beacon's housing begins to ring like a struck bell. Lyra grabs the crystals and pulls them free before the structure can fracture.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "focused",
+              text: "We needed c₁ × (1,1) + c₂ × (2,3) = (4,5). With c₂ = 2, we get (4,6) from Crystal D alone — already one unit over on the lateral axis.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "nervous",
+              text: "We needed c₂ = 1 to keep the lateral component in range. That would have given (2,3) from Crystal D and left (2,2) needed from Crystal C — meaning c₁ = 2.",
+            },
+          ],
+          next_scene_id: "scene_bad_R_ending",
+        },
+        {
+          scene_id: "scene_bad_R_ending",
+          type: "ending",
+          location: "The Eastern Ward",
+          characters_present: ["lyra"],
+          ending_id: "ending_bad_eastern_overload",
         },
       ],
     },
   ],
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Puzzles
+  // ──────────────────────────────────────────────────────────────────────────
   puzzles: [
     {
       puzzle_id: "puzzle_01",
       concept_ids: ["concept_linear_combination"],
       narrative_context:
-        "The beacon's resonance system is failing. Eldric's diagrams show the required target resonance is (5, 4). Crystal A has a resonance vector of (2, 1) and Crystal B has a resonance vector of (1, 2). You must choose the correct combination of crystals to restore the beacon.",
+        "The Primary Beacon requires a resonance of exactly (5, 4). Crystal A resonates at (2, 1) and Crystal B at (1, 2). You must choose the correct number of each crystal to produce the required combination.",
       question:
         "Which combination of Crystal A and Crystal B produces the required resonance of (5, 4)?",
       choices: [
         {
           choice_id: "choice_A",
-          text: "Use one Crystal A and one Crystal B. → 1×(2,1) + 1×(1,2) = (3,3)",
+          text: "1 Crystal A + 1 Crystal B  →  1×(2,1) + 1×(1,2) = (3, 3)",
         },
         {
           choice_id: "choice_B",
-          text: "Use two Crystal A and one Crystal B. → 2×(2,1) + 1×(1,2) = (5,4)",
+          text: "2 Crystal A + 1 Crystal B  →  2×(2,1) + 1×(1,2) = (5, 4)  ✓",
         },
         {
           choice_id: "choice_C",
-          text: "Use one Crystal A and two Crystal B. → 1×(2,1) + 2×(1,2) = (4,5)",
+          text: "1 Crystal A + 2 Crystal B  →  1×(2,1) + 2×(1,2) = (4, 5)",
         },
       ],
       correct_choice_id: "choice_B",
       explanation:
-        "The correct answer is 2×Crystal A + 1×Crystal B. Computing: 2×(2,1) = (4,2) and 1×(1,2) = (1,2). Adding them gives (4+1, 2+2) = (5,4), which is exactly the required resonance. This is a linear combination c₁v₁ + c₂v₂ where c₁=2, c₂=1, v₁=(2,1), v₂=(1,2).",
+        "2×(2,1) + 1×(1,2) = (4,2) + (1,2) = (5,4). Coefficient c₁ = 2 and c₂ = 1 produce the exact target. This is a linear combination c₁v₁ + c₂v₂.",
       incorrect_feedback:
-        "The resonance did not match the target (5,4). Check your calculation: multiply each crystal's vector by the number of crystals used, then add the results component-wise.",
+        "The resonance did not match (5,4). Multiply each crystal's vector by how many you use, then add component-wise and compare to the target.",
       correct_feedback:
-        "Correct! The beacon resonates perfectly. 2×(2,1) + 1×(1,2) = (4,2) + (1,2) = (5,4).",
+        "Correct. 2×(2,1) + 1×(1,2) = (4,2) + (1,2) = (5,4). The beacon is stable.",
+      retry_allowed: true,
+    },
+    {
+      puzzle_id: "puzzle_02",
+      concept_ids: ["concept_linear_combination", "concept_vector_span"],
+      narrative_context:
+        "The Eastern Ward beacon requires resonance (4, 5). Crystal C = (1, 1) and Crystal D = (2, 3). Find the scalar coefficients c₁ and c₂ such that c₁·(1,1) + c₂·(2,3) = (4,5).",
+      question:
+        "Which combination of Crystal C and Crystal D produces the required resonance of (4, 5)?",
+      choices: [
+        {
+          choice_id: "choice_P",
+          text: "3 Crystal C + 0 Crystal D  →  3×(1,1) + 0×(2,3) = (3, 3)",
+        },
+        {
+          choice_id: "choice_Q",
+          text: "2 Crystal C + 1 Crystal D  →  2×(1,1) + 1×(2,3) = (4, 5)  ✓",
+        },
+        {
+          choice_id: "choice_R",
+          text: "1 Crystal C + 2 Crystal D  →  1×(1,1) + 2×(2,3) = (5, 7)",
+        },
+      ],
+      correct_choice_id: "choice_Q",
+      explanation:
+        "2×(1,1) = (2,2) and 1×(2,3) = (2,3). Adding gives (4,5). Coefficients c₁ = 2, c₂ = 1 solve the system: c₁ + 2c₂ = 4 and c₁ + 3c₂ = 5.",
+      incorrect_feedback:
+        "The resonance did not match (4,5). Set up the system c₁(1,1) + c₂(2,3) = (4,5) and solve component-wise.",
+      correct_feedback:
+        "Correct. 2×(1,1) + 1×(2,3) = (2,2) + (2,3) = (4,5). The Eastern Ward beacon is restored.",
       retry_allowed: true,
     },
   ],
 
+  // ──────────────────────────────────────────────────────────────────────────
+  // Endings
+  // ──────────────────────────────────────────────────────────────────────────
   endings: [
+    // ── Good ending ─────────────────────────────────────────────────────────
     {
-      ending_id: "ending_beacon_restored",
+      ending_id: "ending_city_holds",
       type: "success",
-      title: "The Beacon Holds",
+      title: "The City Holds",
       narration:
-        "The Veiled City breathes again. The beacon's light extends outward, reconnecting with the network of smaller beacons across the districts. For now, the city is safe. But Eldric's expression does not entirely relax — somewhere in the distance, another beacon flickers.",
-      world_state_changes: { stability: 20, beacon_power: 50 },
-      relationship_changes: { eldric: 15, lyra: 10 },
+        "The Eastern Ward breathes again. Light returns to the streets district by district as the restored beacon lattice finds its equilibrium.\n\nEldric watches the resonance readouts settle and allows himself one slow exhale. \"Two beacons in a single night,\" he says. \"I had begun to think we'd have to choose.\"\n\nLyra is already studying the next diagram. The Northern Ward. The Docks. The city is not saved — but it is, for now, alive.\n\nSomewhere outside, a child laughs at the light.",
+      world_state_changes: { stability: 30, beacon_power: 60 },
+      relationship_changes: { eldric: 20, lyra: 15 },
+    },
+
+    // ── Bad ending A — underpowered ─────────────────────────────────────────
+    {
+      ending_id: "ending_bad_underpowered",
+      type: "failure",
+      title: "The City Dims",
+      narration:
+        "The Primary Beacon cannot sustain the city's demand on a resonance of (3,3). It draws from the outer districts until they have nothing left to give — and then it, too, goes dark.\n\nIn the silence that follows, Eldric does not speak for a long time.\n\n\"The error was in the coefficients,\" he finally says. \"One Crystal A and one Crystal B gives 1×(2,1) + 1×(1,2) = (3,3). We needed (5,4). The scalars were wrong — not the direction, the magnitude.\"\n\nThere is still time to correct it. The crystals are intact.",
+      world_state_changes: { stability: -10, beacon_power: -20 },
+      relationship_changes: { eldric: -5, lyra: 0 },
+    },
+
+    // ── Bad ending C — inverted resonance ───────────────────────────────────
+    {
+      ending_id: "ending_bad_inverted",
+      type: "failure",
+      title: "The Fracture",
+      narration:
+        "The crystal lattice cracks down its centre. The beacon housing can be repaired, but it will take days — days the outer districts do not have.\n\n\"You gave it (4,5) when it needed (5,4),\" Eldric says quietly, running a hand along the fracture. \"One Crystal A and two Crystal B: 1×(2,1) + 2×(1,2) = (2,1) + (2,4) = (4,5). The components were transposed.\"\n\n\"The lateral energy exceeded the target. The vertical fell short. The beacon tried to compensate and tore itself apart doing so.\"\n\nThe mistake can still be learned from.",
+      world_state_changes: { stability: -15, beacon_power: -30 },
+      relationship_changes: { eldric: -10, lyra: -5 },
+    },
+
+    // ── Bad ending P — Eastern Ward stays dark ──────────────────────────────
+    {
+      ending_id: "ending_bad_eastern_dark",
+      type: "failure",
+      title: "The Eastern Ward Goes Dark",
+      narration:
+        "The Eastern Ward beacon cannot hold on (3,3). The ward goes dark within minutes.\n\nLyra sits on the courtyard steps, the unused Crystal D heavy in her pocket.\n\n\"Crystal C alone can only produce resonances of the form c×(1,1) — always equal vertical and lateral. The target was (4,5). Those components are not equal. Crystal C alone can never reach it.\"\n\nShe looks up at the unlit windows above the street. \"We needed Crystal D in the combination. The span of Crystal C alone is just a line through the origin — and (4,5) doesn't lie on that line.\"",
+      world_state_changes: { stability: -10, beacon_power: -15 },
+      relationship_changes: { eldric: 0, lyra: -5 },
+    },
+
+    // ── Bad ending R — Eastern Ward overloads ───────────────────────────────
+    {
+      ending_id: "ending_bad_eastern_overload",
+      type: "failure",
+      title: "Overloaded",
+      narration:
+        "The beacon survives — barely. The overload didn't fracture the housing, but the district's power grid sparked and two buildings on the outer ring caught fire.\n\nBy the time the fires are out, the night is half gone.\n\n\"One Crystal C and two Crystal D,\" Lyra says, more to herself than anyone. \"(1,1) + 2×(2,3) = (1,1) + (4,6) = (5,7). We overshot the lateral axis by two and the vertical by one.\"\n\n\"The correct answer was c₁ = 2, c₂ = 1. I should have solved it systematically — set up the equations, not guessed.\"",
+      world_state_changes: { stability: -5, beacon_power: -10 },
+      relationship_changes: { eldric: 0, lyra: -8 },
     },
   ],
 
@@ -365,15 +997,20 @@ export const dummyStory: StoryBlueprint = {
   knowledge_mapping: [
     {
       concept_id: "concept_linear_combination",
-      introduced_in_scene_id: "scene_02_learning",
+      introduced_in_scene_id: "scene_03_learning",
       tested_in_puzzle_id: "puzzle_01",
+    },
+    {
+      concept_id: "concept_vector_span",
+      introduced_in_scene_id: "scene_09_span_learning",
+      tested_in_puzzle_id: "puzzle_02",
     },
   ],
 };
 
 // ---------------------------------------------------------------------------
 // Story 2 Blueprint — "The Outer Districts"
-// A minimal second story used for campaign progression testing.
+// Second story, campaign progression. Minimal — used for lobby/transition testing.
 // ---------------------------------------------------------------------------
 
 export const dummyStory2: StoryBlueprint = {
@@ -381,28 +1018,44 @@ export const dummyStory2: StoryBlueprint = {
   material_id: "material_01",
   title: "The Outer Districts",
   summary:
-    "With the primary beacon restored, the team turns to the failing outer district beacons. The span of the available resonance vectors determines what can still be saved.",
+    "With the Eastern Ward restored, the team moves on the Northern Ward. The span of the remaining crystal types determines whether the district can be saved at all.",
   character_ids: ["eldric", "lyra"],
   chapters: [
     {
       chapter_id: "chapter_02_01",
-      title: "The Districts",
+      title: "The Northern Ward",
       scenes: [
         {
           scene_id: "s2_scene_01",
           type: "narrative",
-          location: "The Outer Ward",
+          location: "The Outer Ward — Northern Gate",
           characters_present: ["lyra"],
           content: [
             {
               type: "narration",
-              text: "The outer ward is quieter than before. The beacons here pulse with an unsteady rhythm.",
+              text: "The Northern Ward is older than the rest of the city. The beacon here was installed before the resonance system was standardised — it has quirks.",
             },
             {
               type: "dialogue",
               character_id: "lyra",
               expression: "focused",
-              text: "We have two resonance types available. We need to determine which districts we can still reach.",
+              text: "Eldric says the Northern Ward needs resonance (3, 3). With Crystal C and Crystal D still on hand, that should be straightforward.",
+            },
+            {
+              type: "narration",
+              text: "She frowns at the diagram.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "curious",
+              text: "Actually — wait. c₁(1,1) + c₂(2,3) = (3,3). The vertical equation gives c₁ + 2c₂ = 3, and the lateral gives c₁ + 3c₂ = 3. Subtracting: c₂ = 0. And then c₁ = 3.",
+            },
+            {
+              type: "dialogue",
+              character_id: "lyra",
+              expression: "relieved",
+              text: "Three Crystal C, no Crystal D. The Northern Ward is simpler than I thought.",
             },
           ],
           next_scene_id: "s2_scene_02_ending",
@@ -410,7 +1063,7 @@ export const dummyStory2: StoryBlueprint = {
         {
           scene_id: "s2_scene_02_ending",
           type: "ending",
-          location: "The Outer Ward",
+          location: "The Northern Ward",
           characters_present: ["eldric", "lyra"],
           ending_id: "s2_ending_districts_secured",
         },
@@ -424,9 +1077,9 @@ export const dummyStory2: StoryBlueprint = {
       type: "success",
       title: "The Districts Hold",
       narration:
-        "The outer ward beacons stabilise. The Veiled City endures for another day.",
+        "The Northern Ward beacon ignites with three Crystal C — a clean, symmetric resonance of (3,3).\n\nEldric arrives just as the light stabilises. He looks from the beacon to Lyra to you, and nods once.\n\n\"The Docks next,\" he says. \"And then the Archive. We're not done.\"\n\nBut for the first time tonight, he doesn't look like a man counting down.",
       world_state_changes: { stability: 15, beacon_power: 20 },
-      relationship_changes: { lyra: 10 },
+      relationship_changes: { lyra: 10, eldric: 5 },
     },
   ],
   continuity_summary: null,
@@ -557,7 +1210,7 @@ export const dummyCampaignState: CampaignState = {
 export const dummyStoryState: StoryState = {
   story_id: "story_01",
   current_chapter_id: "chapter_01",
-  current_scene_id: "scene_01_intro",
+  current_scene_id: "scene_01_arrival",
   hp: 5,
   status: "in_progress",
   puzzle_attempts: {},
