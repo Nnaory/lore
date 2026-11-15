@@ -1,491 +1,167 @@
-# LORE — Design System & UI Guidelines
+# LORE — Design System & UI/UX Specification (v2 Overhaul)
 
-> **Status:** Draft v1.0  
-> **Fokus:** UI utama aplikasi LORE  
-> **Tema:** Modern Dark Editorial  
-> **Referensi atmosfer:** Reverse: 1999  
-> **Target:** Web Application
+> **Status:** v2.0 Architecture Overhaul Draft  
+> **Fokus:** Preparation & Scoping Flow (`learn something?`) + 3-Pane Interactive Visual Novel Stage  
+> **Visual Engine:** React 19 + `@remotion/player` (Interactive Client-Side Canvas)  
+> **Tema:** Modern Dark Editorial / Dark Sci-Fi Gold
 
 ---
 
 ## 1. Design Philosophy
 
-LORE merupakan aplikasi pembelajaran interaktif berbasis cerita atau _interactive visual novel_.
+LORE adalah aplikasi pembelajaran interaktif berbasis cerita (*Interactive Learning Visual Novel*). Tujuan utama antarmuka LORE adalah menyatukan **penjelasan visual yang hidup**, **karakter yang ekspresif**, dan **tantangan interaktif berbasis cerita** dalam satu panggung (*stage*) yang kohesif.
 
-Antarmuka LORE harus mampu membawa pengguna masuk ke dalam sebuah dunia cerita. Pengguna tidak seharusnya merasa sedang menggunakan aplikasi pembelajaran konvensional, melainkan sedang membaca dan menjalani sebuah kisah interaktif.
-
-UI menjadi bagian dari pengalaman bercerita, bukan sekadar wadah untuk menampilkan teks dan pilihan.
-
-### Prinsip desain
-
-1. **Story-driven:** Cerita menjadi pusat perhatian dan elemen utama antarmuka.
-2. **Immersive:** UI harus membantu pengguna merasa berada di dalam dunia cerita.
-3. **Minimalist:** Hindari elemen visual yang tidak memiliki fungsi.
-4. **Modern:** Menggunakan pendekatan desain web modern, bukan meniru tampilan game klasik secara keseluruhan.
-5. **Atmospheric:** Menciptakan suasana misterius, privat, dan elegan melalui warna, tipografi, serta komposisi layout.
-
-### Arah visual
-
-Konsep utama LORE adalah:
-
-**Modern Dark Editorial — sebuah aplikasi modern dengan atmosfer dark fantasy yang elegan.**
-
-Reverse: 1999 digunakan sebagai referensi atmosfer dan penyajian cerita, bukan sebagai acuan untuk menyalin desain antarmukanya.
-
-Tema Halloween untuk keperluan hackathon tidak ditampilkan secara eksplisit. Nuansanya harus terasa melalui atmosfer visual, bukan melalui dekorasi Halloween yang literal.
-
-Hindari penggunaan elemen seperti labu, tengkorak, kelelawar, atau dekorasi Halloween berlebihan.
+### Prinsip Utama UI/UX
+1. **Show, Don't Just Tell:** Konsep tidak hanya dijelaskan lewat dinding teks, tetapi divisualisasikan secara dinamis di kanvas menggunakan **Remotion** sementara karakter menjelaskannya.
+2. **Learn by Solving World Conflicts:** Kanvas visual bukan sekadar tontonan pasif—pada momen krusial cerita, kanvas berhenti (*pause*) dan berubah menjadi instrumen interaktif yang harus dioperasikan pemain untuk menyelesaikan masalah cerita.
+3. **Pacing Control (`fast | animate`):** Pemain memegang kendali penuh atas ritme belajar—bisa menikmati animasi penjelasan langkah demi langkah (`animate`) atau langsung melompat ke inti konsep/interaksi (`fast`).
+4. **Scoped Before Generated:** Sebelum menjalankan proses pembuatan materi & cerita yang panjang (ala NotebookLM), UI memfasilitasi dialog singkat (*AI Grilling*) agar cakupan materi pas dengan jumlah chapter yang diinginkan.
 
 ---
 
-## 2. Visual Identity
+## 2. Core User Flows & Wireframes
 
-### 2.1 Atmosfer
-
-Karakter visual yang ingin dibangun:
-
-- Misterius.
-- Estetik dan elegan.
-- Gelap tetapi tetap nyaman dibaca.
-- Modern dan minimalis.
-- Memiliki kesan privat, seperti membuka arsip atau memasuki dunia rahasia.
-
-### 2.2 Color Direction
-
-Fondasi warna menggunakan palet gelap dengan aksen warna yang tidak terlalu mencolok.
-
-Palet awal yang direkomendasikan:
-
-| Warna          | Hex       | Penggunaan                   |
-| -------------- | --------- | ---------------------------- |
-| Obsidian       | `#171719` | Background utama             |
-| Dark Plum      | `#30212D` | Variasi background dan panel |
-| Muted Burgundy | `#563744` | Aksen dan elemen interaktif  |
-| Antique Gold   | `#B49A70` | Aksen dekoratif              |
-| Warm Ivory     | `#E5DED2` | Teks utama                   |
-
-Palet ini merupakan rekomendasi awal dan masih dapat disesuaikan selama proses implementasi.
-
-**Panduan penggunaan warna:**
-
-- Background dominan gelap.
-- Teks harus memiliki kontras yang cukup.
-- Warna aksen digunakan secara terbatas.
-- Hindari warna yang terlalu terang atau terlalu jenuh.
-- Jangan menjadikan warna aksen sebagai dekorasi di setiap elemen.
-
-### 2.3 Background & Decoration
-
-Background tidak menggunakan gambar PNG atau JPG.
-
-Seluruh dekorasi latar dibuat menggunakan CSS, misalnya:
-
-- Dark gradient.
-- Garis-garis tipis.
-- Pola geometris sederhana.
-- Gradient overlay.
-- Ornamen abstrak yang subtil.
-
-Pola visual harus konsisten dari awal hingga akhir cerita agar dunia LORE memiliki identitas visual yang menyatu.
-
-Hindari animasi berlebihan dan dekorasi yang mengganggu fokus membaca.
-
-### 2.4 Typography
-
-Tipografi harus mendukung kesan editorial, misterius, dan modern.
-
-Arah yang diinginkan:
-
-- Tipografi utama mudah dibaca untuk teks cerita yang panjang.
-- Judul lokasi, chapter, dan elemen penting boleh menggunakan karakter tipografi yang lebih khas.
-- Hierarki ukuran dan ketebalan teks harus jelas.
-- Hindari penggunaan terlalu banyak jenis font.
-
-Pilihan font final belum ditentukan.
+Aplikasi berfokus pada dua layar utama:
+1. **Preparation & Scoping Page (`learn something?`)** — Input topik/materi, konfigurasi chapter, *AI Grilling*, estimasi *credit*, dan *background synthesis*.
+2. **Main Story & Learning Stage** — Panggung utama 3-panel (Character Stage, Remotion Interactive Canvas, dan Dialogue/Chat Controller).
 
 ---
 
-## 3. Application Scope
+## 3. Page 1: Preparation & Scoping Page (`learn something?`)
 
-Dokumen ini hanya membahas antarmuka utama LORE.
+![Preparation Page Wireframe](assets/wireframe-preparation.png)
 
-Fokus utama terdiri dari dua halaman:
+### 3.1. Minimalist Entry State
+Saat pertama kali dibuka, halaman menampilkan fokus tunggal yang bersih:
+- **Prompt Input Utama (`learn something?`):** Pengguna mengetik topik apa pun yang ingin dipelajari, menempelkan catatan, atau melampirkan dokumen referensi.
+- **Konfigurasi Eksplorasi (Collapsible / Pill Bar di bawah input):**
+  - **Target Chapter Count:** Pilihan jumlah chapter (misal: `1–2 Chapter (Quick)`, `3–5 Chapter (Standard)`, atau angka kustom).
+  - **Genre / World Tone:** `Fantasy`, `Sci-Fi`, `Mystery`, atau `Modern/Realistic`.
+  - **Simulated Credit Balance:** Menampilkan sisa *credit* pengguna di pojok kanan atas.
 
-1. **Preparation Page:** Pengguna menyiapkan materi dan menentukan genre cerita.
-2. **Main Story Page:** Pengguna membaca dan menjalani cerita interaktif.
+### 3.2. State 2: AI Scope Grilling (Jika Konteks Terlalu Luas)
+Jika pengguna memasukkan topik yang sangat luas (misal: *"Pelajari seluruh Kalkulus dan Aljabar Linear"*) tetapi memilih jumlah chapter yang sedikit (misal: `2 Chapter`), UI **tidak langsung menjalankan background generation**, melainkan membuka panel percakapan singkat (**Scope Grilling Card**):
+- AI mengajukan 1–3 pertanyaan tajam (atau opsi fokus) untuk mengerucutkan ruang lingkup materi.
+- Pengguna dapat memilih chip fokus yang disarankan AI atau mengetik batasan spesifik.
+- Setiap perubahan ruang lingkup langsung memperbarui **Estimasi Credit** secara *real-time*.
 
-Halaman seperti dashboard, autentikasi, profil pengguna, dan fitur di luar pengalaman utama tidak termasuk dalam pembahasan dokumen ini.
-
----
-
-## 4. Preparation Page
-
-Preparation Page merupakan halaman awal sebelum pengguna memasuki dunia cerita.
-
-Halaman ini digunakan untuk menentukan materi pembelajaran dan genre cerita.
-
-### 4.1 Material Input
-
-Pengguna dapat memasukkan satu dokumen atau materi pembelajaran.
-
-Ketentuan:
-
-- Hanya satu dokumen untuk satu sesi persiapan.
-- Pengguna dapat mengunggah dokumen sebagai sumber materi cerita.
-- UI perlu menampilkan dokumen yang sudah dipilih.
-- Hindari tampilan upload yang terlalu kompleks.
-
-### 4.2 Genre Selection
-
-Pengguna dapat memilih genre cerita.
-
-Genre awal yang tersedia:
-
-- Fantasy
-- Non-fiction
-- Sci-fi
-
-Genre digunakan untuk menentukan dunia dan atmosfer cerita.
-
-Secara konseptual, ketiga genre dapat memberikan nuansa waktu dan dunia yang berbeda:
-
-- Fantasy: dunia imajinatif dengan nuansa historis atau magis.
-- Non-fiction: dunia yang lebih dekat dengan realitas.
-- Sci-fi: dunia futuristik dengan teknologi dan konsep masa depan.
-
-Pembagian tersebut merupakan arah konseptual, bukan batasan mutlak untuk sistem pembentukan cerita.
-
-### 4.3 Transition to Story
-
-Setelah materi dan genre ditentukan, pengguna melanjutkan ke proses pembentukan cerita.
-
-Hasil akhirnya adalah sebuah cerita yang dibagi menjadi beberapa chapter.
-
-Setiap chapter memiliki permasalahan atau tantangan tersendiri, tetapi seluruh chapter tetap menjadi bagian dari satu cerita yang saling terhubung.
+### 3.3. State 3: Credit Confirmation & NotebookLM-Style Background Process
+Setelah ruang lingkup disepakati:
+1. **Credit Breakdown Preview:** Menampilkan rincian pemakaian *credit* (misal: `3 Chapters × 10 cr + 4 Interactive Canvases × 5 cr = 50 Credits`).
+2. **Background Generation Dashboard (NotebookLM-style):**
+   - Karena proses persiapan di backend (LangGraph) menyusun kurikulum, naskah emosi karakter, *keyframes* Remotion, dan validasi puzzle secara mendalam, UI menampilkan *progress stage* yang informatif:
+     - `[1/4] Extracting Core Concepts & Misconceptions...`
+     - `[2/4] Architecting Story Chapters & World Conflicts...`
+     - `[3/4] Choreographing Remotion Visuals & Character Emotions...`
+     - `[4/4] Validating Interactive Checkpoints...`
+   - Begitu Chapter 1 siap (atau seluruh campaign siap), tombol **"Enter Stage"** aktif.
 
 ---
 
-## 5. Main Story Page
+## 4. Page 2: Main Story & Learning Stage (3-Pane Layout)
 
-Main Story Page merupakan pusat pengalaman LORE.
+![Main Story & Learning Stage Wireframe](assets/wireframe-main-stage.png)
 
-Seluruh aktivitas membaca cerita, mengikuti dialog, mempelajari materi, dan menyelesaikan tantangan dilakukan di halaman ini.
+Antarmuka permainan utama dibagi menjadi **Navbar di bagian atas** dan **3 Panel Utama** yang mengisi layar penuh (`h-screen overflow-hidden`):
 
-### 5.1 Overall Layout
-
-Antarmuka utama menggunakan tiga bagian vertikal:
-
-1. Left Sidebar
-2. Main Story Area
-3. Right Sidebar
-
-Ketiga bagian membentang dari atas hingga bawah layar (_full height layout_).
-
-Pembagian layout:
-
-| Area   | Fungsi                                           |
-| ------ | ------------------------------------------------ |
-| Kiri   | Sidebar dan navigasi keluar dari cerita          |
-| Tengah | Area utama untuk membaca cerita dan berinteraksi |
-| Kanan  | Informasi chapter dan progress cerita            |
-
-Area tengah mendapatkan ruang paling besar karena merupakan pusat perhatian pengguna.
-
-### 5.2 Left Sidebar
-
-Sidebar kiri memiliki fungsi navigasi sederhana.
-
-Fungsi utama:
-
-- Menyediakan opsi untuk keluar dari cerita.
-- Menjadi elemen navigasi yang selalu tersedia selama pengguna berada di halaman cerita.
-
-Untuk versi awal, belum ada fitur save atau load story.
-
-Karena itu, sidebar tidak perlu memiliki banyak menu atau kontrol tambahan.
-
-### 5.3 Main Story Area
-
-Area tengah menjadi tempat seluruh konten cerita ditampilkan.
-
-Konsep layout menyerupai area membaca artikel atau ruang percakapan, dengan lebar yang cukup untuk membaca teks secara nyaman.
-
-Area ini terdiri dari dua bagian utama:
-
-#### A. Story Header
-
-Header berada di bagian atas area cerita.
-
-Contoh:
-
-**Nom City**
-
-`Dec 13, 1995 · 19:30`
-
-Header menampilkan konteks lokasi dan waktu dalam cerita.
-
-Ketentuan:
-
-- Header selalu terlihat.
-- Header tidak ikut bergeser ketika pengguna menggulir isi cerita.
-- Konten percakapan berada di bawah header.
-- Header berfungsi seperti nama dan informasi kontak pada aplikasi chat.
-
-Informasi lokasi dan waktu dapat berubah mengikuti perkembangan cerita.
-
-#### B. Story Content
-
-Bagian ini menampilkan seluruh narasi dan dialog cerita.
-
-Konten dapat digulir secara vertikal.
-
-Cerita ditampilkan secara berurutan dan membentuk satu alur yang berkelanjutan.
-
-Elemen yang dapat muncul:
-
-- Narasi.
-- Dialog karakter.
-- Interaksi atau pilihan pemain.
-- Tantangan pembelajaran.
-- Konsekuensi dari keputusan pemain.
-
-### 5.4 Dialogue Design
-
-Dialog menggunakan pendekatan sederhana seperti chat bubble.
-
-Format dialog:
-
-`(Ekspresi) Nama Karakter`
-
-`Isi dialog karakter.`
-
-Contoh:
-
-`(>_<) Character Name`
-
-`Aku rasa ada sesuatu yang aneh di tempat ini.`
-
-Ketentuan:
-
-- Karakter NPC ditempatkan di sisi kiri.
-- Main Character (MC) ditempatkan di sisi kanan.
-- Dialog menggunakan bubble dengan border atau rounded corner sederhana.
-- Ekspresi karakter ditampilkan menggunakan emoji atau teks sederhana.
-- Nama karakter ditampilkan sebelum isi dialog.
-- Hindari bubble dengan dekorasi berlebihan.
-
-Narasi memiliki format berbeda dari dialog.
-
-Ketentuan narasi:
-
-- Tidak memerlukan nama karakter.
-- Tidak memerlukan ekspresi.
-- Ditampilkan secara netral.
-- Memiliki perbedaan visual yang cukup jelas dari dialog karakter.
-
-### 5.5 Story Progression
-
-Cerita berjalan secara berurutan.
-
-Namun, tidak semua dialog membutuhkan interaksi pemain.
-
-Pembagian alur:
-
-**Ordinary Dialogue**
-
-- Dialog dan narasi berjalan sebagai bagian dari cerita.
-- Tidak perlu menampilkan pilihan jawaban.
-- Pengguna membaca dan melanjutkan cerita secara manual.
-
-**Interaction Moment**
-
-- Muncul ketika cerita mencapai permasalahan atau tantangan.
-- Pemain diminta memberikan respons atau mengambil keputusan.
-- Pilihan ditampilkan sebagai elemen interaktif.
-
-Dengan demikian, pengguna tidak terus-menerus diminta memilih jawaban selama membaca cerita.
-
-Interaksi hanya muncul ketika memang dibutuhkan oleh alur cerita.
-
-### 5.6 Continue Interaction
-
-Tidak menggunakan tombol Continue sebagai kontrol utama.
-
-Sebagai gantinya, pengguna dapat mengklik area cerita atau area chat untuk melanjutkan ke bagian berikutnya.
-
-Prinsip interaksi:
-
-- Pengguna memiliki kontrol atas kecepatan membaca.
-- Cerita tidak berjalan otomatis.
-- Tidak ada autoplay.
-- Pengguna melanjutkan cerita ketika sudah siap.
-
-Ketika pengguna mencapai bagian interaktif, area pilihan menggantikan mekanisme melanjutkan cerita biasa.
-
-### 5.7 Choice Interface
-
-Pilihan pemain muncul dari bagian bawah layar dan bergerak ke atas ketika dibutuhkan.
-
-Pendekatan visual yang diinginkan:
-
-- Pilihan muncul sebagai panel atau elemen yang terpisah dari dialog biasa.
-- Transisi slide-up yang sederhana.
-- Pilihan mudah dibaca dan diklik.
-- Animasi tidak berlebihan.
-- Tetap mengikuti identitas visual utama LORE.
-
-Detail tampilan pilihan, termasuk bentuk panel dan jumlah pilihan, masih dapat dikembangkan.
+| Area | Posisi | Fungsi Utama |
+|---|---|---|
+| **Navbar** | Top (Full Width) | Menampilkan judul Campaign/Chapter, indikator **HP (5/5)**, sisa **Simulated Credits**, dan tombol navigasi keluar. |
+| **1. Character Stage (`char`)** | Tengah-Kiri (~30–35% lebar) | Menampilkan karakter pendamping/mentor yang bergerak, berganti ekspresi/emosi, dan memberikan gestur penjelasan. |
+| **2. Remotion Canvas** | Tengah-Kanan (~65–70% lebar) | Kanvas `@remotion/player` tempat visualisasi materi dianimasikan dan tempat interaksi/puzzle kustom berlangsung. |
+| **3. Chat & Control Box** | Bawah (Full Width, ~25–30% tinggi) | Menampilkan teks dialog/narasi, toggle `fast \| animate`, kolom `type something`, dan tombol `log chat`. |
 
 ---
 
-## 6. Right Sidebar
+### 4.1. Panel 1: Character Stage (Kiri Atas)
 
-Sidebar kanan digunakan untuk menampilkan informasi progress cerita.
-
-Informasi utama yang direncanakan adalah chapter saat ini.
-
-Contoh:
-
-`CHAPTER`
-
-`02 / 03`
-
-Informasi ini membantu pengguna memahami posisi mereka dalam keseluruhan cerita.
-
-Sidebar kanan tidak perlu dipenuhi informasi tambahan.
-
-Untuk versi awal, cukup tampilkan informasi chapter dan progress yang relevan.
+Panel ini adalah jangkar emosional dari cerita.
+- **Peran Visual:** Karakter tidak hanya berupa gambar statis, melainkan memiliki *state* emosi dan gerakan penjelasan (*idle*, *explaining/pointing*, *thinking*, *worried*, *excited*, *stern*, *damaged/shocked*).
+- **Sinkronisasi dengan Cerita & Kanvas:**
+  - Ketika kanvas Remotion di sebelah kanan menampilkan diagram baru, karakter berubah ke pose `explaining` atau `pointing`.
+  - Ketika pemain salah menjawab tantangan di kanvas dan HP berkurang, karakter bereaksi dengan ekspresi `worried` atau `shocked`.
+- **Pendekatan Implementasi (TBD / Bertahap):**
+  - *Tahap Awal (MVP v2):* Layered SVG / Sprite dengan transisi *spring* CSS/Framer Motion (efek *breathing*, *talking bounce*, dan pergantian ekspresi wajah).
+  - *Tahap Lanjut:* Rive / Lottie state machine atau Live2D ringan yang dikontrol lewat prop `emotion` dan `gesture` dari JSON *beat*.
 
 ---
 
-## 7. Story Structure & Continuity
+### 4.2. Panel 2: Interactive Remotion Canvas (Kanan Atas)
 
-Satu materi pembelajaran menghasilkan satu cerita yang terdiri dari beberapa chapter.
+Panel ini menggunakan **`@remotion/player`** di sisi klien (bukan file video `.mp4`), sehingga ukurannya sangat ringan (hanya digerakkan oleh JSON dari backend) dan **elemen di dalamnya bisa diklik/diinteraksikan langsung sebagai komponen React**.
 
-Setiap chapter memiliki permasalahan atau tantangan yang berbeda.
+#### Dua Mode Kanvas:
+1. **Mode Explain (Synced Animation):**
+   - Saat karakter menjelaskan konsep atau situasi cerita, `@remotion/player` memutar animasi (misal: node yang saling terhubung, garis vektor yang bergeser, atau simulasi sistem).
+   - Animasi terikat pada *beat* dialog saat ini (misal: `frame 0` sampai `frame 150`).
+2. **Mode Interactive Checkpoint / Puzzle (Paused Frame + Custom Interaction):**
+   - Saat cerita mencapai masalah/tantangan, `@remotion/player` berhenti otomatis pada frame target, dan *overlay* / komponen di dalam kanvas aktif menerima input pemain.
+   - Setelah pemain menyelesaikan aksi di kanvas, kanvas memutar animasi konsekuensi (berhasil atau gagal).
 
-Namun, seluruh chapter harus terhubung menjadi satu kesatuan cerita.
-
-Contoh struktur:
-
-```text
-Campaign
-│
-├── Chapter 01
-│   ├── Story
-│   ├── Dialogue
-│   └── Problem
-│
-├── Chapter 02
-│   ├── Story
-│   ├── Dialogue
-│   └── Problem
-│
-└── Chapter 03
-    ├── Story
-    ├── Dialogue
-    └── Problem
-        │
-        └── Ending
-```
-
-UI harus mendukung pengalaman membaca yang berkelanjutan dari awal hingga akhir cerita.
-
-Perpindahan chapter tidak boleh terasa seperti membuka cerita yang benar-benar berbeda.
+#### Katalog Interactive Canvas Primitives (Standar Awal v2):
+Agar hasil generate AI selalu konsisten, responsif, dan bebas *bug* layout, kanvas Remotion dibangun di atas kumpulan *primitive* yang dikontrol lewat JSON Schema:
+1. **`ConceptMap / NodeGraphPrimitive` (Sesuai Wireframe):**
+   - *Explain:* Menganimasikan hubungan hierarki/jaringan antar konsep atau komponen sistem dunia cerita.
+   - *Interact:* Pemain mengklik node yang tepat, melengkapi node yang hilang, atau memilih jalur koneksi yang benar untuk memulihkan sistem.
+2. **`SimulationControlPrimitive`:**
+   - *Explain:* Menampilkan rumus/sistem dinamis (seperti keseimbangan energi, vektor, atau grafik).
+   - *Interact:* Pemain menggeser *slider* atau mengubah nilai parameter hingga visualisasi di kanvas mencapai target yang diminta cerita.
+3. **`ArtifactInspectorPrimitive`:**
+   - *Explain:* Menampilkan skema mesin kuno, potongan kode, atau dokumen arsip dengan sorotan (*spotlight*) bertahap.
+   - *Interact:* Pemain mengklik bagian yang mengandung kesalahan/anomali (*spot the flaw*) berdasarkan konsep yang baru dipelajari.
+4. **`TacticalDecisionPrimitive`:**
+   - *Explain:* Menampilkan situasi konflik cerita secara visual.
+   - *Interact:* Menampilkan kartu keputusan/puzzle di dalam kanvas dengan umpan balik langsung (*feedback* akademik + konsekuensi dunia cerita).
 
 ---
 
-## 8. Interaction & Navigation Principles
+### 4.3. Panel 3: Dialogue, Pacing & Chat Controller (Bawah)
 
-Prinsip interaksi utama:
+Panel bawah menggabungkan gaya *Visual Novel Textbox* dengan kontrol interaktif modern:
 
-| Elemen        | Perilaku                             |
-| ------------- | ------------------------------------ |
-| Story Content | Dapat digulir secara vertikal        |
-| Story Header  | Tetap terlihat ketika konten digulir |
-| Continue      | Menggunakan klik pada area cerita    |
-| Choice        | Muncul ketika ada tantangan          |
-| Choice Panel  | Muncul dari bawah                    |
-| Left Sidebar  | Menyediakan opsi keluar              |
-| Right Sidebar | Menampilkan informasi chapter        |
-
-### Reading Experience
-
-LORE menggunakan pendekatan manual reading.
-
-Pengguna menentukan sendiri kapan ingin melanjutkan cerita.
-
-Tidak ada:
-
-- Autoplay dialog.
-- Autoplay narasi.
-- Perpindahan cerita tanpa tindakan pengguna.
-
-Tujuannya adalah memberikan ruang bagi pengguna untuk memahami materi dan menikmati cerita.
+1. **Area Teks Dialog (`chat: ...`):**
+   - Menampilkan nama karakter, indikator emosi, serta teks dialog atau narasi cerita saat ini.
+   - Klik pada area dialog (ketika tidak sedang berada di tengah puzzle wajib) akan memajukan cerita ke *beat* berikutnya.
+2. **Toggle `fast | animate` (Pojok Kanan Atas Kotak Chat):**
+   - **`animate` (Default):** Teks muncul dengan efek ketikan halus (*typewriter*) dan kanvas Remotion memutar transisi animasi secara penuh dari awal hingga akhir *beat*.
+   - **`fast`:** Teks langsung tampil penuh dan `@remotion/player` langsung melompat (`seekTo`) ke frame akhir penjelasan *beat* tersebut (atau langsung ke frame interaksi puzzle). Sangat berguna saat pemain mengulang cerita (*retry*) atau ingin membaca cepat.
+3. **Input `type something` (Bagian Bawah Tengah):**
+   - Memungkinkan pemain mengetik pertanyaan bebas kepada karakter tentang materi yang sedang dibahas di kanvas (*"Kenapa tadi koefisien keduanya harus dikali 2?"*) atau mengetik jawaban alasan pada tantangan terbuka.
+   - Pertanyaan bebas di luar skrip utama akan diproses oleh backend LangGraph (dengan konteks *scene* & materi saat ini) dan memotong sedikit *Interaction Credit*.
+4. **Tombol `log chat` (Sebelah Kanan Input):**
+   - Membuka panel/modal riwayat seluruh dialog, narasi, dan ringkasan konsep (`learning_info`) yang sudah dilewati pada chapter tersebut agar pemain bisa meninjau ulang materi sebelum menjawab puzzle.
 
 ---
 
-## 9. Design Constraints
+## 5. Visual Identity & Color Tokens
 
-Beberapa batasan desain yang perlu dijaga:
+LORE mempertahankan estetika **Modern Dark Editorial / Dark Sci-Fi Gold** agar kanvas Remotion dan karakter terlihat menonjol di atas latar gelap yang nyaman di mata.
 
-1. Jangan menggunakan background gambar PNG/JPG.
-2. Jangan menggunakan dekorasi Halloween secara literal dan berlebihan.
-3. Jangan menggunakan animasi yang mengganggu pengalaman membaca.
-4. Jangan memenuhi sidebar dengan fitur yang belum diperlukan.
-5. Jangan membuat UI menyerupai aplikasi pembelajaran konvensional.
-6. Jangan membuat interaksi muncul pada setiap dialog.
-7. Jangan menggunakan autoplay untuk melanjutkan cerita.
-8. Jangan mengorbankan keterbacaan demi estetika.
-
----
-
-## 10. Design Decisions & Future Improvements
-
-Dokumen ini merupakan fondasi awal desain UI LORE. Beberapa keputusan sudah ditetapkan, sedangkan detail visual lainnya dapat dikembangkan selama implementasi.
-
-### Sudah ditentukan
-
-- [x] Fokus desain pada Preparation Page dan Main Story Page.
-- [x] Arah visual Modern Dark Editorial.
-- [x] Atmosfer misterius, privat, gelap, dan estetik.
-- [x] Tidak menggunakan dekorasi Halloween secara literal.
-- [x] Background menggunakan CSS.
-- [x] Main Story Page menggunakan tiga kolom.
-- [x] Ketiga kolom membentang dari atas hingga bawah.
-- [x] Header cerita selalu terlihat.
-- [x] Konten cerita dapat digulir.
-- [x] Dialog menggunakan chat bubble sederhana.
-- [x] NPC di kiri dan MC di kanan.
-- [x] Narasi tidak menggunakan format dialog karakter.
-- [x] Cerita dilanjutkan secara manual dengan klik area cerita.
-- [x] Pilihan interaksi muncul dari bawah.
-- [x] Sidebar kiri memiliki navigasi keluar.
-- [x] Sidebar kanan menampilkan chapter progress.
-
-### Masih dapat dikembangkan
-
-- [ ] Font final.
-- [ ] Warna final dan design tokens.
-- [ ] Ukuran dan proporsi ketiga kolom.
-- [ ] Detail ikon dan ornamen sidebar.
-- [ ] Bentuk dan animasi chat bubble.
-- [ ] Desain panel pilihan.
-- [ ] Detail transisi antar-chapter.
-- [ ] Responsive layout untuk tablet dan mobile.
-- [ ] Loading, error, dan empty states.
-- [ ] Accessibility dan keyboard navigation.
+| Token | Hex | Penggunaan |
+|---|---|---|
+| `--color-void` | `#0a0a0c` | Latar belakang utama kanvas Remotion & area dialog |
+| `--color-sci-panel` | `#1a1410` | Latar panel karakter, navbar, dan kartu kontrol |
+| `--color-sci-border` | `#3a2d20` | Garis pembatas tegas antar panel (Character, Canvas, Chat) |
+| `--color-gold` | `#e8c547` | Aksen interaktif utama, node aktif di Remotion, tombol aktif (`fast \| animate`) |
+| `--color-text` | `#f0ebe0` | Teks utama dialog dan label kanvas |
+| `--color-text-dim` | `#a8a090` | Narasi sekunder dan keterangan |
+| `--color-danger` | `#d84a3a` | Indikator pengurangan HP, konflik kritis, dan jawaban salah |
+| `--color-success` | `#6fcf97` | Indikator *concept demonstrated* dan keberhasilan puzzle |
 
 ---
 
-## 11. Closing Design Direction
+## 6. Status Keputusan Desain (Design Decisions Checklist)
 
-LORE harus terasa seperti sebuah ruang cerita digital yang elegan dan misterius.
+### Sudah Ditetapkan (Locked for v2)
+- [x] Dua halaman utama: **Preparation Page (`learn something?`)** dan **3-Pane Main Stage**.
+- [x] Mekanisme **AI Grilling** ketika cakupan topik terlalu besar dibanding jumlah chapter yang diminta.
+- [x] **Background Process** ala NotebookLM setelah ruang lingkup disepakati.
+- [x] Tata letak panggung utama terdiri dari **Navbar**, **Character Panel (Kiri)**, **Remotion Interactive Canvas (Kanan)**, dan **Chat/Control Panel (Bawah)**.
+- [x] Penggunaan `@remotion/player` berbasis JSON di sisi klien (bukan video `.mp4` statis) agar mendukung interaksi langsung dan ukuran data minimal.
+- [x] Kontrol `fast | animate`, input `type something`, dan tombol `log chat` di panel bawah.
 
-Pengguna membuka materi, memasuki sebuah dunia, bertemu karakter, membaca narasi, menghadapi permasalahan, dan menyelesaikan perjalanan mereka.
-
-Antarmuka tidak perlu terus-menerus menarik perhatian pengguna.
-
-Justru, UI yang baik adalah UI yang membuat pengguna fokus pada cerita tanpa melupakan atmosfer dunia yang sedang mereka jalani.
-
-**The interface is not the story. It is the doorway into the story.**
+### Masih Dapat Dikembangkan (Open / TBD)
+- [ ] Format aset final untuk **Character Panel** (apakah Sprite SVG berlapis, Rive, atau Lottie).
+- [ ] Daftar lengkap variasi *Interactive Primitives* di Remotion untuk berbagai mata pelajaran (eksakta vs sosial/humaniora).
+- [ ] Rumus final dan angka keseimbangan untuk **Credit Simulation**.
+- [ ] Tata letak adaptif untuk layar vertikal (*mobile portrait*—apakah Character dan Canvas ditumpuk atau menggunakan tab switch).

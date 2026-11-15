@@ -2,75 +2,112 @@
 
 > **Learn by Living the Knowledge.**
 
-LORE transforms educational materials into immersive, interactive, branching visual novel adventures. The player becomes the main character of a story where learning happens naturally through narrative situations, character interactions, conflicts, and meaningful decisions.
+LORE transforms educational topics and materials into immersive, interactive visual novel adventures powered by **programmatic animations (`@remotion/player`)** and **multi-agent AI orchestration (`Python + LangChain + LangGraph`)**.
 
-LORE is not a quiz platform with a story wrapped around it. It is an interactive narrative experience in which learning is part of the world, the conflict, and the player's decisions.
-
----
-
-## Product Vision
-
-Users provide educational materials, configure their preferred adventure settings, and receive an interactive learning campaign. Academic concepts become fictional situations where players must understand and apply knowledge to progress through the story.
-
-See [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) for the full product vision, principles, and success criteria.
+LORE is not a conventional quiz app with a story wrapper. Players step into a narrative world where concepts are visually explained by an expressive character, problems manifest on an interactive Remotion canvas, and understanding is demonstrated through meaningful decisions and direct canvas interactions.
 
 ---
 
-## Core Features (Planned)
+## Product Vision & Core Flow
 
-- **Material Upload** — PDF, DOCX, TXT, or pasted text input.
-- **AI-Powered Generation** — Layered pipeline transforms materials into structured campaign data.
-- **Interactive Visual Novel** — Narrative scenes, character dialogue, and meaningful branching choices.
-- **Persistent Consequences** — Player decisions affect world state, relationships, and future story events.
-- **Multi-Story Campaigns** — Multiple educational materials connected into one coherent adventure.
-- **Evidence-Based Learning** — Progress tracked through demonstrated understanding, not item exposure.
-- **Final Reflection** — Personalized epilogue and learning summary at campaign end.
-- **Local Persistence** — Campaign progress saved in the browser via localStorage and IndexedDB.
+1. **Prompt & Configure (`learn something?`)** — Users enter what they want to learn (topic prompt or uploaded material) and configure their preferred number of chapters and genre/atmosphere.
+2. **AI Scope Grilling (Human-in-the-Loop)** — If the topic scope is too broad for the requested chapter count, the AI interviews ("grills") the user to narrow down the exact sub-topics and learning focus before generation begins.
+3. **Credit Estimation & Simulation** — Before running heavy generation, LORE calculates and simulates the credit cost based on chapter count, interactive canvas complexity, and material depth.
+4. **NotebookLM-Style Background Synthesis** — A stateful **LangGraph** background pipeline synthesizes the curriculum, branching narrative scripts, character emotion beats, and parametric Remotion animation blueprints in parallel.
+5. **Interactive 3-Pane Visual Novel Stage** — Players experience the generated campaign across three synchronized panels:
+   - **Character Stage (Top-Left):** Expressive character with dynamic emotions and gestures while explaining or reacting.
+   - **Interactive Remotion Canvas (Top-Right):** Client-side `@remotion/player` rendering animated visual explanations that pause on key frames to become interactive puzzles/simulations.
+   - **Dialogue & Chat Controller (Bottom):** Narrative dialogue stream with a `fast | animate` toggle, free-form `type something` input (to ask the character questions in-world), and `log chat` history.
 
-> These features describe the planned product. See [docs/ROADMAP.md](docs/ROADMAP.md) for current implementation status.
+---
+
+## System Architecture Overview
+
+LORE separates the **Presentation & Deterministic Game Engine** (Next.js) from the **Stateful AI Orchestrator** (Python LangGraph):
+
+```text
++-----------------------------------------------------------------------+
+|                    FRONTEND (Next.js 16 + React 19)                   |
+|                                                                       |
+|  +-----------------------+  +--------------------------------------+  |
+|  | Character Stage       |  | Interactive Remotion Canvas          |  |
+|  | (Sprite / Motion /    |  | (@remotion/player + Interactive      |  |
+|  |  Emotion State)       |  |  React Primitives via JSON Schema)   |  |
+|  +-----------------------+  +--------------------------------------+  |
+|  +-----------------------------------------------------------------+  |
+|  | Dialogue & Chat Box: [fast | animate] [type something] [log]    |  |
+|  +-----------------------------------------------------------------+  |
+|  +-----------------------------------------------------------------+  |
+|  | Deterministic Game Engine (HP, Knowledge State, Credit Ledger)  |  |
+|  +-----------------------------------------------------------------+  |
++-----------------------------------+-----------------------------------+
+                                    |
+                     REST / SSE (Lightweight JSON)
+                                    |
++-----------------------------------v-----------------------------------+
+|              AI ORCHESTRATOR (Python + FastAPI + LangGraph)           |
+|                                                                       |
+|  1. Scope Analyzer & Griller Graph (Human-in-the-Loop `interrupt`)    |
+|  2. Credit Estimator & Simulator                                      |
+|  3. NotebookLM-Style Background Generator (`Send` parallel chapters): |
+|     - Curriculum & Story Architect                                    |
+|     - Character Dialogue & Emotion Scriptwriter                       |
+|     - Remotion Scene Choreographer (JSON Keyframes & Primitives)      |
+|     - Pydantic + Semantic Graph Validator                             |
+|  4. Live In-Character Chat Responder (`type something` handler)       |
++-----------------------------------------------------------------------+
+```
 
 ---
 
 ## Technology Stack
 
+### Frontend & Game Client (`/src`)
 | Technology | Purpose |
 |---|---|
-| Next.js 16 | Web framework |
-| App Router | Application routing |
-| TypeScript 5 | Static typing |
-| React 19 | UI components |
-| Tailwind CSS 4 | Styling |
-| Lucide React | Icons |
-| React State / Context | Application and game state (planned) |
-| localStorage | Small local data (planned) |
-| IndexedDB | Larger campaign data (planned) |
-| Zod | Runtime data validation (planned) |
-| PDF.js | PDF text extraction (planned) |
-| Mammoth.js | DOCX text extraction (planned) |
-| Vitest | Unit testing (planned) |
-| Playwright | End-to-end testing (planned) |
-| Vercel | Deployment |
+| **Next.js 16 (App Router)** | Web application framework & routing |
+| **React 19 + TypeScript 5** | Strictly typed UI components & custom hooks |
+| **Remotion (`@remotion/player`)** | Client-side programmatic animation & interactive canvas (planned v2) |
+| **Tailwind CSS 4** | Styling & Dark Sci-Fi / Editorial design tokens |
+| **Zod** | Runtime validation for incoming LangGraph JSON blueprints |
+| **Lucide React** | Minimalist iconography |
+| **Vitest + Testing Library** | Unit & component integration testing |
 
-LORE uses a fully custom UI architecture. shadcn/ui and Radix UI are deliberately excluded.
+### Backend AI Orchestrator (`/backend` — Planned v2)
+| Technology | Purpose |
+|---|---|
+| **Python 3.12 + FastAPI** | Async API server & Server-Sent Events (SSE) streaming |
+| **LangChain + LangGraph** | Stateful multi-agent workflows, human-in-the-loop grilling, parallel chapter generation |
+| **Pydantic v2** | Strict structured output schemas matching frontend Zod contracts |
 
 ---
 
-## Prerequisites
+## Documentation Index
 
-- Node.js 20 or later
-- npm 10 or later
+| Document | Description |
+|---|---|
+| [`docs/DESIGN.md`](docs/DESIGN.md) | UI/UX wireframes, 3-pane stage layout, Preparation/Grilling flow, Remotion interaction patterns, and visual identity |
+| [`docs/DOCS.md`](docs/DOCS.md) | Complete product & technical architecture, LangGraph pipeline, Remotion JSON contracts, credit simulation, and game engine rules |
 
 ---
 
-## Installation
+## Repository Structure
 
-```bash
-# Clone the repository
-git clone <repository-url>
-cd lore
-
-# Install dependencies
-npm install
+```text
+lore/
+├── docs/
+│   ├── DESIGN.md                 # UI/UX Design System, Wireframes & Interaction Spec
+│   ├── DOCS.md                   # Product & Technical Architecture (v2 Overhaul)
+│   └── assets/                   # Architecture & UI wireframe images
+│       ├── wireframe-preparation.png
+│       └── wireframe-main-stage.png
+├── src/                          # Next.js Frontend & Deterministic Game Engine
+│   ├── app/                      # App Router pages & legacy prototype API routes
+│   ├── components/               # UI components (Campaign, Story, Puzzle)
+│   ├── data/                     # Sample/dummy campaign fixtures
+│   └── lib/                      # Deterministic game logic, types, and validators
+├── tests/                        # Vitest unit and integration test suites
+└── package.json
 ```
 
 ---
@@ -78,97 +115,33 @@ npm install
 ## Development Commands
 
 ```bash
-# Start the development server (with Turbopack)
+# Install frontend dependencies
+npm install
+
+# Start the Next.js development server
 npm run dev
+
+# Run unit and integration tests
+npm test
+
+# Run linter
+npm run lint
 
 # Build for production
 npm run build
-
-# Start the production server
-npm start
-
-# Run the linter
-npm run lint
 ```
 
-The development server runs at [http://localhost:3000](http://localhost:3000).
-
 ---
 
-## Project Structure
+## Current Status
 
-```
-lore/
-├── src/
-│   └── app/                  # Next.js App Router root
-│       ├── layout.tsx        # Root layout
-│       ├── page.tsx          # Landing page (default Next.js scaffold)
-│       └── globals.css       # Global styles
-├── public/                   # Static assets
-├── docs/                     # Project documentation
-│   ├── PRODUCT_VISION.md
-│   ├── ROADMAP.md
-│   ├── TECHNICAL_OVERVIEW.md
-│   └── DEVELOPMENT_GUIDE.md
-├── next.config.ts            # Next.js configuration
-├── tsconfig.json             # TypeScript configuration
-├── eslint.config.mjs         # ESLint configuration
-└── package.json
-```
-
-> The directory structure above reflects the current repository state. The proposed full application structure is documented in [docs/TECHNICAL_OVERVIEW.md](docs/TECHNICAL_OVERVIEW.md).
-
----
-
-## Documentation
-
-| Document | Description |
-|---|---|
-| [docs/PRODUCT_VISION.md](docs/PRODUCT_VISION.md) | Product identity, principles, experience workflow, and success criteria |
-| [docs/ROADMAP.md](docs/ROADMAP.md) | Full development roadmap with milestones 0–12 and current status |
-| [docs/TECHNICAL_OVERVIEW.md](docs/TECHNICAL_OVERVIEW.md) | Architecture, AI generation pipeline, data contracts, and deployment strategy |
-| [docs/DEVELOPMENT_GUIDE.md](docs/DEVELOPMENT_GUIDE.md) | Coding conventions, component patterns, and contributor guidelines |
-
----
-
-## Current Development Status
-
-**Milestone 0 — Project Foundation** is partially complete.
-
-Completed:
-- Next.js 16 initialized with TypeScript, App Router, and Tailwind CSS 4.
-- Lucide React installed.
-- ESLint configured.
-- Git repository prepared.
-- Initial documentation created.
-
-In progress / remaining:
-- Project conventions to be established.
-- Application source code not yet started.
-
-**Milestone 1 and beyond are planned. No application features have been implemented yet.**
-
----
-
-## Roadmap Summary
-
-| Milestone | Goal | Status |
-|---|---|---|
-| 0 | Project Foundation | 🔄 In Progress |
-| 1 | Product Design and UI Foundation | 📋 Planned |
-| 2 | Material Input and Processing | 📋 Planned |
-| 3 | Adventure Configuration | 📋 Planned |
-| 4 | AI Prompt Architecture and Data Contracts | 📋 Planned |
-| 5 | Mock AI and Campaign Data | 📋 Planned |
-| 6 | Narrative Game Engine | 📋 Planned |
-| 7 | Visual Novel Experience | 📋 Planned |
-| 8 | Campaign Continuity and Multi-Material Integration | 📋 Planned |
-| 9 | Local Persistence and User Experience | 📋 Planned |
-| 10 | AI API Integration | 📋 Planned |
-| 11 | Learning Evaluation and Final Reflection | 📋 Planned |
-| 12 | Quality Assurance and Final Testing | 📋 Planned |
-
-See [docs/ROADMAP.md](docs/ROADMAP.md) for full milestone details.
+LORE is currently undergoing a **major architectural overhaul (v1 $\rightarrow$ v2)**:
+- **v1 Foundation (Complete in Repo):** Core deterministic game logic (HP system, knowledge tracking across retries, story player state machine, Zod validators, and dummy-first TypeScript AI pipeline).
+- **v2 Overhaul (In Design / Transition):**
+  - Migrating AI orchestration from Next.js Route Handlers to **Python + LangChain + LangGraph**.
+  - Introducing the **Preparation + AI Grilling + NotebookLM-style Background Generation** flow.
+  - Rebuilding the main gameplay view into the **3-Pane Interactive Layout** featuring **Character Stage**, **Interactive `@remotion/player` Canvas**, and **Chat/Playback Controller** (`fast | animate`, `type something`, `log chat`).
+  - Adding the **Credit Simulation System**.
 
 ---
 
