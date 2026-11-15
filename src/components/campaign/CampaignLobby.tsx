@@ -7,6 +7,7 @@
  * Minimalist gold/black theme.
  */
 
+import Link from "next/link";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { CampaignState } from "@/lib/types/game";
 import { isStoryUnlocked } from "@/lib/game/campaign-manager";
@@ -15,12 +16,18 @@ type CampaignLobbyProps = {
   campaign: CampaignBlueprint;
   campaignState: CampaignState;
   onStartStory: (storyId: string) => void;
+  /** When set, shows a link back to this page (e.g. the saved-stories list). */
+  homeHref?: string;
+  /** When set (campaign complete), shows a button to the epilogue and results. */
+  onViewResults?: () => void;
 };
 
 export function CampaignLobby({
   campaign,
   campaignState,
   onStartStory,
+  homeHref,
+  onViewResults,
 }: CampaignLobbyProps) {
   return (
     <div
@@ -28,6 +35,16 @@ export function CampaignLobby({
       className="lore-bg flex flex-col items-center justify-center min-h-full py-12 px-4"
     >
       <div className="w-full max-w-md">
+        {homeHref && (
+          <Link
+            href={homeHref}
+            data-testid="lobby-home-link"
+            className="inline-block mb-6 text-xs tracking-wide"
+            style={{ color: "var(--foreground-muted)" }}
+          >
+            ← All stories
+          </Link>
+        )}
         {/* Campaign title */}
         <div className="text-center mb-8">
           <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--foreground-faint)" }}>
@@ -39,6 +56,18 @@ export function CampaignLobby({
         </div>
 
         <div className="lore-divider mb-8" />
+
+        {onViewResults && (
+          <button
+            type="button"
+            data-testid="lobby-view-results"
+            onClick={onViewResults}
+            className="w-full mb-6 px-4 py-2.5 rounded text-sm font-medium tracking-wide"
+            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+          >
+            Campaign complete — see your results →
+          </button>
+        )}
 
         {/* Story list */}
         <div className="flex flex-col gap-4" data-testid="story-list" role="list" aria-label="Campaign stories">

@@ -10,7 +10,8 @@
 import { describe, it, expect } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
-import { dummyStory, dummyCampaign } from "@/data/dummy-campaign";
+import { dummyCampaign } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 
 const characters = dummyCampaign.characters;
 
@@ -23,7 +24,7 @@ function clickToAdvance(view: ReturnType<typeof render>) {
 
 /** Click until puzzle-interaction appears. */
 function advanceToPuzzle() {
-  const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+  const view = render(<StoryViewer story={linearStory} characters={characters} />);
   for (let i = 0; i < 60; i++) {
     if (view.queryByTestId("puzzle-interaction")) break;
     clickToAdvance(view);
@@ -69,14 +70,14 @@ function reachFailureThenRetry() {
 
 describe("HP — initial state", () => {
   it("should show HP 5/5 on the HP display at story start", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     const hpValue = view.getByTestId("hp-value");
     expect(hpValue.textContent).toContain("5");
     expect(hpValue.textContent).toContain("5");
   });
 
   it("hp-display element should be present", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     expect(view.getByTestId("hp-display")).toBeTruthy();
   });
 });
@@ -220,7 +221,7 @@ describe("Retry — play again after retry", () => {
 
 describe("Regression — existing story completion", () => {
   it("should still reach the ending via the correct answer path", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     for (let i = 0; i < 100; i++) {
       if (view.queryByTestId("ending-display")) break;
       if (view.queryByTestId("story-complete-screen")) break;

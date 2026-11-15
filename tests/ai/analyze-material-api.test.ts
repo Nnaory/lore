@@ -130,7 +130,7 @@ describe("API Route — POST /api/ai/analyze-material", () => {
     expect(data.error.code).toBe("VALIDATION_FAILED");
   });
 
-  it("returns 500 for provider unavailable", async () => {
+  it("returns 503 for provider unavailable", async () => {
     (mockedAnalyzeMaterial as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       code: "PROVIDER_UNAVAILABLE",
@@ -144,7 +144,7 @@ describe("API Route — POST /api/ai/analyze-material", () => {
     const response = await routeModule.POST(request);
     const data = await response.json();
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(503);
     expect(data.ok).toBe(false);
     expect(data.error.code).toBe("PROVIDER_UNAVAILABLE");
   });

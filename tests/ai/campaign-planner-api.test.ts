@@ -277,7 +277,7 @@ describe("API Route — POST /api/ai/plan-campaign", () => {
 
   // ── 500 — internal failures ───────────────────────────────────────────
 
-  it("returns 500 for PROVIDER_UNAVAILABLE", async () => {
+  it("returns 503 for PROVIDER_UNAVAILABLE", async () => {
     (mockedPlanCampaign as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       ok: false,
       code: "PROVIDER_UNAVAILABLE",
@@ -287,7 +287,7 @@ describe("API Route — POST /api/ai/plan-campaign", () => {
     const response = await routeModule.POST(createRequest(validBody));
     const data = await response.json();
 
-    expect(response.status).toBe(500);
+    expect(response.status).toBe(503);
     expect(data.error.code).toBe("PROVIDER_UNAVAILABLE");
   });
 

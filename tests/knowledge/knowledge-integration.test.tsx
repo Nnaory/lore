@@ -12,7 +12,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
-import { dummyStory, dummyCampaign } from "@/data/dummy-campaign";
+import { dummyCampaign } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 import type { PlayerKnowledge } from "@/lib/types/game";
 
 const characters = dummyCampaign.characters;
@@ -48,7 +49,7 @@ describe("Knowledge — learning scene exposure", () => {
     const onKnowledgeUpdate = vi.fn();
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={{}}
@@ -73,7 +74,7 @@ describe("Knowledge — learning scene exposure", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={{}}
@@ -101,7 +102,7 @@ describe("Knowledge — correct first attempt", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={{}}
@@ -129,7 +130,7 @@ describe("Knowledge — incorrect then correct", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={capturedKnowledge}
@@ -150,7 +151,7 @@ describe("Knowledge — incorrect then correct", () => {
     act(() => {
       view.rerender(
         <StoryViewer
-          story={dummyStory}
+          story={linearStory}
           characters={characters}
           onKnowledgeUpdate={onKnowledgeUpdate}
           playerKnowledge={capturedKnowledge}
@@ -180,7 +181,7 @@ describe("Knowledge — incorrect only", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={{}}
@@ -210,7 +211,7 @@ describe("Knowledge — survives story retry", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         playerKnowledge={{}}
@@ -237,7 +238,7 @@ describe("Knowledge — survives exit", () => {
 
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onKnowledgeUpdate={onKnowledgeUpdate}
         onExit={onExit}

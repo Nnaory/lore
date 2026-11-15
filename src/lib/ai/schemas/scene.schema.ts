@@ -89,6 +89,10 @@ export const PuzzleSceneSchema = SceneBaseSchema.extend({
   type: z.literal("puzzle"),
   puzzle_id: z.string().min(1, "puzzle_id must not be empty"),
   next_scene_id: z.string().nullable(),
+  /** Optional wrong choice_id → consequence ("bad branch") scene_id. */
+  on_incorrect_scene_id: z
+    .record(z.string().min(1), z.string().min(1, "bad-branch scene_id must not be empty"))
+    .optional(),
 });
 
 export const ConsequenceSceneSchema = SceneBaseSchema.extend({

@@ -43,6 +43,8 @@ import {
   branchToIncorrectScene,
   getSceneContentBlocks,
   getChapterForScene,
+  isBadBranchSceneRead,
+  isBadBranchAtEnd,
   type StoryPlayerState,
   type StoryPlayerStatus,
   type SceneIndex,
@@ -126,25 +128,28 @@ export function useStoryPlayer(
     if (isFailed) return;
     if (playerState.status === "story_complete") return;
 
-    if (playerState.status === "reading" || playerState.status === "bad_branch") {
-      const next = advanceContent(playerState, currentScene);
-      setPlayerState(next);
-      // If bad_branch reached end of content, stay put — SceneRenderer will
-      // show the "Try Again" button. Don't auto-advance.
+    // A fully read bad-branch scene moves on to the branch's next scene
+    // (usually its ending) exactly like a normal scene_end. Only at the very
+    // end of a branch do we stay put and wait for returnToPuzzle().
+    const sceneFinished =
+      playerState.status === "scene_end" ||
+      isBadBranchSceneRead(playerState, currentScene);
+
+    if (!sceneFinished) {
+      if (playerState.status === "reading" || playerState.status === "bad_branch") {
+        setPlayerState(advanceContent(playerState, currentScene));
+      }
       return;
     }
 
-    if (playerState.status === "scene_end") {
-      const result = advanceScene(playerState, currentScene, sceneIndex);
-      if ("error" in result) {
-        setError({ message: result.error });
-        return;
-      }
-      setPlayerState(result);
-    }
+    if (isBadBranchAtEnd(playerState, currentScene)) return;
 
-    // bad_branch with all content consumed — stay put until returnToPuzzle is called
-    // (the SceneRenderer will render a "Return to Puzzle" button)
+    const result = advanceScene(playerState, currentScene, sceneIndex);
+    if ("error" in result) {
+      setError({ message: result.error });
+      return;
+    }
+    setPlayerState(result);
   }, [currentScene, error, isFailed, playerState, sceneIndex]);
 
   const completePuzzle = useCallback(() => {

@@ -14,22 +14,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runFullWorkflow } from "@/lib/ai/full-workflow";
-import { AnalyzeMaterialRequestSchema } from "@/lib/ai/types";
-import { CampaignPlannerOptionsSchema } from "@/lib/ai/campaign-planner-types";
-import { StoryGeneratorOptionsSchema } from "@/lib/ai/story-generator-types";
+import { FullWorkflowRequestSchema } from "@/lib/ai/full-workflow-schema";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { ValidationError } from "@/lib/validation/story-validator";
-
-/** Full workflow request schema. */
-const FullWorkflowRequestSchema = z.object({
-  materials: z.array(AnalyzeMaterialRequestSchema).min(1, "at least one material is required"),
-  campaignOptions: CampaignPlannerOptionsSchema,
-  storyOptions: StoryGeneratorOptionsSchema.optional(),
-});
-
-import { z } from "zod";
 
 /** Standard success response data. */
 interface FullWorkflowSuccessData {
@@ -87,6 +76,7 @@ const UPSTREAM_ERROR_CODES = new Set(["OUTPUT_PARSE_FAILED", "VALIDATION_FAILED"
 
 function statusForErrorCode(code: string): number {
   if (code === "INVALID_REQUEST") return 400;
+  if (code === "PROVIDER_UNAVAILABLE" || code === "RATE_LIMITED" || code === "TIMEOUT") return 503;
   if (SEMANTIC_ERROR_CODES.has(code)) return 422;
   if (UPSTREAM_ERROR_CODES.has(code)) return 502;
   return 500;

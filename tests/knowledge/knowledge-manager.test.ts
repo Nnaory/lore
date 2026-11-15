@@ -74,7 +74,7 @@ import {
   getConceptIdsFromScene,
 } from "@/lib/game/knowledge-manager";
 import type { PlayerKnowledge } from "@/lib/types/game";
-import { dummyStory } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 
 // ── 1–3. Initial state ───────────────────────────────────────────────────────
 
@@ -356,17 +356,17 @@ describe("meetsKnowledgeRequirements", () => {
 
 describe("getConceptIdsFromScene", () => {
   it("should extract concept_ids from a learning_info block in a learning scene", () => {
-    const ids = getConceptIdsFromScene(dummyStory, "scene_02_learning");
+    const ids = getConceptIdsFromScene(linearStory, "scene_02_learning");
     expect(ids).toContain("concept_linear_combination");
   });
 
   it("should return empty array for a narrative scene with no learning_info", () => {
-    const ids = getConceptIdsFromScene(dummyStory, "scene_01_intro");
+    const ids = getConceptIdsFromScene(linearStory, "scene_01_intro");
     expect(ids).toHaveLength(0);
   });
 
   it("should return empty array for an unknown scene_id", () => {
-    const ids = getConceptIdsFromScene(dummyStory, "scene_NONEXISTENT");
+    const ids = getConceptIdsFromScene(linearStory, "scene_NONEXISTENT");
     expect(ids).toHaveLength(0);
   });
 });

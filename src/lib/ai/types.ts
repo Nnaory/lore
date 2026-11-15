@@ -81,9 +81,13 @@ export interface IMaterialIntelligenceProvider {
 
 /** Request validation schema (Zod) — used by API route. */
 import { z } from "zod";
+import { MAX_MATERIAL_CHARS, MIN_MATERIAL_CHARS } from "@/lib/ingest/limits";
 
 export const AnalyzeMaterialRequestSchema = z.object({
-  material: z.string().min(10, "material must be at least 10 characters"),
+  material: z
+    .string()
+    .min(MIN_MATERIAL_CHARS, `material must be at least ${MIN_MATERIAL_CHARS} characters`)
+    .max(MAX_MATERIAL_CHARS, `material must be at most ${MAX_MATERIAL_CHARS} characters`),
   context: z.record(z.unknown()).optional(),
   genre: z.string().optional(),
 });

@@ -9,7 +9,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
-import { dummyStory, dummyCampaign } from "@/data/dummy-campaign";
+import { dummyCampaign } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { Scene } from "@/lib/types/scene";
 
@@ -24,7 +25,7 @@ function clickToAdvance(view: ReturnType<typeof render>) {
 // Helper to advance through first scene (4 content blocks -> scene_end -> next scene)
 function advanceThroughFirstScene() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   // scene_01_intro has 4 content blocks (indices 0–3)
   // Click 4 times to advance through all blocks, then 1 more for scene transition
@@ -37,7 +38,7 @@ function advanceThroughFirstScene() {
 // Helper to advance until puzzle
 function advanceToPuzzle() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   for (let i = 0; i < 50; i++) {
     if (view.queryByTestId("puzzle-interaction")) break;
@@ -49,7 +50,7 @@ function advanceToPuzzle() {
 // Helper to advance until ending
 function advanceToEnding() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   for (let i = 0; i < 100; i++) {
     if (view.queryByTestId("ending-display")) break;
@@ -79,27 +80,27 @@ function advanceToEnding() {
 describe("StoryViewer — basic render", () => {
   it("should render without crashing with the dummy story", () => {
     const { container } = render(
-      <StoryViewer story={dummyStory} characters={characters} />
+      <StoryViewer story={linearStory} characters={characters} />
     );
     expect(container).toBeTruthy();
   });
 
   it("should render the story-viewer container", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("story-viewer")).toBeTruthy();
   });
 
-  it("should show the story title in the right sidebar", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByTestId("right-sidebar").textContent).toContain(
+  it("should show the story title in the right progress panel", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("right-sidebar-panel").textContent).toContain(
       "The Fading Light"
     );
   });
 
-  it("should render left sidebar with exit button", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByTestId("sidebar-exit-button")).toBeTruthy();
-    expect(screen.getByText("Exit Story")).toBeTruthy();
+  it("should render left sidebar with an icon exit button", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const exitBtn = screen.getByTestId("sidebar-exit-button");
+    expect(exitBtn).toHaveAttribute("aria-label", "Exit story");
   });
 });
 
@@ -107,7 +108,7 @@ describe("StoryViewer — basic render", () => {
 
 describe("StoryViewer — first scene", () => {
   it("should display the location from the first scene in header (desktop)", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     // Header has class "hidden md:flex" - in jsdom it won't be visible
     // but the element exists in DOM
     const header = document.querySelector('[data-testid="story-header"]');
@@ -115,12 +116,12 @@ describe("StoryViewer — first scene", () => {
   });
 
   it("should display the scene-content container", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("scene-content")).toBeTruthy();
   });
 
   it("should display the chat-area", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("story-main")).toBeTruthy();
   });
 });
@@ -129,14 +130,14 @@ describe("StoryViewer — first scene", () => {
 
 describe("StoryViewer — narration", () => {
   it("should render a narration block for the first content block", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const narration = screen.getByTestId("narration-block");
     expect(narration).toBeTruthy();
     expect(narration.textContent).toContain("stone corridor");
   });
 
   it("should have chat dividers around narration", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const dividers = screen.getAllByTestId("narration-block").length;
     // Narration block renders with dividers
     expect(dividers).toBeGreaterThanOrEqual(1);
@@ -147,14 +148,14 @@ describe("StoryViewer — narration", () => {
 
 describe("StoryViewer — dialogue", () => {
   it("should render a dialogue bubble after advancing past the narration", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const bubbles = screen.getAllByTestId("character-bubble");
     expect(bubbles.length).toBeGreaterThan(0);
   });
 
   it("should show the character name in the dialogue bubble", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const names = screen.getAllByTestId("character-name");
     const nameTexts = names.map((n) => n.textContent);
@@ -162,7 +163,7 @@ describe("StoryViewer — dialogue", () => {
   });
 
   it("should show the character expression in the dialogue bubble", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const expressions = screen.getAllByTestId("character-expression");
     expect(expressions.length).toBeGreaterThan(0);
@@ -175,7 +176,7 @@ describe("StoryViewer — dialogue", () => {
 
 describe("StoryViewer — click-to-advance interaction", () => {
   it("should reveal more content on each click", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
 
     // Click 1 → reveals block index 1 (dialogue)
     clickToAdvance(view);
@@ -190,7 +191,7 @@ describe("StoryViewer — click-to-advance interaction", () => {
   });
 
   it("should show click hint when not at puzzle/ending", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const hint = screen.getByText("Click anywhere to continue");
     expect(hint).toBeTruthy();
   });
@@ -262,7 +263,7 @@ describe("StoryViewer — ending", () => {
 
 describe("StoryViewer — invalid scene reference", () => {
   it("should show an error state and not crash on invalid next_scene_id", () => {
-    const badStory: StoryBlueprint = JSON.parse(JSON.stringify(dummyStory));
+    const badStory: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
     const firstScene = badStory.chapters[0].scenes[0] as Extract<Scene, { type: "narrative" }>;
     firstScene.next_scene_id = "scene_NONEXISTENT";
 
@@ -286,7 +287,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should show exit confirmation dialog when exit button clicked", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -296,7 +297,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should call onExit when exit confirmed", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -308,7 +309,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should not call onExit when cancel is clicked", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -322,21 +323,33 @@ describe("StoryViewer — exit functionality", () => {
 
 describe("StoryViewer — right sidebar progress", () => {
   it("should show chapter progress list", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByText("Chapter Progress")).toBeTruthy();
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByText("Chapters")).toBeTruthy();
     expect(screen.getByTestId("sidebar-story-title").textContent).toContain(
       "The Fading Light"
     );
   });
 
+  it("should reveal the progress panel only while the right edge is hovered", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const panel = screen.getByTestId("right-sidebar-panel");
+    expect(panel).toHaveStyle({ opacity: "0", pointerEvents: "none" });
+
+    fireEvent.mouseEnter(screen.getByTestId("right-sidebar"));
+    expect(panel).toHaveStyle({ opacity: "1", pointerEvents: "auto" });
+
+    fireEvent.mouseLeave(screen.getByTestId("right-sidebar"));
+    expect(panel).toHaveStyle({ opacity: "0" });
+  });
+
   it("should show HP display", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("hp-display")).toBeTruthy();
     expect(screen.getByTestId("hp-value").textContent).toContain("5 / 5");
   });
 
   it("should mark current chapter", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const currentChapter = screen.getByTestId("sidebar-chapter-chapter_01");
     expect(currentChapter).toHaveStyle({ borderColor: "var(--accent-gold)" });
   });

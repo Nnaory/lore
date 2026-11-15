@@ -22,6 +22,7 @@ import type { StoryBlueprint } from "@/lib/types/story";
 import type { Character } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
+import { isBadBranchAtEnd } from "@/lib/story/story-player";
 import { SceneRenderer } from "./SceneRenderer";
 import { StoryFailure } from "./StoryFailure";
 import { StoryComplete } from "./StoryComplete";
@@ -46,6 +47,8 @@ type StoryViewerProps = {
   onExit?: () => void;
   /** True when this was the last story — alters the completion screen. */
   isCampaignComplete?: boolean;
+  /** Opens the epilogue and learning evaluation once the campaign is complete. */
+  onViewResults?: () => void;
   /**
    * Called when knowledge state needs updating (learning exposure or puzzle answer).
    * Provided by useCampaign via game/page.tsx.
@@ -66,6 +69,7 @@ export function StoryViewer({
   onStoryComplete,
   onExit,
   isCampaignComplete = false,
+  onViewResults,
   onKnowledgeUpdate,
   playerKnowledge = {},
 }: StoryViewerProps) {
@@ -179,16 +183,9 @@ export function StoryViewer({
   // Click handler for center area - advance story
   const handleCenterClick = useCallback(() => {
     // Block click-advance when: puzzle, complete, failed, error,
-    // or bad_branch sequence that's reached the end (waiting for button click)
-    const allBlocks = currentScene ? (
-      currentScene.type !== "puzzle" && currentScene.type !== "ending"
-        ? currentScene.content
-        : null
-    ) : null;
+    // or a bad branch that has ended (waiting for the "try again" button)
     const badBranchDone =
-      playerState.status === "bad_branch" &&
-      allBlocks !== null &&
-      playerState.contentIndex >= allBlocks.length;
+      currentScene !== null && isBadBranchAtEnd(playerState, currentScene);
 
     if (
       currentScene &&
@@ -272,6 +269,7 @@ export function StoryViewer({
                 onContinue={handleContinueCampaign}
                 onExit={onExit ?? (() => {})}
                 isCampaignComplete={isCampaignComplete}
+                onViewResults={onViewResults}
               />
             )}
 
@@ -280,7 +278,8 @@ export function StoryViewer({
               currentScene.type !== "puzzle" &&
               !isComplete &&
               !isFailed &&
-              playerState.status !== "story_complete" && (
+              playerState.status !== "story_complete" &&
+              !isBadBranchAtEnd(playerState, currentScene) && (
                 <div
                   className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none animate-pulse-gold"
                   style={{ zIndex: 10 }}

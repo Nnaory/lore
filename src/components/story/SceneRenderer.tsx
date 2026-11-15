@@ -17,7 +17,7 @@ import { useRef, useEffect } from "react";
 import type { Scene } from "@/lib/types/scene";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { CharacterIndex } from "@/lib/story/story-player";
-import { getSceneContentBlocks } from "@/lib/story/story-player";
+import { getSceneContentBlocks, isBadBranchAtEnd } from "@/lib/story/story-player";
 import { ContentBlockRenderer } from "./ContentBlockRenderer";
 import { PuzzleInteraction } from "./PuzzleInteraction";
 import { EndingDisplay } from "./EndingDisplay";
@@ -152,9 +152,12 @@ export function SceneRenderer({
   // Show only blocks up to and including the current index
   const revealedBlocks = allBlocks.slice(0, contentIndex + 1);
 
-  // Bad-branch sequence: when all content is consumed, show "Try Again" button
-  const isBadBranchDone =
-    status === "bad_branch" && contentIndex >= allBlocks.length;
+  // Bad branch with no further scene: offer the way back to the puzzle.
+  // (Branches that continue — e.g. into a bad ending — keep advancing.)
+  const isBadBranchDone = isBadBranchAtEnd(
+    { currentSceneId: scene.scene_id, contentIndex, status },
+    scene
+  );
 
   return (
     <div className="flex flex-col gap-3" data-testid="scene-content">

@@ -207,6 +207,36 @@ export function advanceScene(
 }
 
 /**
+ * True when every content block of the current bad-branch scene has been
+ * revealed. The next player action should move along the branch.
+ */
+export function isBadBranchSceneRead(
+  state: StoryPlayerState,
+  scene: Scene
+): boolean {
+  if (state.status !== "bad_branch") return false;
+  const blocks = getSceneContentBlocks(scene);
+  return blocks !== null && state.contentIndex >= blocks.length;
+}
+
+/**
+ * True when the player has read the last scene of a bad branch that has no
+ * further scene, so the UI should offer "return to puzzle" instead of
+ * advancing. (A branch that ends in an ending scene reaches `story_complete`
+ * with `returnToPuzzleSceneId` set instead.)
+ */
+export function isBadBranchAtEnd(
+  state: StoryPlayerState,
+  scene: Scene
+): boolean {
+  return (
+    isBadBranchSceneRead(state, scene) &&
+    scene.type !== "ending" &&
+    scene.next_scene_id === null
+  );
+}
+
+/**
  * Branch into a wrong-choice consequence scene.
  * Called by the puzzle engine when the player picks an incorrect choice
  * that has an `on_incorrect_scene_id` mapping.

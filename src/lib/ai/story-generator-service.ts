@@ -210,6 +210,8 @@ export interface GenerateCampaignStoriesResult {
   ok: boolean;
   stories: Map<string, StoryBlueprint>;
   errors: Map<string, { code: StoryGeneratorErrorCode; message: string; detail?: unknown }>;
+  /** Non-blocking warnings from every generated story (e.g. template fallbacks). */
+  warnings: ValidationError[];
 }
 
 /**
@@ -230,6 +232,7 @@ export async function generateCampaignStories(
   type StoryGenError = { code: StoryGeneratorErrorCode; message: string; detail?: unknown };
   const errors = new Map<string, StoryGenError>();
   const summariesSoFar: PreviousStorySummary[] = [...previousSummaries];
+  const warnings: ValidationError[] = [];
 
   for (const entry of campaign.story_sequence) {
     const material = materialById.get(entry.material_id);
@@ -256,6 +259,9 @@ export async function generateCampaignStories(
 
     if (result.ok) {
       stories.set(entry.story_id, result.value.blueprint);
+      warnings.push(
+        ...result.value.meta.warnings.map((w) => ({ ...w, path: `${entry.story_id}.${w.path}` }))
+      );
       // Build a summary for the next story's continuity context
       const cs = result.value.blueprint.continuity_summary;
       if (cs) {
@@ -279,6 +285,7 @@ export async function generateCampaignStories(
     ok: errors.size === 0,
     stories,
     errors,
+    warnings,
   };
 }
 

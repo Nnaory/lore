@@ -10,7 +10,8 @@
 import { describe, it, expect } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
-import { dummyStory, dummyCampaign } from "@/data/dummy-campaign";
+import { dummyCampaign } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 
 const characters = dummyCampaign.characters;
 
@@ -23,7 +24,7 @@ function clickToAdvance(view: ReturnType<typeof render>) {
 
 /** Click until the puzzle interaction is visible. */
 function advanceToPuzzle() {
-  const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+  const view = render(<StoryViewer story={linearStory} characters={characters} />);
   for (let i = 0; i < 50; i++) {
     if (view.queryByTestId("puzzle-interaction")) break;
     clickToAdvance(view);
@@ -33,7 +34,7 @@ function advanceToPuzzle() {
 
 /** Advance all the way to the ending (correct answer path). */
 function advanceToEnding() {
-  const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+  const view = render(<StoryViewer story={linearStory} characters={characters} />);
   for (let i = 0; i < 100; i++) {
     if (view.queryByTestId("ending-display")) break;
     if (view.queryByTestId("story-complete-screen")) break;
@@ -72,7 +73,7 @@ describe("Puzzle story integration — navigation to puzzle", () => {
 
   it("should show the correct puzzle question in the interaction", () => {
     const view = advanceToPuzzle();
-    const puzzle = dummyStory.puzzles[0];
+    const puzzle = linearStory.puzzles[0];
     expect(view.getByTestId("puzzle-question").textContent).toContain(
       puzzle.question.slice(0, 20)
     );

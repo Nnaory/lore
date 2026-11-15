@@ -11,6 +11,22 @@ import type { ICampaignPlannerProvider } from "@/lib/ai/campaign-planner-types";
 import { DummyCampaignPlannerProvider } from "@/lib/ai/providers/dummy-campaign-planner-provider";
 import type { IStoryGeneratorProvider } from "@/lib/ai/story-generator-types";
 import { dummyStoryGeneratorProvider } from "@/lib/ai/providers/dummy-story-generator";
+import { geminiConfigFromEnv, type GeminiConfig } from "@/lib/ai/providers/gemini-client";
+import { GeminiMaterialProvider } from "@/lib/ai/providers/gemini-material-provider";
+import { GeminiCampaignPlannerProvider } from "@/lib/ai/providers/gemini-campaign-planner-provider";
+import { GeminiStoryGeneratorProvider } from "@/lib/ai/providers/gemini-story-generator";
+
+/**
+ * Gemini config for AI_PROVIDER=google, or null (with a warning) when no
+ * GOOGLE_API_KEY / GEMINI_API_KEY is set — callers then fall back to dummy.
+ */
+function googleConfig(layer: string): GeminiConfig | null {
+  const config = geminiConfigFromEnv();
+  if (!config) {
+    console.warn(`[AI] AI_PROVIDER=google but no GOOGLE_API_KEY is set; ${layer} falls back to dummy`);
+  }
+  return config;
+}
 
 /**
  * Returns the configured provider instance.
@@ -23,6 +39,10 @@ export function getProvider(): IMaterialIntelligenceProvider {
   switch (providerId) {
     case "dummy":
       return new DummyProvider();
+    case "google": {
+      const config = googleConfig("material intelligence");
+      return config ? new GeminiMaterialProvider(config) : new DummyProvider();
+    }
     // Future providers — NOT implemented in M7:
     // case "openai":
     //   return new OpenAIProvider({
@@ -74,6 +94,10 @@ export function getCampaignPlannerProvider(): ICampaignPlannerProvider {
   switch (providerId) {
     case "dummy":
       return new DummyCampaignPlannerProvider();
+    case "google": {
+      const config = googleConfig("campaign planner");
+      return config ? new GeminiCampaignPlannerProvider(config) : new DummyCampaignPlannerProvider();
+    }
     // Future providers — NOT implemented in M8:
     // case "openai":
     //   return new OpenAICampaignPlannerProvider({ ... });
@@ -120,6 +144,10 @@ export function getStoryGeneratorProvider(): IStoryGeneratorProvider {
   switch (providerId) {
     case "dummy":
       return dummyStoryGeneratorProvider;
+    case "google": {
+      const config = googleConfig("story generator");
+      return config ? new GeminiStoryGeneratorProvider(config) : dummyStoryGeneratorProvider;
+    }
     // Future providers — NOT implemented in M9:
     // case "openai":
     //   return new OpenAIStoryGeneratorProvider({ ... });

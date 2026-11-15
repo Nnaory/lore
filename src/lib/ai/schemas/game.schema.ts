@@ -83,7 +83,9 @@ export const MajorDecisionSchema = z.object({
 export const PreviousStorySummarySchema = z.object({
   story_id: z.string().min(1, "story_id must not be empty"),
   title: z.string().min(1, "title must not be empty"),
-  outcome_description: z.string().min(1, "outcome_description must not be empty"),
+  // May be empty: completeStory() records "" when the ending has no title.
+  // Rejecting it would discard a player's whole saved progress on reload.
+  outcome_description: z.string(),
   world_state_snapshot: z.record(z.string(), z.number()),
   relationship_snapshot: z.record(z.string(), z.number()),
 });

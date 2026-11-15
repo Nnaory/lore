@@ -1,11 +1,12 @@
 /**
  * Landing Page
  *
- * Simple entry point for LORE. Provides a link to the story viewer.
- * Full campaign setup UI is planned for a later milestone.
+ * Entry point for LORE: create a story from your own material (/create)
+ * or play the built-in demo campaign (/game).
  */
 
 import Link from "next/link";
+import { SavedStories } from "@/components/home/SavedStories";
 
 export default function Home() {
   return (
@@ -60,23 +61,37 @@ export default function Home() {
           </p>
         </div>
 
-        <Link
-          href="/game"
-          className="w-full px-8 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          style={{
-            backgroundColor: "var(--accent)",
-            color: "var(--foreground)",
-          }}
-        >
-          Begin Adventure
-        </Link>
+        <div className="flex flex-col gap-3 w-full">
+          <Link
+            href="/create"
+            className="w-full px-8 py-3 rounded text-sm font-medium tracking-wide transition-opacity hover:opacity-80 active:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            style={{
+              backgroundColor: "var(--accent)",
+              color: "var(--background)",
+            }}
+          >
+            Create from your material
+          </Link>
+          <Link
+            href="/game"
+            className="w-full px-8 py-3 rounded text-sm font-medium tracking-wide transition-colors hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            style={{
+              border: "1px solid var(--border)",
+              color: "var(--foreground-muted)",
+            }}
+          >
+            Play the demo
+          </Link>
+        </div>
 
         <p
           className="text-xs"
           style={{ color: "var(--foreground-faint)" }}
         >
-          Milestone 2 — Story Viewer Demo
+          PDF · DOCX · PPTX · or pasted text
         </p>
+
+        <SavedStories />
       </main>
     </div>
   );

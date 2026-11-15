@@ -7,6 +7,7 @@
  *   - next_scene_id references exist
  *   - character_id references exist
  *   - puzzle_id references exist
+ *   - on_incorrect_scene_id (bad branch) keys are wrong choices and values exist
  *   - ending_id references exist
  *   - concept_id references exist in the MaterialBlueprint
  */
@@ -111,6 +112,39 @@ export function validateStory(
         message: `Puzzle scene "${scene.scene_id}" references puzzle_id "${scene.puzzle_id}" which does not exist in story.puzzles.`,
         path: `scenes[${scene.scene_id}].puzzle_id`,
       });
+    }
+  }
+
+  // ─── 5b. on_incorrect_scene_id (bad branches) must be well-formed ───────
+  // Each key must be a WRONG choice of the scene's puzzle (a correct answer
+  // never branches), and each value must be an existing scene.
+  for (const scene of allScenes) {
+    if (scene.type !== "puzzle" || !scene.on_incorrect_scene_id) continue;
+    const puzzle = story.puzzles.find((p) => p.puzzle_id === scene.puzzle_id);
+    for (const [choiceId, branchSceneId] of Object.entries(scene.on_incorrect_scene_id)) {
+      if (puzzle) {
+        const choiceExists = puzzle.choices.some((c) => c.choice_id === choiceId);
+        if (!choiceExists) {
+          errors.push({
+            code: "INVALID_BAD_BRANCH_CHOICE_REF",
+            message: `Puzzle scene "${scene.scene_id}" maps choice "${choiceId}" to a bad branch, but puzzle "${puzzle.puzzle_id}" has no such choice.`,
+            path: `scenes[${scene.scene_id}].on_incorrect_scene_id[${choiceId}]`,
+          });
+        } else if (choiceId === puzzle.correct_choice_id) {
+          errors.push({
+            code: "INVALID_BAD_BRANCH_CHOICE_REF",
+            message: `Puzzle scene "${scene.scene_id}" maps the correct choice "${choiceId}" to a bad branch; only wrong choices can branch.`,
+            path: `scenes[${scene.scene_id}].on_incorrect_scene_id[${choiceId}]`,
+          });
+        }
+      }
+      if (!seenSceneIds.has(branchSceneId)) {
+        errors.push({
+          code: "INVALID_BAD_BRANCH_SCENE_REF",
+          message: `Puzzle scene "${scene.scene_id}" sends choice "${choiceId}" to scene "${branchSceneId}", which does not exist in story "${story.story_id}".`,
+          path: `scenes[${scene.scene_id}].on_incorrect_scene_id[${choiceId}]`,
+        });
+      }
     }
   }
 

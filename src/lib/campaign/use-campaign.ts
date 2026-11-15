@@ -78,13 +78,14 @@ export type UseCampaignReturn = {
 export function useCampaign(
   campaign: CampaignBlueprint,
   stories: ReadonlyMap<string, StoryBlueprint>,
-  initialState?: CampaignState
+  initialState?: CampaignState,
+  options: { startAtLobby?: boolean } = {}
 ): UseCampaignReturn {
   const [campaignState, setCampaignState] = useState<CampaignState>(
     () => initialState ?? createInitialCampaignState(campaign)
   );
 
-  const [isAtLobby, setIsAtLobby] = useState<boolean>(false);
+  const [isAtLobby, setIsAtLobby] = useState<boolean>(options.startAtLobby ?? false);
 
   const activeStory =
     stories.get(campaignState.current_story_id) ??

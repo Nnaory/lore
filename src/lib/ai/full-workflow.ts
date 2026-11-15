@@ -72,6 +72,13 @@ export interface FullWorkflowResult {
   error?: { code: string; message: string; detail?: unknown };
 }
 
+/** Codes meaning "the AI provider was busy/unreachable", not "the input is bad". */
+const PROVIDER_FAILURE_CODES = new Set(["PROVIDER_UNAVAILABLE", "RATE_LIMITED", "TIMEOUT"]);
+
+function allProviderFailures(codes: Array<string | undefined>): boolean {
+  return codes.length > 0 && codes.every((c) => c !== undefined && PROVIDER_FAILURE_CODES.has(c));
+}
+
 // ---------------------------------------------------------------------------
 // Full workflow orchestration
 // ---------------------------------------------------------------------------
@@ -142,7 +149,9 @@ export async function runFullWorkflow(
       planningResult: { ok: false, error: { code: "MATERIAL_ANALYSIS_FAILED", message: "One or more materials failed analysis" } },
       warnings: allWarnings,
       error: {
-        code: "MATERIAL_ANALYSIS_FAILED",
+        code: allProviderFailures(failedMaterials.map((m) => m.error?.code))
+          ? "PROVIDER_UNAVAILABLE"
+          : "MATERIAL_ANALYSIS_FAILED",
         message: `${failedMaterials.length} of ${materialResults.length} materials failed analysis`,
         detail: failedMaterials.map((m) => m.error),
       },
@@ -192,7 +201,7 @@ export async function runFullWorkflow(
     false, // stop on first error by default
   );
 
-  allWarnings.push(...generationResult.errors.values().flatMap((e) => (e.detail as ValidationError[]) ?? []));
+  allWarnings.push(...generationResult.warnings);
 
   // ============================================================
   // STEP 4: Final validation against game engine requirements
@@ -232,7 +241,11 @@ export async function runFullWorkflow(
     error: success
       ? undefined
       : {
-          code: generationResult.ok ? "CAMPAIGN_VALIDATION_FAILED" : "STORY_GENERATION_FAILED",
+          code: generationResult.ok
+            ? "CAMPAIGN_VALIDATION_FAILED"
+            : allProviderFailures([...generationResult.errors.values()].map((e) => e.code))
+              ? "PROVIDER_UNAVAILABLE"
+              : "STORY_GENERATION_FAILED",
           message: generationResult.ok
             ? "Campaign generated but failed final validation"
             : `${generationResult.errors.size} story(s) failed generation`,
