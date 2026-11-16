@@ -23,8 +23,11 @@ type Loaded =
 
 export function PlayLoading() {
   return (
-    <div className="lore-bg min-h-screen flex items-center justify-center" data-testid="play-loading">
-      <p className="text-sm animate-pulse-gold" style={{ color: "var(--accent-gold-dim)" }}>
+    <div className="min-h-screen flex items-center justify-center" data-testid="play-loading">
+      <p
+        className="lore-glass lore-glass-panel rounded-pill px-6 py-2.5 text-sm animate-pulse-gold"
+        style={{ color: "var(--accent-gold)" }}
+      >
         Opening your story…
       </p>
     </div>
@@ -53,17 +56,19 @@ export function PlayProject() {
 
   if (loaded.status === "missing") {
     return (
-      <div className="lore-bg min-h-screen flex flex-col items-center justify-center gap-4 px-6 text-center" data-testid="play-missing">
-        <p className="text-sm" style={{ color: "var(--foreground)" }}>
-          This story isn&apos;t saved in this browser.
-        </p>
-        <p className="text-xs max-w-sm" style={{ color: "var(--foreground-faint)" }}>
-          Stories are stored on the device where they were created. It may have been deleted, or created in
-          another browser.
-        </p>
-        <Link href="/" className="text-xs underline underline-offset-2" style={{ color: "var(--accent-gold)" }}>
-          Back to your stories
-        </Link>
+      <div className="min-h-screen flex items-center justify-center px-6" data-testid="play-missing">
+        <div className="lore-glass lore-glass-panel rounded-card w-full max-w-md p-8 flex flex-col items-center gap-4 text-center">
+          <p className="text-sm" style={{ color: "var(--foreground)" }}>
+            This story isn&apos;t saved in this browser.
+          </p>
+          <p className="text-xs max-w-sm" style={{ color: "var(--foreground-faint)" }}>
+            Stories are stored on the device where they were created. It may have been deleted, or created in
+            another browser.
+          </p>
+          <Link href="/" className="lore-pill lore-pill-primary">
+            Back to your stories
+          </Link>
+        </div>
       </div>
     );
   }

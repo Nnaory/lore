@@ -4,7 +4,7 @@
  * Shown when the player is between stories (after exiting or completing a story).
  * Lists stories in the campaign sequence with their lock/complete/available state
  * and lets the player start an available story.
- * Minimalist gold/black theme.
+ * A glass card over the pumpkin night.
  */
 
 import Link from "next/link";
@@ -32,9 +32,9 @@ export function CampaignLobby({
   return (
     <div
       data-testid="campaign-lobby"
-      className="lore-bg flex flex-col items-center justify-center min-h-full py-12 px-4"
+      className="flex flex-col items-center justify-center min-h-full py-12 px-4"
     >
-      <div className="w-full max-w-md">
+      <div className="lore-glass lore-glass-panel rounded-card w-full max-w-md p-6 sm:p-8">
         {homeHref && (
           <Link
             href={homeHref}
@@ -62,8 +62,7 @@ export function CampaignLobby({
             type="button"
             data-testid="lobby-view-results"
             onClick={onViewResults}
-            className="w-full mb-6 px-4 py-2.5 rounded text-sm font-medium tracking-wide"
-            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            className="lore-pill lore-pill-primary w-full mb-6"
           >
             Campaign complete — see your results →
           </button>
@@ -87,7 +86,7 @@ export function CampaignLobby({
               badgeStyle = { backgroundColor: "rgba(111, 207, 151, 0.1)", color: "#6fcf97", borderColor: "#2d6a4a" };
             } else if (isCurrent) {
               badgeText = "Current";
-              badgeStyle = { backgroundColor: "rgba(232, 197, 71, 0.1)", color: "var(--accent-gold)", borderColor: "var(--accent-gold)" };
+              badgeStyle = { backgroundColor: "rgba(246, 200, 78, 0.1)", color: "var(--accent-gold)", borderColor: "var(--accent-gold)" };
             } else if (unlocked) {
               badgeText = "Available";
               badgeStyle = { backgroundColor: "transparent", color: "var(--foreground-muted)", borderColor: "var(--border)" };
@@ -97,14 +96,8 @@ export function CampaignLobby({
               <div
                 key={entry.story_id}
                 data-testid={`story-entry-${entry.story_id}`}
-                className="relative overflow-hidden"
-                style={{
-                  backgroundColor: "var(--background-panel)",
-                  border: "1px solid var(--border-dim)",
-                  borderRadius: "0.5rem",
-                  borderLeftWidth: isCurrent ? "3px" : "1px",
-                  borderLeftColor: isCurrent ? "var(--accent-gold)" : "var(--border-dim)",
-                }}
+                className="lore-tile rounded-panel relative overflow-hidden"
+                style={isCurrent ? { borderLeftWidth: "3px", borderLeftColor: "var(--accent-gold)" } : undefined}
                 role="listitem"
               >
                 <div className="p-4">
@@ -129,8 +122,7 @@ export function CampaignLobby({
                     <button
                       data-testid={`start-story-${entry.story_id}`}
                       onClick={() => onStartStory(entry.story_id)}
-                      className="mt-3 w-full px-4 py-2 rounded text-xs font-medium tracking-wide transition-all"
-                      style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+                      className="lore-pill lore-pill-sm lore-pill-primary mt-3 w-full"
                     >
                       {isCurrent ? "Continue" : "Start Story"}
                     </button>

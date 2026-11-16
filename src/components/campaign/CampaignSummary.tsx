@@ -29,8 +29,8 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSu
   const { mastered } = summary.counts;
 
   return (
-    <div className="lore-bg min-h-screen overflow-y-auto" data-testid="campaign-summary">
-      <main className="w-full max-w-2xl mx-auto px-5 py-14 flex flex-col gap-10">
+    <div className="min-h-screen overflow-y-auto px-4" data-testid="campaign-summary">
+      <main className="lore-glass lore-glass-panel rounded-card w-full max-w-2xl mx-auto my-10 p-6 sm:p-10 flex flex-col gap-10">
         <header className="text-center flex flex-col gap-2">
           <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "var(--accent-gold-dim)" }}>
             Epilogue
@@ -78,8 +78,7 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSu
                   key={concept.concept_id}
                   data-testid={`concept-result-${concept.concept_id}`}
                   data-outcome={concept.outcome}
-                  className="rounded-lg p-3 flex flex-col gap-1.5"
-                  style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border-dim)" }}
+                  className="lore-tile rounded-tip p-3 flex flex-col gap-1.5"
                 >
                   <div className="flex items-center gap-3">
                     <span aria-hidden="true" style={{ color: o.color }}>{o.mark}</span>
@@ -110,24 +109,21 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSu
           {homeHref && (
             <Link
               href={homeHref}
-              className="px-6 py-2.5 rounded text-sm font-medium text-center"
-              style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+              className="lore-pill lore-pill-lg lore-pill-primary"
             >
               Back to your stories
             </Link>
           )}
           <Link
             href="/create"
-            className="px-6 py-2.5 rounded text-sm text-center"
-            style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
+            className="lore-pill lore-pill-lg"
           >
             Create a new story
           </Link>
           <button
             type="button"
             onClick={onBackToLobby}
-            className="px-6 py-2.5 rounded text-sm"
-            style={{ color: "var(--foreground-faint)", border: "1px solid var(--border-dim)" }}
+            className="lore-pill lore-pill-lg"
           >
             Campaign lobby
           </button>
