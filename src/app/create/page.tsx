@@ -6,7 +6,7 @@
  * 02 World: pick a genre and optional preferences.
  * "Build the world" opens the staged generation screen (concepts → the
  * player's review → world → story). The finished campaign is saved to
- * localStorage and opened at /play/[id]. If saving fails (e.g. storage is
+ * the browser (IndexedDB) and opened at /play/[id]. If saving fails (e.g. storage is
  * full) it is played in memory with a warning.
  */
 
@@ -79,8 +79,8 @@ export default function CreatePage() {
   const savedAndLeft = useRef(false);
 
   const generation = useGeneration({
-    onDone: ({ material, campaign, stories }) => {
-      const saved = createProject({
+    onDone: async ({ material, campaign, stories }) => {
+      const saved = await createProject({
         source: {
           file_name: readyDocument?.file_name ?? "Material",
           file_type: readyDocument?.file_type ?? "text",
