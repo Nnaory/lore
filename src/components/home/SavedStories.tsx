@@ -1,7 +1,7 @@
 /**
  * SavedStories
  *
- * Lists campaigns saved in this browser (localStorage) with progress, a
+ * Lists campaigns saved in this browser (IndexedDB) with progress, a
  * link to continue, and a two-step delete. Renders nothing until mounted
  * (storage is browser-only) and nothing when there are no saved stories.
  */
@@ -23,17 +23,22 @@ export function SavedStories() {
   const [confirming, setConfirming] = useState<string | null>(null);
 
   useEffect(() => {
-    // localStorage is only readable after mount.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setProjects(listProjects());
+    // Browser storage is only readable after mount.
+    let active = true;
+    listProjects().then((list) => {
+      if (active) setProjects(list);
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   if (!projects || projects.length === 0) return null;
 
-  function remove(id: string) {
-    deleteProject(id);
-    setProjects(listProjects());
+  async function remove(id: string) {
     setConfirming(null);
+    await deleteProject(id);
+    setProjects(await listProjects());
   }
 
   return (
