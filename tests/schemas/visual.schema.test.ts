@@ -66,6 +66,21 @@ describe("LessonVisualSchema", () => {
     expect(ok({ ...diagram, nodes: Array.from({ length: 9 }, (_, i) => ({ id: `n${i}`, label: `N${i}` })), edges: [] })).toBe(false);
   });
 
+  it("accepts a diagram without arrows, treating missing edges as none", () => {
+    const noEdges: Record<string, unknown> = { ...diagram };
+    delete noEdges.edges;
+    const parsed = LessonVisualSchema.safeParse(noEdges);
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.kind === "diagram" && parsed.data.edges).toEqual([]);
+  });
+
+  it("allows comparison phrases up to 40 characters per table cell", () => {
+    const row = (text: string) => ({ ...table, headers: ["Benar", "Salah"], rows: [[text, "x"]], highlight_rows: [] });
+    expect(ok(row("Selalu bernilai positif atau nol"))).toBe(true);
+    expect(ok(row("x".repeat(40)))).toBe(true);
+    expect(ok(row("x".repeat(41)))).toBe(false);
+  });
+
   it("rejects tables whose rows do not match the header or highlight missing rows", () => {
     expect(ok({ ...table, rows: [["0", "1"]] })).toBe(false);
     expect(ok({ ...table, highlight_rows: [4] })).toBe(false);
