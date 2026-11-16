@@ -12,12 +12,8 @@ import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
 import { CampaignLobby } from "@/components/campaign/CampaignLobby";
-import {
-  dummyStory,
-  dummyStory2,
-  dummyCampaign,
-  dummyCampaignState,
-} from "@/data/dummy-campaign";
+import { dummyCampaign, dummyCampaignState } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 import {
   completeStory,
   createInitialCampaignState,
@@ -33,7 +29,7 @@ function clickToAdvance(view: ReturnType<typeof render>) {
   act(() => { fireEvent.click(chatArea); });
 }
 
-/** Advance through all scenes of dummyStory and reach the ending. */
+/** Advance through all scenes of linearStory and reach the ending. */
 function advanceToEnding(view: ReturnType<typeof render>) {
   for (let i = 0; i < 100; i++) {
     if (view.queryByTestId("story-complete-screen")) break;
@@ -70,7 +66,7 @@ function advanceToPuzzle(view: ReturnType<typeof render>) {
 describe("StoryViewer — story completion screen", () => {
   it("should show story-complete-screen after reaching the ending", () => {
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onStoryComplete={vi.fn()} onExit={vi.fn()} />
+      <StoryViewer story={linearStory} characters={characters} onStoryComplete={vi.fn()} onExit={vi.fn()} />
     );
     advanceToEnding(view);
     expect(view.queryByTestId("story-complete-screen")).toBeTruthy();
@@ -78,18 +74,18 @@ describe("StoryViewer — story completion screen", () => {
 
   it("should show the story title on the completion screen", () => {
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onStoryComplete={vi.fn()} onExit={vi.fn()} />
+      <StoryViewer story={linearStory} characters={characters} onStoryComplete={vi.fn()} onExit={vi.fn()} />
     );
     advanceToEnding(view);
     expect(view.queryByTestId("story-complete-title")?.textContent).toContain(
-      dummyStory.title
+      linearStory.title
     );
   });
 
   it("should show Continue Campaign button when campaign is not complete", () => {
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onStoryComplete={vi.fn()}
         onExit={vi.fn()}
@@ -104,7 +100,7 @@ describe("StoryViewer — story completion screen", () => {
     const onStoryComplete = vi.fn();
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onStoryComplete={onStoryComplete}
         onExit={vi.fn()}
@@ -119,7 +115,7 @@ describe("StoryViewer — story completion screen", () => {
   it("should call onExit when Exit Story is clicked from completion screen", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onStoryComplete={vi.fn()} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onStoryComplete={vi.fn()} onExit={onExit} />
     );
     advanceToEnding(view);
     const exitBtn = view.queryByTestId("exit-button");
@@ -130,7 +126,7 @@ describe("StoryViewer — story completion screen", () => {
   it("should show campaign complete message on final story", () => {
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onStoryComplete={vi.fn()}
         onExit={vi.fn()}
@@ -148,7 +144,7 @@ describe("StoryViewer — story completion screen", () => {
 describe("StoryViewer — exit mid-story", () => {
   it("should render the sidebar exit button", () => {
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={vi.fn()} />
+      <StoryViewer story={linearStory} characters={characters} onExit={vi.fn()} />
     );
     expect(view.queryByTestId("sidebar-exit-button")).toBeTruthy();
   });
@@ -156,7 +152,7 @@ describe("StoryViewer — exit mid-story", () => {
   it("should call onExit when sidebar exit button is clicked", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
     const dialog = view.getByTestId("exit-confirm-dialog");
@@ -169,7 +165,7 @@ describe("StoryViewer — exit mid-story", () => {
     const onExit = vi.fn();
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onStoryComplete={onStoryComplete}
         onExit={onExit}
@@ -206,7 +202,7 @@ describe("StoryViewer — retry isolation from campaign", () => {
     const onStoryComplete = vi.fn();
     const view = render(
       <StoryViewer
-        story={dummyStory}
+        story={linearStory}
         characters={characters}
         onStoryComplete={onStoryComplete}
         onExit={vi.fn()}
@@ -299,7 +295,7 @@ describe("CampaignLobby", () => {
     const afterS1 = completeStory(
       createInitialCampaignState(dummyCampaign),
       dummyCampaign,
-      dummyStory
+      linearStory
     );
     const state = {
       ...afterS1,
@@ -329,7 +325,7 @@ describe("CampaignLobby", () => {
 describe("Regression — existing features still work with new props", () => {
   it("puzzle interaction still works (correct answer, no HP deduction)", () => {
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
+      <StoryViewer story={linearStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
     );
     advanceToPuzzle(view);
     act(() => { fireEvent.click(view.getByTestId("choice-choice_B")); });
@@ -340,7 +336,7 @@ describe("Regression — existing features still work with new props", () => {
 
   it("HP failure still works with new props", () => {
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
+      <StoryViewer story={linearStory} characters={characters} onExit={vi.fn()} onStoryComplete={vi.fn()} />
     );
     advanceToPuzzle(view);
     for (let i = 0; i < 5; i++) {

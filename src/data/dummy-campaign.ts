@@ -305,6 +305,16 @@ export const dummyStory: StoryBlueprint = {
               title: "Crystal Vector Resonance — Linear Combinations",
               body: "Each crystal emits energy as a vector: a quantity with both direction (vertical vs. lateral) and magnitude. Crystal A = (2, 1). Crystal B = (1, 2).\n\nTo produce a target resonance, you scale each crystal by how many you use and add the results component-wise. This is a linear combination:\n\n  c₁ · v₁ + c₂ · v₂ = target\n\nExample — 2 Crystal A and 1 Crystal B:\n  2 × (2, 1) + 1 × (1, 2)\n  = (4, 2) + (1, 2)\n  = (5, 4)  ✓\n\nThe coefficients (c₁ = 2, c₂ = 1) are the scalar multipliers. Change them and you get a different resonance.",
               concept_ids: ["concept_linear_combination"],
+              visual: {
+                kind: "vectors",
+                vectors: [
+                  { from: [0, 0], to: [4, 2], label: "2 × A", tone: "primary" },
+                  { from: [4, 2], to: [5, 4], label: "1 × B", tone: "secondary" },
+                  { from: [0, 0], to: [5, 4], label: "(5, 4)", tone: "result" },
+                ],
+                points: [{ at: [2, 1], label: "A = (2, 1)" }],
+                caption: "Scale each crystal, then place the arrows tip to tail: 2·(2, 1) + 1·(1, 2) = (5, 4).",
+              },
             },
             {
               type: "dialogue",
@@ -523,6 +533,15 @@ export const dummyStory: StoryBlueprint = {
               title: "Vector Span — The Set of All Reachable Resonances",
               body: "The span of vectors v₁ and v₂ is the set of all vectors expressible as c₁v₁ + c₂v₂ for any real scalars c₁ and c₂.\n\nIf v₁ and v₂ point in genuinely different directions (non-parallel), their span covers the entire plane — meaning any target is reachable.\n\nIf v₁ and v₂ are parallel (one is a scalar multiple of the other), their span is just a single line.\n\nTo check if a specific target t is in the span of {v₁, v₂}, set up the system:\n  c₁v₁ + c₂v₂ = t\nand solve for c₁ and c₂. If a real solution exists, t is reachable.\n\nCrystal C = (1, 1). Crystal D = (2, 3).\nAre these parallel? (2, 3) = k × (1, 1) would require k = 2 and k = 3 simultaneously — impossible. So they span the full plane.",
               concept_ids: ["concept_vector_span"],
+              visual: {
+                kind: "vectors",
+                vectors: [
+                  { from: [0, 0], to: [1, 1], label: "C", tone: "primary" },
+                  { from: [0, 0], to: [2, 3], label: "D", tone: "secondary" },
+                  { from: [0, 0], to: [-2, -2], label: "−2 × C", tone: "muted" },
+                ],
+                caption: "Scaling C only slides along one line. D points a different way, so C and D together reach the whole plane.",
+              },
             },
             {
               type: "dialogue",

@@ -5,6 +5,8 @@
  * Each scene has a type that determines how it is rendered and processed.
  */
 
+import type { LessonVisual } from "./visual";
+
 /** Possible scene types as defined in the LORE data contract. */
 export type SceneType =
   | "narrative"
@@ -43,6 +45,8 @@ export type LearningContent = {
   body: string;
   /** IDs of concepts from the MaterialBlueprint that this content introduces. */
   concept_ids: string[];
+  /** Illustration drawn on the stage canvas while this lesson is shown. */
+  visual?: LessonVisual;
 };
 
 /** Union of all content block types that can appear inside a scene. */

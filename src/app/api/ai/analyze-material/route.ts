@@ -69,7 +69,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
 
     // 3. Return standardized response
     if (!serviceResult.ok) {
-      const status = serviceResult.code === "VALIDATION_FAILED" ? 502 : 500;
+      const status =
+        serviceResult.code === "VALIDATION_FAILED" || serviceResult.code === "OUTPUT_PARSE_FAILED"
+          ? 502
+          : ["PROVIDER_UNAVAILABLE", "RATE_LIMITED", "TIMEOUT"].includes(serviceResult.code)
+            ? 503
+            : 500;
       return NextResponse.json<ErrorResponse>(
         {
           ok: false,

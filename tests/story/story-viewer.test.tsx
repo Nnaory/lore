@@ -9,7 +9,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import { StoryViewer } from "@/components/story/StoryViewer";
-import { dummyStory, dummyCampaign } from "@/data/dummy-campaign";
+import { dummyCampaign } from "@/data/dummy-campaign";
+import { linearStory } from "../fixtures/linear-story";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { Scene } from "@/lib/types/scene";
 
@@ -24,7 +25,7 @@ function clickToAdvance(view: ReturnType<typeof render>) {
 // Helper to advance through first scene (4 content blocks -> scene_end -> next scene)
 function advanceThroughFirstScene() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   // scene_01_intro has 4 content blocks (indices 0–3)
   // Click 4 times to advance through all blocks, then 1 more for scene transition
@@ -37,7 +38,7 @@ function advanceThroughFirstScene() {
 // Helper to advance until puzzle
 function advanceToPuzzle() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   for (let i = 0; i < 50; i++) {
     if (view.queryByTestId("puzzle-interaction")) break;
@@ -49,7 +50,7 @@ function advanceToPuzzle() {
 // Helper to advance until ending
 function advanceToEnding() {
   const view = render(
-    <StoryViewer story={dummyStory} characters={characters} />
+    <StoryViewer story={linearStory} characters={characters} />
   );
   for (let i = 0; i < 100; i++) {
     if (view.queryByTestId("ending-display")) break;
@@ -79,27 +80,33 @@ function advanceToEnding() {
 describe("StoryViewer — basic render", () => {
   it("should render without crashing with the dummy story", () => {
     const { container } = render(
-      <StoryViewer story={dummyStory} characters={characters} />
+      <StoryViewer story={linearStory} characters={characters} />
     );
     expect(container).toBeTruthy();
   });
 
   it("should render the story-viewer container", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("story-viewer")).toBeTruthy();
   });
 
-  it("should show the story title in the right sidebar", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByTestId("right-sidebar").textContent).toContain(
-      "The Fading Light"
-    );
+  it("should show the story title in the navbar", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("sidebar-story-title").textContent).toBe("The Fading Light");
   });
 
-  it("should render left sidebar with exit button", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByTestId("sidebar-exit-button")).toBeTruthy();
-    expect(screen.getByText("Exit Story")).toBeTruthy();
+  it("should lay out the stage: character, canvas, and chat box", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("stage-character").dataset.characterId).toBe("eldric");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("ambient");
+    expect(screen.getByTestId("story-main")).toBeTruthy();
+    expect(screen.getByTestId("pacing-toggle")).toBeTruthy();
+  });
+
+  it("should render an icon exit button in the navbar", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const exitBtn = screen.getByTestId("sidebar-exit-button");
+    expect(exitBtn).toHaveAttribute("aria-label", "Exit story");
   });
 });
 
@@ -107,7 +114,7 @@ describe("StoryViewer — basic render", () => {
 
 describe("StoryViewer — first scene", () => {
   it("should display the location from the first scene in header (desktop)", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     // Header has class "hidden md:flex" - in jsdom it won't be visible
     // but the element exists in DOM
     const header = document.querySelector('[data-testid="story-header"]');
@@ -115,12 +122,12 @@ describe("StoryViewer — first scene", () => {
   });
 
   it("should display the scene-content container", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("scene-content")).toBeTruthy();
   });
 
   it("should display the chat-area", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("story-main")).toBeTruthy();
   });
 });
@@ -129,14 +136,14 @@ describe("StoryViewer — first scene", () => {
 
 describe("StoryViewer — narration", () => {
   it("should render a narration block for the first content block", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const narration = screen.getByTestId("narration-block");
     expect(narration).toBeTruthy();
     expect(narration.textContent).toContain("stone corridor");
   });
 
   it("should have chat dividers around narration", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const dividers = screen.getAllByTestId("narration-block").length;
     // Narration block renders with dividers
     expect(dividers).toBeGreaterThanOrEqual(1);
@@ -147,14 +154,14 @@ describe("StoryViewer — narration", () => {
 
 describe("StoryViewer — dialogue", () => {
   it("should render a dialogue bubble after advancing past the narration", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const bubbles = screen.getAllByTestId("character-bubble");
     expect(bubbles.length).toBeGreaterThan(0);
   });
 
   it("should show the character name in the dialogue bubble", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const names = screen.getAllByTestId("character-name");
     const nameTexts = names.map((n) => n.textContent);
@@ -162,7 +169,7 @@ describe("StoryViewer — dialogue", () => {
   });
 
   it("should show the character expression in the dialogue bubble", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
     const expressions = screen.getAllByTestId("character-expression");
     expect(expressions.length).toBeGreaterThan(0);
@@ -174,23 +181,46 @@ describe("StoryViewer — dialogue", () => {
 // ── 5. Click-to-advance interaction ──────────────────────────────────────────
 
 describe("StoryViewer — click-to-advance interaction", () => {
-  it("should reveal more content on each click", () => {
-    const view = render(<StoryViewer story={dummyStory} characters={characters} />);
+  it("should show the next line on each click (one line at a time, like a visual novel)", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    const line = () => screen.getByTestId("scene-content").textContent;
 
-    // Click 1 → reveals block index 1 (dialogue)
+    const first = line();
+    clickToAdvance(view); // block 1: Eldric's first line
+    const second = line();
+    clickToAdvance(view); // block 2: narration
+    const third = line();
+
+    expect(new Set([first, second, third]).size).toBe(3);
+    expect(second).toContain("You arrived just in time");
+  });
+
+  it("should keep every line seen so far in the story log", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
-    const after1 = screen.getAllByRole("paragraph", { hidden: true }).length;
-
-    // Click 2 → reveals block index 2
     clickToAdvance(view);
-    const after2 = screen.getAllByRole("paragraph", { hidden: true }).length;
+    fireEvent.click(screen.getByTestId("log-chat-button"));
 
-    // Content should grow
-    expect(after2).toBeGreaterThanOrEqual(after1);
+    const log = screen.getByTestId("chat-log").textContent ?? "";
+    expect(log).toContain("stone corridor");
+    expect(log).toContain("You arrived just in time");
+    expect(log).toContain("diagrams scattered");
+    // Opening the log does not advance the story.
+    expect(screen.getByTestId("scene-content").textContent).toContain("diagrams scattered");
+  });
+
+  it("should switch pacing without advancing the story", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const before = screen.getByTestId("scene-content").textContent;
+    fireEvent.click(screen.getByRole("button", { name: "fast" }));
+    expect(screen.getByRole("button", { name: "fast" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("scene-content").textContent).toBe(before);
+    expect(window.localStorage.getItem("lore:pacing")).toBe("fast");
+    window.localStorage.removeItem("lore:pacing");
   });
 
   it("should show click hint when not at puzzle/ending", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     const hint = screen.getByText("Click anywhere to continue");
     expect(hint).toBeTruthy();
   });
@@ -262,7 +292,7 @@ describe("StoryViewer — ending", () => {
 
 describe("StoryViewer — invalid scene reference", () => {
   it("should show an error state and not crash on invalid next_scene_id", () => {
-    const badStory: StoryBlueprint = JSON.parse(JSON.stringify(dummyStory));
+    const badStory: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
     const firstScene = badStory.chapters[0].scenes[0] as Extract<Scene, { type: "narrative" }>;
     firstScene.next_scene_id = "scene_NONEXISTENT";
 
@@ -286,7 +316,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should show exit confirmation dialog when exit button clicked", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -296,7 +326,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should call onExit when exit confirmed", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -308,7 +338,7 @@ describe("StoryViewer — exit functionality", () => {
   it("should not call onExit when cancel is clicked", () => {
     const onExit = vi.fn();
     const view = render(
-      <StoryViewer story={dummyStory} characters={characters} onExit={onExit} />
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
     );
 
     fireEvent.click(view.getByTestId("sidebar-exit-button"));
@@ -320,24 +350,81 @@ describe("StoryViewer — exit functionality", () => {
 
 // ── 11. Right sidebar progress ───────────────────────────────────────────────
 
-describe("StoryViewer — right sidebar progress", () => {
-  it("should show chapter progress list", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    expect(screen.getByText("Chapter Progress")).toBeTruthy();
-    expect(screen.getByTestId("sidebar-story-title").textContent).toContain(
-      "The Fading Light"
-    );
+describe("StoryViewer — navbar progress", () => {
+  it("should show the chapter position and title", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("chapter-progress").textContent).toBe("Chapter 1 / 1");
+    expect(screen.getByTestId("story-header").textContent).toContain("The Fading Light");
   });
 
   it("should show HP display", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
+    render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("hp-display")).toBeTruthy();
     expect(screen.getByTestId("hp-value").textContent).toContain("5 / 5");
   });
+});
 
-  it("should mark current chapter", () => {
-    render(<StoryViewer story={dummyStory} characters={characters} />);
-    const currentChapter = screen.getByTestId("sidebar-chapter-chapter_01");
-    expect(currentChapter).toHaveStyle({ borderColor: "var(--accent-gold)" });
+// ── 12. Stage reactions ─────────────────────────────────────────────────────
+
+describe("StoryViewer — stage", () => {
+  it("shows the lesson on the canvas and the character explaining", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view); // into scene_02_learning, block 1
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
+  });
+
+  it("walks through a lesson taught in several steps, one step per click", () => {
+    const stepped: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    const scene = stepped.chapters.flatMap((c) => c.scenes).find((s) => s.scene_id === "scene_02_learning")!;
+    if (!("content" in scene)) throw new Error("expected content");
+    const at = scene.content.findIndex((b) => b.type === "learning_info");
+    scene.content.splice(at + 1, 0, {
+      type: "learning_info",
+      title: "Worked Example",
+      body: "2×(2,1) + 1×(1,2) = (5,4).",
+      concept_ids: ["concept_linear_combination"],
+      visual: { kind: "vectors", vectors: [{ from: [0, 0], to: [5, 4], label: "(5, 4)" }] },
+    });
+    const view = render(<StoryViewer story={stepped} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
+    clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Worked Example");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
+  });
+
+  it("illustrates the lesson on the canvas when it has a visual", () => {
+    const illustrated: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    for (const scene of illustrated.chapters.flatMap((c) => c.scenes)) {
+      if (!("content" in scene)) continue;
+      for (const block of scene.content) {
+        if (block.type === "learning_info") {
+          block.visual = { kind: "vectors", vectors: [{ from: [0, 0], to: [2, 1], label: "A" }] };
+        }
+      }
+    }
+    const view = render(<StoryViewer story={illustrated} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
+  });
+
+  it("draws the puzzle as a decision graph and reacts to a wrong answer", () => {
+    const view = advanceToPuzzle();
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("decision");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("thinking");
+    act(() => { fireEvent.click(view.getByTestId("choice-choice_A")); });
+    act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("worried");
+  });
+
+  it("follows the speaker's expression", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    clickToAdvance(view); // Eldric, "worried"
+    expect(screen.getByTestId("stage-character")).toMatchObject({ dataset: expect.objectContaining({ characterId: "eldric", emotion: "worried" }) });
   });
 });

@@ -205,14 +205,16 @@ export function validateGeneratedStory(
   // ─── 7. Concept coverage ────────────────────────────────────────────────
   const materialConceptIds = new Set(material.concepts.map((c) => c.concept_id));
 
-  const introduced = new Map<string, string[]>(); // concept_id → scene ids
+  // concept_id → scene ids. A scene may teach one concept over several
+  // learning_info blocks (lesson steps); that still counts as one scene.
+  const introduced = new Map<string, string[]>();
   for (const scene of scenes) {
     if (!("content" in scene)) continue;
     for (const block of scene.content) {
       if (block.type !== "learning_info") continue;
       for (const conceptId of block.concept_ids) {
         const list = introduced.get(conceptId) ?? [];
-        list.push(scene.scene_id);
+        if (!list.includes(scene.scene_id)) list.push(scene.scene_id);
         introduced.set(conceptId, list);
       }
     }

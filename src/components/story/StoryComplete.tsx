@@ -13,6 +13,8 @@ type StoryCompleteProps = {
   onExit: () => void;
   /** True when this was the final story in the campaign. */
   isCampaignComplete: boolean;
+  /** Opens the epilogue and learning evaluation (shown once the campaign is complete). */
+  onViewResults?: () => void;
 };
 
 export function StoryComplete({
@@ -20,6 +22,7 @@ export function StoryComplete({
   onContinue,
   onExit,
   isCampaignComplete,
+  onViewResults,
 }: StoryCompleteProps) {
   return (
     <div
@@ -76,7 +79,7 @@ export function StoryComplete({
           {isCampaignComplete ? (
             <>
               <p data-testid="campaign-complete-message">
-                You have completed the full campaign. The Veiled City endures.
+                You have completed the full campaign.
               </p>
             </>
           ) : (
@@ -89,6 +92,16 @@ export function StoryComplete({
 
         {/* Actions */}
         <div className="px-6 py-4 space-y-3">
+          {isCampaignComplete && onViewResults && (
+            <button
+              data-testid="view-results-button"
+              onClick={onViewResults}
+              className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
+              style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            >
+              See your results →
+            </button>
+          )}
           {!isCampaignComplete && (
             <button
               data-testid="continue-campaign-button"

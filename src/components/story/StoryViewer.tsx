@@ -1,71 +1,139 @@
 /**
- * StoryViewer
+ * StoryViewer — the 3-pane story stage (docs/DESIGN.md §4, wireframe)
  *
- * Full-width three-column layout:
- *   - Left: Fixed 256px sidebar (Exit navigation with warning)
- *   - Center: Flexible width, black background, chat log
- *   - Right: Fixed 256px sidebar (Story progress: chapters, HP)
+ *   ┌──────────────────────── navbar ────────────────────────┐
+ *   │ character (SVG, emotions) │ canvas (@remotion/player)   │
+ *   ├────────────────────── chat box ────────────────────────┤
  *
- * Mobile (<768px): Center full width, sidebars accessible via bottom navbar
+ * - Navbar: story/chapter/location, HP, exit.
+ * - Character: the current speaker, whose emotion follows the dialogue
+ *   and reacts to answers.
+ * - Canvas: ambient scene, the lesson (its illustration when the lesson has
+ *   a visual, else its text), or the decision graph puzzle;
+ *   endings, completion and failure appear as overlays on it. The player's
+ *   ASCII avatar (chosen on the home page) stands in the ambient and
+ *   puzzle scenes.
+ * - Chat box: the current line (typewriter in "animate" pacing), the
+ *   fast|animate toggle, the story log, and the (coming soon) question box.
  *
- * Theme: Dark sci-fi + gold only
- *   - Sidebars: Brown sci-fi panels
- *   - Center: Pure black
- *   - Chat bubbles: Minimalist (top/bottom lines only)
- *   - Click anywhere on chat area to advance
+ * Story logic is unchanged: useStoryPlayer drives navigation/HP/bad
+ * branches, and knowledge evidence is reported through onKnowledgeUpdate.
  */
 
 "use client";
 
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useRef, useState, type ReactNode } from "react";
 import type { StoryBlueprint } from "@/lib/types/story";
-import type { Character } from "@/lib/types/campaign";
+import type { Character, Genre } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
+import type { Scene, SceneContent } from "@/lib/types/scene";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
-import { SceneRenderer } from "./SceneRenderer";
-import { StoryFailure } from "./StoryFailure";
-import { StoryComplete } from "./StoryComplete";
-import { MAX_HP } from "@/lib/game/hp-manager";
+import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
+import { loadPacing, savePacing, type Pacing } from "@/lib/story/pacing";
+import { avatarArt } from "@/lib/avatar/avatar";
+import { usePlayerAvatar } from "@/lib/avatar/use-player-avatar";
+import { stableHash } from "@/lib/ai/hash";
 import {
   getOrCreateKnowledge,
   recordLearningExposure,
   recordPuzzleSubmission,
   getConceptIdsFromScene,
 } from "@/lib/game/knowledge-manager";
+import { StoryFailure } from "./StoryFailure";
+import { StoryComplete } from "./StoryComplete";
+import { EndingDisplay } from "./EndingDisplay";
+import { StageNavbar } from "@/components/stage/StageNavbar";
+import { StageCharacter } from "@/components/stage/StageCharacter";
+import { StageCanvas, type CanvasScene } from "@/components/stage/StageCanvas";
+import { StagePuzzle } from "@/components/stage/StagePuzzle";
+import { ChatBox, type ChatEntry } from "@/components/stage/ChatBox";
+import { ChatLog } from "@/components/stage/ChatLog";
+import { emotionFor, type Emotion } from "@/components/stage/emotion";
 
 type StoryViewerProps = {
   story: StoryBlueprint;
   characters: Character[];
+  /** Campaign genre; picks the character's accessory. */
+  genre?: Genre;
   /** Called when the player completes the story and chooses "Continue Campaign". */
   onStoryComplete?: (opts?: {
     worldStateChanges?: Record<string, number>;
     relationshipChanges?: Record<string, number>;
     outcomeDescription?: string;
   }) => void;
-  /** Called when the player exits the story (from sidebar or from completion screen). */
+  /** Called when the player exits the story (navbar or completion screen). */
   onExit?: () => void;
   /** True when this was the last story — alters the completion screen. */
   isCampaignComplete?: boolean;
-  /**
-   * Called when knowledge state needs updating (learning exposure or puzzle answer).
-   * Provided by useCampaign via game/page.tsx.
-   */
+  /** Opens the epilogue and learning evaluation once the campaign is complete. */
+  onViewResults?: () => void;
+  /** Called when knowledge state needs updating (learning exposure or puzzle answer). */
   onKnowledgeUpdate?: (updates: Record<string, PlayerKnowledge>) => void;
-  /**
-   * The current player_knowledge map from CampaignState.
-   * Used to build knowledge update objects with the latest state.
-   */
+  /** The current player_knowledge map from CampaignState. */
   playerKnowledge?: Record<string, PlayerKnowledge>;
 };
 
-const _SIDEBAR_WIDTH = "16rem"; // 256px
+// ---------------------------------------------------------------------------
+// Pure helpers
+// ---------------------------------------------------------------------------
+
+function entryForBlock(block: SceneContent, characterIndex: CharacterIndex): ChatEntry {
+  if (block.type === "narration") return { kind: "narration", text: block.text };
+  if (block.type === "learning_info") return { kind: "lesson", title: block.title, text: block.body };
+  const character = characterIndex.get(block.character_id);
+  return {
+    kind: "dialogue",
+    characterId: block.character_id,
+    name: character?.name ?? block.character_id,
+    expression: character?.expressions[block.expression] ?? `(${block.expression})`,
+    expressionKey: block.expression,
+    text: block.text,
+  };
+}
+
+/** Index of the block on screen, or -1 when the scene has no content blocks. */
+function visibleBlockIndex(scene: Scene | null, contentIndex: number): number {
+  const blocks = scene ? getSceneContentBlocks(scene) : null;
+  if (!blocks || blocks.length === 0) return -1;
+  return Math.min(contentIndex, blocks.length - 1);
+}
+
+/** Who is on stage: the last speaker so far in this scene, else the first character present. */
+function speakerFor(scene: Scene | null, blockIndex: number, characters: Character[]): { character?: Character; expression?: string } {
+  const blocks = scene ? getSceneContentBlocks(scene) : null;
+  const byId = new Map(characters.map((c) => [c.character_id, c]));
+  if (blocks) {
+    for (let i = blockIndex; i >= 0; i--) {
+      const block = blocks[i];
+      if (block?.type === "dialogue" && byId.has(block.character_id)) {
+        return { character: byId.get(block.character_id), expression: block.expression };
+      }
+    }
+  }
+  const present = scene?.characters_present.find((id) => byId.has(id));
+  return { character: (present && byId.get(present)) || characters[0] };
+}
+
+function overlay(children: ReactNode) {
+  return (
+    <div className="absolute inset-0 overflow-y-auto flex items-start sm:items-center justify-center p-4" style={{ backgroundColor: "rgba(10, 10, 12, 0.55)" }}>
+      <div className="w-full max-w-2xl flex flex-col gap-4">{children}</div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function StoryViewer({
   story,
   characters,
+  genre,
   onStoryComplete,
   onExit,
   isCampaignComplete = false,
+  onViewResults,
   onKnowledgeUpdate,
   playerKnowledge = {},
 }: StoryViewerProps) {
@@ -114,6 +182,9 @@ export function StoryViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentScene?.scene_id, story.story_id]);
 
+  // ── Character reactions to answers (held while still on that scene) ───────
+  const [reaction, setReaction] = useState<{ sceneId: string; emotion: Emotion } | null>(null);
+
   // ── Puzzle answer handler ─────────────────────────────────────────────────
   const handlePuzzleAnswerSubmitted = useCallback(
     (correct: boolean) => {
@@ -122,6 +193,8 @@ export function StoryViewer({
       const puzzleId = currentScene.puzzle_id;
       const puzzle = story.puzzles.find((p) => p.puzzle_id === puzzleId);
       if (!puzzle) return;
+
+      setReaction({ sceneId: currentScene.scene_id, emotion: correct ? "happy" : "worried" });
 
       if (onKnowledgeUpdate) {
         const latestKnowledge = playerKnowledgeRef.current;
@@ -141,21 +214,15 @@ export function StoryViewer({
     [currentScene, story.puzzles, onKnowledgeUpdate]
   );
 
-  const location = currentScene?.location;
-
   // Derive ending data for the StoryComplete callback
   function handleContinueCampaign() {
-    const endingScene = story.chapters
-      .flatMap((c) => c.scenes)
-      .find((s) => s.type === "ending");
+    const endingScene = story.chapters.flatMap((c) => c.scenes).find((s) => s.type === "ending");
     let worldStateChanges: Record<string, number> | undefined;
     let relationshipChanges: Record<string, number> | undefined;
     let outcomeDescription: string | undefined;
 
     if (endingScene?.type === "ending") {
-      const ending = story.endings.find(
-        (e) => e.ending_id === endingScene.ending_id
-      );
+      const ending = story.endings.find((e) => e.ending_id === endingScene.ending_id);
       if (ending) {
         worldStateChanges = ending.world_state_changes;
         relationshipChanges = ending.relationship_changes;
@@ -166,624 +233,260 @@ export function StoryViewer({
     onStoryComplete?.({ worldStateChanges, relationshipChanges, outcomeDescription });
   }
 
-  // Confirmation dialog state for exit
+  // ── UI state ───────────────────────────────────────────────────────────────
   const [showExitConfirm, setShowExitConfirm] = useState(false);
-  // Mobile navbar state
-  const [mobileSidebar, setMobileSidebar] = useState<"left" | "right" | null>(null);
-  // Right progress panel hover state
-  const [progressHovered, setProgressHovered] = useState(false);
+  const [showLog, setShowLog] = useState(false);
+  const [talking, setTalking] = useState(false);
+  const [pacing, setPacing] = useState<Pacing>("animate");
+  useEffect(() => {
+    // The saved preference lives in localStorage (browser only).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPacing(loadPacing());
+  }, []);
+  function changePacing(next: Pacing) {
+    setPacing(next);
+    savePacing(next);
+  }
 
-  // Navigation error state
+  // ── What is on screen ──────────────────────────────────────────────────────
   const navigationError = error;
+  const blockIndex = visibleBlockIndex(currentScene, playerState.contentIndex);
+  const blocks = currentScene ? getSceneContentBlocks(currentScene) : null;
+  const currentBlock = blocks && blockIndex >= 0 ? blocks[blockIndex] : null;
+  const puzzle =
+    currentScene?.type === "puzzle" ? story.puzzles.find((p) => p.puzzle_id === currentScene.puzzle_id) : undefined;
+  const ending =
+    currentScene?.type === "ending" ? story.endings.find((e) => e.ending_id === currentScene.ending_id) : undefined;
 
-  // Click handler for center area - advance story
-  const handleCenterClick = useCallback(() => {
-    // Block click-advance when: puzzle, complete, failed, error,
-    // or bad_branch sequence that's reached the end (waiting for button click)
-    const allBlocks = currentScene ? (
-      currentScene.type !== "puzzle" && currentScene.type !== "ending"
-        ? currentScene.content
-        : null
-    ) : null;
-    const badBranchDone =
-      playerState.status === "bad_branch" &&
-      allBlocks !== null &&
-      playerState.contentIndex >= allBlocks.length;
+  let entry: ChatEntry | null = null;
+  if (isFailed) entry = { kind: "narration", text: "You have run out of HP. The story stops here — for now." };
+  else if (currentBlock) entry = entryForBlock(currentBlock, characterIndex);
+  else if (puzzle) entry = { kind: "narration", text: `${puzzle.narrative_context} Choose your answer on the board.` };
+  else if (ending) entry = { kind: "narration", text: `— ${ending.title} —` };
+  const entryKey = `${story.story_id}:${currentScene?.scene_id ?? ""}:${blockIndex}:${isFailed ? "failed" : ""}`;
 
-    if (
-      currentScene &&
-      currentScene.type !== "puzzle" &&
-      !isComplete &&
-      !isFailed &&
-      !navigationError &&
-      playerState.status !== "story_complete" &&
-      !badBranchDone
-    ) {
-      advance();
-    }
-  }, [currentScene, isComplete, isFailed, navigationError, playerState, advance]);
+  // ── Story log (lines seen in this run) ─────────────────────────────────────
+  const [log, setLog] = useState<ChatEntry[]>([]);
+  const loggedKeys = useRef(new Set<string>());
+  useEffect(() => {
+    if (!entry || isFailed || loggedKeys.current.has(entryKey)) return;
+    loggedKeys.current.add(entryKey);
+    setLog((prev) => [...prev, entry]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryKey]);
 
-  // Render error or main content
-  function renderContent() {
-    if (navigationError) {
-      return (
-        <div
-          data-testid="story-viewer-error"
-          className="flex h-full items-center justify-center p-8"
-          role="alert"
-          aria-live="assertive"
-        >
+  function handleRetry() {
+    retryStory();
+    loggedKeys.current.clear();
+    setLog([]);
+    setReaction(null);
+  }
+
+  // ── Advancing ──────────────────────────────────────────────────────────────
+  const badBranchDone = currentScene !== null && isBadBranchAtEnd(playerState, currentScene);
+  const canAdvance =
+    currentScene !== null &&
+    currentScene.type !== "puzzle" &&
+    !isComplete &&
+    !isFailed &&
+    !navigationError &&
+    playerState.status !== "story_complete" &&
+    !badBranchDone;
+
+  // ── Character on stage ─────────────────────────────────────────────────────
+  const speaker = speakerFor(currentScene, blockIndex, characters);
+  let emotion: Emotion = emotionFor(speaker.expression);
+  if (currentBlock?.type === "learning_info") emotion = "explaining";
+  if (puzzle) emotion = "thinking";
+  if (ending) emotion = ending.type === "success" ? "happy" : "worried";
+  if (reaction && reaction.sceneId === currentScene?.scene_id) emotion = reaction.emotion;
+  if (isFailed) emotion = "worried";
+  const speakerTalking = talking && entry?.kind === "dialogue" && entry.characterId === speaker.character?.character_id;
+
+  // ── Canvas ─────────────────────────────────────────────────────────────────
+  const seed = parseInt(stableHash(story.story_id), 36) % 1000;
+  const avatar = avatarArt(usePlayerAvatar());
+  const chapterIndex = Math.max(0, story.chapters.findIndex((c) => c.chapter_id === currentChapter?.chapter_id));
+  const ambient = (title: string, subtitle?: string): CanvasScene => ({ kind: "ambient", props: { title, subtitle, seed, avatar } });
+
+  let canvas: ReactNode;
+  if (navigationError) {
+    canvas = (
+      <StageCanvas scene={ambient(story.title)} sceneKey="error" pacing={pacing}>
+        {overlay(
           <div
-            className="rounded-lg p-6 max-w-md text-center"
-            style={{
-              backgroundColor: "var(--background-panel)",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "var(--danger)",
-            }}
+            data-testid="story-viewer-error"
+            role="alert"
+            aria-live="assertive"
+            className="rounded-lg p-6 text-center"
+            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--danger)" }}
           >
-            <p
-              className="text-xs font-semibold tracking-widest uppercase mb-2"
-              style={{ color: "var(--danger)" }}
-            >
+            <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--danger)" }}>
               Navigation Error
             </p>
             <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>
               {navigationError.message}
             </p>
           </div>
-        </div>
-      );
-    }
-
-    return (
-      <>
-        {/* ── Story Failure Overlay ─────────────────────────────────────── */}
-        {isFailed ? (
-          <StoryFailure storyTitle={story.title} onRetry={retryStory} />
-        ) : (
+        )}
+      </StageCanvas>
+    );
+  } else if (isFailed) {
+    canvas = (
+      <StageCanvas scene={ambient(story.title, "Story failed")} sceneKey="failed" pacing={pacing}>
+        {overlay(<StoryFailure storyTitle={story.title} onRetry={handleRetry} />)}
+      </StageCanvas>
+    );
+  } else if (currentScene?.type === "puzzle") {
+    canvas = puzzle ? (
+      <StagePuzzle
+        key={currentScene.scene_id}
+        puzzle={puzzle}
+        pacing={pacing}
+        seed={seed}
+        avatar={avatar}
+        onComplete={completePuzzle}
+        onIncorrect={onPuzzleIncorrect}
+        onBadBranch={onPuzzleBadBranch}
+        onAnswerSubmitted={handlePuzzleAnswerSubmitted}
+        isFailed={isFailed}
+        badBranchChoiceIds={currentScene.on_incorrect_scene_id ? new Set(Object.keys(currentScene.on_incorrect_scene_id)) : undefined}
+      />
+    ) : (
+      <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
+        Puzzle not found for {currentScene.puzzle_id}.
+      </p>
+    );
+  } else if (currentScene?.type === "ending") {
+    const badEnding = Boolean(playerState.returnToPuzzleSceneId);
+    canvas = (
+      <StageCanvas scene={ambient(ending?.title ?? story.title, badEnding ? "A wrong turn" : "Story complete")} sceneKey={`ending:${currentScene.scene_id}`} pacing={pacing}>
+        {overlay(
           <>
-            {currentScene ? (
-              <SceneRenderer
-                scene={currentScene}
-                story={story}
-                contentIndex={playerState.contentIndex}
-                status={playerState.status}
-                characterIndex={characterIndex}
-                onAdvance={advance}
-                onPuzzleComplete={completePuzzle}
-                onPuzzleIncorrect={onPuzzleIncorrect}
-                onPuzzleBadBranch={onPuzzleBadBranch}
-                onPuzzleAnswerSubmitted={handlePuzzleAnswerSubmitted}
-                isFailed={isFailed}
-                onReturnToPuzzle={
-                  playerState.returnToPuzzleSceneId ? returnToPuzzle : undefined
-                }
-              />
+            {ending ? (
+              <EndingDisplay ending={ending} />
             ) : (
-              <p style={{ color: "var(--foreground-faint)" }}>Loading scene…</p>
+              <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
+                Ending not found for {currentScene.ending_id}.
+              </p>
             )}
-
-            {/* Story Complete panel — shown below the ending scene content
-                NOT shown when this is a bad-branch ending (returnToPuzzleSceneId set) */}
-            {isComplete && !playerState.returnToPuzzleSceneId && (
-              <StoryComplete
-                storyTitle={story.title}
-                onContinue={handleContinueCampaign}
-                onExit={onExit ?? (() => {})}
-                isCampaignComplete={isCampaignComplete}
-              />
-            )}
-
-            {/* Click hint */}
-            {currentScene &&
-              currentScene.type !== "puzzle" &&
-              !isComplete &&
-              !isFailed &&
-              playerState.status !== "story_complete" && (
-                <div
-                  className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none animate-pulse-gold"
-                  style={{ zIndex: 10 }}
-                  aria-hidden="true"
+            {badEnding ? (
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  data-testid="bad-ending-return-btn"
+                  onClick={returnToPuzzle}
+                  className="px-6 py-3 rounded text-sm font-medium"
+                  style={{ color: "var(--accent-gold)", border: "1px solid var(--accent-gold)", backgroundColor: "var(--background-panel)" }}
                 >
-                  <span
-                    className="px-3 py-1.5 rounded text-xs font-mono"
-                    style={{
-                      backgroundColor: "rgba(232, 197, 71, 0.1)",
-                      border: "1px solid var(--border-dim)",
-                      color: "var(--accent-gold-dim)",
-                    }}
-                  >
-                    Click anywhere to continue
-                  </span>
-                </div>
-              )}
+                  ↩ Try a different choice
+                </button>
+              </div>
+            ) : (
+              isComplete && (
+                <StoryComplete
+                  storyTitle={story.title}
+                  onContinue={handleContinueCampaign}
+                  onExit={onExit ?? (() => {})}
+                  isCampaignComplete={isCampaignComplete}
+                  onViewResults={onViewResults}
+                />
+              )
+            )}
           </>
         )}
-      </>
+      </StageCanvas>
+    );
+  } else if (currentBlock?.type === "learning_info") {
+    // A concept may be taught in several steps (lesson blocks) in one scene.
+    const lessons = (blocks ?? []).filter((b) => b.type === "learning_info");
+    const step = { index: lessons.indexOf(currentBlock), total: lessons.length };
+    // Illustrated when the lesson has a visual; otherwise its text is written out.
+    canvas = (
+      <StageCanvas
+        scene={
+          currentBlock.visual
+            ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
+            : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } }
+        }
+        sceneKey={entryKey}
+        pacing={pacing}
+      />
+    );
+  } else {
+    canvas = (
+      <StageCanvas
+        scene={ambient(currentScene?.location ?? story.title, currentChapter?.title)}
+        sceneKey={`scene:${currentScene?.scene_id ?? ""}`}
+        pacing={pacing}
+      />
     );
   }
 
   return (
-    <div
-      data-testid="story-viewer"
-      className="lore-bg flex h-screen overflow-hidden relative"
-    >
-      {/* ── Left Ghost Column: Exit Icon ──────────────────────────────────── */}
-      <aside
-        data-testid="left-sidebar"
-        className="flex-shrink-0 flex flex-col hidden md:flex"
-        style={{
-          width: "3.5rem",
-          minWidth: "3.5rem",
-          backgroundColor: "var(--background)",
-        }}
-        aria-label="Navigation"
-      >
-        {/* Exit icon button — top left corner */}
-        <div className="flex items-start justify-center pt-5">
-          <button
-            data-testid="sidebar-exit-button"
-            onClick={() => setShowExitConfirm(true)}
-            disabled={!onExit}
-            className="story-exit-btn"
-            aria-label="Exit story"
-            title="Exit story"
-          >
-            {/* Door with arrow exit SVG */}
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-              <polyline points="16 17 21 12 16 7" />
-              <line x1="21" y1="12" x2="9" y2="12" />
-            </svg>
-          </button>
-        </div>
-      </aside>
+    <div data-testid="story-viewer" className="lore-bg h-screen flex flex-col overflow-hidden">
+      <StageNavbar
+        storyTitle={story.title}
+        chapterTitle={currentChapter?.title}
+        chapterIndex={chapterIndex}
+        chapterCount={story.chapters.length}
+        location={currentScene?.location}
+        hp={hp}
+        failed={isFailed}
+        onExit={onExit ? () => setShowExitConfirm(true) : undefined}
+      />
 
-      {/* ── Center: Story Content (Flexible Width, Black Background) ────── */}
-      <main
-        data-testid="story-main"
-        className="lore-center-bg flex flex-col flex-1 min-w-0 overflow-hidden relative"
-        onClick={handleCenterClick}
-      >
-        {/* Sticky header — only on desktop, hidden on mobile (navbar shows info) */}
-        <div
-          data-testid="story-header"
-          className="hidden md:flex md:flex-shrink-0 border-b px-6 py-3"
-          style={{ borderBottomColor: "var(--border-dim)" }}
+      <div className="flex-1 min-h-0 flex gap-3 p-3">
+        <aside
+          aria-label="Character"
+          className="hidden md:flex w-[30%] lg:w-[28%] rounded-lg p-4 lore-panel-bg"
+          style={{ border: "1px solid var(--border)" }}
         >
-          <div className="max-w-4xl mx-auto">
-            <h2
-              className="text-base font-semibold tracking-wide"
-              style={{ color: "var(--foreground)" }}
-            >
-              {location ?? story.title}
-            </h2>
-            {currentChapter && (
-              <p
-                className="text-xs tracking-widest uppercase mt-0.5"
-                style={{ color: "var(--foreground-faint)" }}
-              >
-                {currentChapter.title}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Vertically scrolling content area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto w-full p-4 md:p-6">
-            {renderContent()}
-          </div>
-        </div>
-      </main>
-
-      {/* ── Right Ghost Column: Hover-reveal Progress ─────────────────────── */}
-      <aside
-        data-testid="right-sidebar"
-        className="flex-shrink-0 hidden md:flex flex-col items-center"
-        style={{
-          width: "2rem",
-          minWidth: "2rem",
-          backgroundColor: "var(--background)",
-          position: "relative",
-        }}
-        aria-label="Story progress"
-        onMouseEnter={() => setProgressHovered(true)}
-        onMouseLeave={() => setProgressHovered(false)}
-      >
-        {/* The "O" ring — vertically centred */}
-        <div
-          className="absolute top-1/2 left-1/2"
-          style={{ transform: "translate(-50%, -50%)" }}
-          aria-hidden="true"
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 20 20"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            style={{
-              color: progressHovered ? "var(--accent-gold-dim)" : "var(--foreground-faint)",
-              transition: "color 0.2s ease",
-            }}
-          >
-            <circle
-              cx="10"
-              cy="10"
-              r="7"
-              stroke="currentColor"
-              strokeWidth="1.5"
+          {speaker.character && (
+            <StageCharacter
+              characterId={speaker.character.character_id}
+              name={speaker.character.name}
+              role={speaker.character.role}
+              emotion={emotion}
+              talking={speakerTalking}
+              genre={genre}
             />
-          </svg>
-        </div>
-      </aside>
-
-      {/* ── Right Panel Flyout (hover reveal) ─────────────────────────────── */}
-      <div
-        data-testid="right-sidebar-panel"
-        className="hidden md:block"
-        role="region"
-        aria-label="Story progress details"
-        onMouseEnter={() => setProgressHovered(true)}
-        onMouseLeave={() => setProgressHovered(false)}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: "fixed",
-          top: 0,
-          right: "2rem",
-          bottom: 0,
-          width: "15rem",
-          backgroundColor: "var(--background)",
-          backgroundImage:
-            "linear-gradient(180deg, rgba(232,197,71,0.03) 0%, transparent 50%, rgba(232,197,71,0.03) 100%)",
-          borderLeft: "1px solid var(--border)",
-          overflowY: "auto",
-          zIndex: 20,
-          opacity: progressHovered ? 1 : 0,
-          pointerEvents: progressHovered ? "auto" : "none",
-          transform: progressHovered ? "translateX(0)" : "translateX(0.75rem)",
-          transition: "opacity 0.25s ease, transform 0.25s ease",
-        }}
-      >
-        <div className="w-full flex flex-col gap-5 p-5">
-          {/* Story title */}
-          <div className="w-full border-b pb-3" style={{ borderBottomColor: "var(--border-dim)" }}>
-            <p
-              className="text-xs tracking-widest uppercase mb-1"
-              style={{ color: "var(--foreground-faint)" }}
-            >
-              Story
-            </p>
-            <p
-              data-testid="sidebar-story-title"
-              className="text-sm font-medium leading-5"
-              style={{ color: "var(--foreground)" }}
-            >
-              {story.title}
-            </p>
-          </div>
-
-          {/* Chapter progress */}
-          <div className="w-full">
-            <p
-              className="text-xs tracking-widest uppercase mb-3"
-              style={{ color: "var(--foreground-faint)" }}
-            >
-              Chapters
-            </p>
-            <div className="space-y-1.5">
-              {story.chapters.map((chapter, idx) => {
-                const isCurrent = chapter.chapter_id === currentChapter?.chapter_id;
-                const chapterIndex = story.chapters.findIndex(c => c.chapter_id === currentChapter?.chapter_id);
-                const isCompleted = chapterIndex >= 0 && idx < chapterIndex;
-                return (
-                  <div
-                    key={chapter.chapter_id}
-                    data-testid={`sidebar-chapter-${chapter.chapter_id}`}
-                    className="flex items-center gap-3 px-2.5 py-2 rounded transition-all"
-                    style={{
-                      backgroundColor: isCurrent
-                        ? "rgba(232, 197, 71, 0.08)"
-                        : "transparent",
-                      borderWidth: isCurrent ? "1px" : 0,
-                      borderStyle: "solid",
-                      borderColor: "var(--accent-gold)",
-                    }}
-                  >
-                    <span
-                      className="text-xs font-mono flex-shrink-0 w-5 text-center"
-                      style={{
-                        color: isCurrent
-                          ? "var(--accent-gold)"
-                          : isCompleted
-                          ? "var(--accent-gold)"
-                          : "var(--foreground-faint)",
-                      }}
-                    >
-                      {isCompleted ? "✓" : String(idx + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      data-testid={`sidebar-chapter-name-${chapter.chapter_id}`}
-                      className="text-xs leading-5"
-                      style={{
-                        color: isCurrent
-                          ? "var(--foreground)"
-                          : isCompleted
-                          ? "var(--foreground-muted)"
-                          : "var(--foreground-faint)",
-                        fontWeight: isCurrent ? 500 : 400,
-                      }}
-                    >
-                      {chapter.title}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="chat-divider" />
-
-          {/* HP display */}
-          <div data-testid="hp-display" className="w-full text-center">
-            <p
-              className="text-xs tracking-widest uppercase mb-1"
-              style={{ color: "var(--foreground-faint)" }}
-            >
-              HP
-            </p>
-            <p
-              className="text-base font-mono mb-2"
-              data-testid="hp-value"
-              aria-label={`HP: ${hp} of ${MAX_HP}`}
-              aria-live="polite"
-              style={{
-                color: isFailed ? "var(--danger)" : "var(--foreground)",
-              }}
-            >
-              {hp} / {MAX_HP}
-            </p>
-            <div className="flex gap-1 justify-center" aria-hidden="true">
-              {Array.from({ length: MAX_HP }).map((_, i) => (
-                <span
-                  key={i}
-                  className="w-2.5 h-2.5 rounded-sm transition-colors"
-                  style={{
-                    backgroundColor:
-                      i < hp ? "var(--accent-gold)" : "var(--border-dim)",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
+          )}
+        </aside>
+        <div className="flex-1 min-w-0 min-h-0 flex items-center justify-center" style={{ containerType: "size" }}>
+          {canvas}
         </div>
       </div>
 
-      {/* ── Mobile Navbar ─────────────────────────────────────────────────── */}
-      <nav
-        className="navbar md:hidden"
-        role="navigation"
-        aria-label="Mobile navigation"
-      >
-        <button
-          className="navbar-btn"
-          onClick={() => setMobileSidebar(mobileSidebar === "left" ? null : "left")}
-          aria-expanded={mobileSidebar === "left"}
-          aria-controls="mobile-left-panel"
-          aria-label="Menu"
-        >
-          ☰ Menu
-        </button>
-        <button
-          className="navbar-btn"
-          onClick={() => setMobileSidebar(mobileSidebar === "right" ? null : "right")}
-          aria-expanded={mobileSidebar === "right"}
-          aria-controls="mobile-right-panel"
-          aria-label="Progress"
-        >
-          📖 Progress
-        </button>
-        <button
-          className="navbar-btn"
-          onClick={() => setShowExitConfirm(true)}
-          aria-label="Exit story"
-          style={{ color: "var(--danger)", borderColor: "var(--danger)" }}
-        >
-          Exit
-        </button>
-      </nav>
-
-      {/* ── Mobile Left Sidebar Overlay ───────────────────────────────────── */}
-      {mobileSidebar === "left" && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          style={{ backgroundColor: "rgba(10, 10, 12, 0.6)" }}
-          onClick={() => setMobileSidebar(null)}
-          aria-hidden="true"
-        >
-          <div
-            id="mobile-left-panel"
-            className="fixed inset-y-0 left-0 z-50 w-72 max-w-[85vw] lore-panel-bg border-r overflow-y-auto"
-            style={{
-              borderRightColor: "var(--border)",
-              transform: "translateX(0)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation"
-          >
-            <div className="flex flex-col items-center gap-6 h-full p-6">
-              <div
-                className="w-12 h-12 rounded flex items-center justify-center text-lg font-bold"
-                style={{
-                  backgroundColor: "var(--accent-gold)",
-                  color: "var(--background)",
-                  border: "1px solid var(--accent-gold-dim)",
-                }}
+      <div className="px-3 pb-3">
+        <ChatBox
+          entry={entry}
+          entryKey={entryKey}
+          pacing={pacing}
+          onPacingChange={changePacing}
+          canAdvance={canAdvance}
+          onAdvance={advance}
+          onTypingChange={setTalking}
+          onOpenLog={() => setShowLog(true)}
+          askName={speaker.character?.name}
+          actions={
+            badBranchDone ? (
+              <button
+                type="button"
+                data-testid="bad-branch-return-btn"
+                onClick={returnToPuzzle}
+                className="px-4 py-1.5 rounded text-xs font-medium"
+                style={{ color: "var(--accent-gold)", border: "1px solid var(--accent-gold)" }}
               >
-                L
-              </div>
+                ↩ Try a different choice
+              </button>
+            ) : undefined
+          }
+        />
+      </div>
 
-              <div className="w-full flex flex-col items-center gap-3 mt-auto">
-                <button
-                  data-testid="sidebar-exit-button"
-                  onClick={() => {
-                    setMobileSidebar(null);
-                    setShowExitConfirm(true);
-                  }}
-                  disabled={!onExit}
-                  className="w-full px-4 py-2.5 rounded text-sm font-medium transition-all"
-                  style={{
-                    backgroundColor: "var(--danger-bg)",
-                    color: "var(--danger)",
-                    border: "1px solid var(--danger)",
-                    cursor: onExit ? "pointer" : "not-allowed",
-                    opacity: onExit ? 1 : 0.5,
-                  }}
-                >
-                  Exit Story
-                </button>
-                <p className="text-xs text-center" style={{ color: "var(--foreground-faint)" }}>
-                  Progress is not saved until you complete the story.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {showLog && <ChatLog entries={log} onClose={() => setShowLog(false)} />}
 
-      {/* ── Mobile Right Sidebar Overlay ──────────────────────────────────── */}
-      {mobileSidebar === "right" && (
-        <div
-          className="fixed inset-0 z-40 md:hidden"
-          style={{ backgroundColor: "rgba(10, 10, 12, 0.6)" }}
-          onClick={() => setMobileSidebar(null)}
-          aria-hidden="true"
-        >
-          <div
-            id="mobile-right-panel"
-            className="fixed inset-y-0 right-0 z-50 w-72 max-w-[85vw] lore-panel-bg border-l overflow-y-auto"
-            style={{
-              borderLeftColor: "var(--border)",
-            }}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Story progress"
-          >
-            <div className="w-full flex flex-col gap-6 h-full p-6">
-              <div className="w-full border-b pb-4" style={{ borderBottomColor: "var(--border-dim)" }}>
-                <p className="text-xs tracking-widest uppercase mb-1" style={{ color: "var(--foreground-faint)" }}>
-                  Story
-                </p>
-                <p className="text-sm font-medium leading-5 truncate" style={{ color: "var(--foreground)" }}>
-                  {story.title}
-                </p>
-              </div>
-
-              <div className="chat-divider" />
-
-              <div className="w-full flex-1 overflow-y-auto pr-2">
-                <p className="text-xs tracking-widest uppercase mb-3" style={{ color: "var(--foreground-faint)" }}>
-                  Chapter Progress
-                </p>
-                <div className="space-y-2">
-                  {story.chapters.map((chapter, idx) => {
-                    const isCurrent = chapter.chapter_id === currentChapter?.chapter_id;
-                    const chapterIndex = story.chapters.findIndex(c => c.chapter_id === currentChapter?.chapter_id);
-                    const isCompleted = chapterIndex >= 0 && idx < chapterIndex;
-                    return (
-                      <div
-                        key={chapter.chapter_id}
-                        className="flex items-center gap-3 p-2.5 rounded transition-all"
-                        style={{
-                          backgroundColor: isCurrent
-                            ? "rgba(232, 197, 71, 0.1)"
-                            : "transparent",
-                          borderWidth: isCurrent ? "1px" : 0,
-                          borderStyle: "solid",
-                          borderColor: "var(--accent-gold)",
-                        }}
-                      >
-                        <span
-                          className="text-xs font-mono flex-shrink-0 w-6 text-center"
-                          style={{
-                            color: isCurrent
-                              ? "var(--accent-gold)"
-                              : isCompleted
-                              ? "var(--accent-gold)"
-                              : "var(--foreground-faint)",
-                          }}
-                        >
-                          {isCompleted ? "✓" : String(idx + 1).padStart(2, "0")}
-                        </span>
-                        <span
-                          className="text-xs leading-5 truncate"
-                          style={{
-                            color: isCurrent
-                              ? "var(--foreground)"
-                              : isCompleted
-                              ? "var(--foreground-muted)"
-                              : "var(--foreground-faint)",
-                            fontWeight: isCurrent ? 500 : 400,
-                          }}
-                        >
-                          {chapter.title}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="chat-divider" />
-
-              <div data-testid="hp-display" className="w-full text-center border-t pt-4" style={{ borderTopColor: "var(--border-dim)" }}>
-                <p className="text-xs tracking-widest uppercase mb-1" style={{ color: "var(--foreground-faint)" }}>
-                  HP
-                </p>
-                <p
-                  className="text-lg font-mono mb-2"
-                  data-testid="hp-value"
-                  aria-label={`HP: ${hp} of ${MAX_HP}`}
-                  aria-live="polite"
-                  style={{ color: isFailed ? "var(--danger)" : "var(--foreground)" }}
-                >
-                  {hp} / {MAX_HP}
-                </p>
-                <div className="flex gap-1 justify-center" aria-hidden="true">
-                  {Array.from({ length: MAX_HP }).map((_, i) => (
-                    <span
-                      key={i}
-                      className="w-2.5 h-2.5 rounded-sm transition-colors"
-                      style={{
-                        backgroundColor: i < hp ? "var(--accent-gold)" : "var(--border-dim)",
-                        opacity: 1,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Exit confirmation dialog (shared) */}
       {showExitConfirm && (
         <div
           data-testid="exit-confirm-dialog"
@@ -795,18 +498,9 @@ export function StoryViewer({
         >
           <div
             className="rounded-lg p-6 max-w-sm w-full mx-4"
-            style={{
-              backgroundColor: "var(--background-panel)",
-              borderWidth: "1px",
-              borderStyle: "solid",
-              borderColor: "var(--border)",
-            }}
+            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border)" }}
           >
-            <h3
-              id="exit-confirm-title"
-              className="text-sm font-semibold mb-3"
-              style={{ color: "var(--foreground)" }}
-            >
+            <h3 id="exit-confirm-title" className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
               Exit Story?
             </h3>
             <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
@@ -815,14 +509,8 @@ export function StoryViewer({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="flex-1 px-4 py-2 rounded text-sm font-medium transition-all"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "var(--foreground-muted)",
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: "var(--border)",
-                }}
+                className="flex-1 px-4 py-2 rounded text-sm font-medium"
+                style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
               >
                 Cancel
               </button>
@@ -831,14 +519,8 @@ export function StoryViewer({
                   setShowExitConfirm(false);
                   onExit?.();
                 }}
-                className="flex-1 px-4 py-2 rounded text-sm font-medium transition-all"
-                style={{
-                  backgroundColor: "var(--danger-bg)",
-                  color: "var(--danger)",
-                  borderWidth: "1px",
-                  borderStyle: "solid",
-                  borderColor: "var(--danger)",
-                }}
+                className="flex-1 px-4 py-2 rounded text-sm font-medium"
+                style={{ backgroundColor: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger)" }}
               >
                 Exit Anyway
               </button>

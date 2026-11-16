@@ -233,6 +233,19 @@ describe("validateGeneratedStory — concept coverage", () => {
     expect(found).toContain("CONCEPT_INTRODUCED_TWICE");
   });
 
+  it("accepts one concept taught over several lesson steps in the same scene", () => {
+    const story = clone(generated(0));
+    const learningScene = scenes(story).find((s) => s.type === "learning") as { content: Array<Record<string, unknown>> };
+    const lesson = learningScene.content.find((b) => b.type === "learning_info")!;
+    learningScene.content.push(
+      { ...lesson, title: "Step 2", body: "How it works." },
+      { ...lesson, title: "Step 3", body: "A worked example." }
+    );
+    const found = codes(validateGeneratedStory(story, dummyMaterial));
+    expect(found).not.toContain("CONCEPT_INTRODUCED_TWICE");
+    expect(validateGeneratedStory(story, dummyMaterial).valid).toBe(true);
+  });
+
   it("reports a missing knowledge_mapping entry", () => {
     const story = clone(generated(0));
     story.knowledge_mapping = story.knowledge_mapping.filter(

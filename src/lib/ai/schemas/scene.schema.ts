@@ -6,6 +6,8 @@
  */
 
 import { z } from "zod";
+import { LessonVisualSchema } from "./visual.schema";
+import type { LessonVisual } from "@/lib/types/visual";
 
 // ---------------------------------------------------------------------------
 // Content block schemas
@@ -30,6 +32,17 @@ export const LearningContentSchema = z.object({
   concept_ids: z
     .array(z.string())
     .min(1, "learning_info must reference at least one concept"),
+  /**
+   * Optional illustration. An invalid one is dropped (not an error) so a bad
+   * drawing spec never makes a whole story or saved project unreadable.
+   */
+  visual: z
+    .unknown()
+    .transform((value): LessonVisual | undefined => {
+      const parsed = LessonVisualSchema.safeParse(value);
+      return parsed.success ? parsed.data : undefined;
+    })
+    .optional(),
 });
 
 export const SceneContentSchema = z.discriminatedUnion("type", [
@@ -89,6 +102,10 @@ export const PuzzleSceneSchema = SceneBaseSchema.extend({
   type: z.literal("puzzle"),
   puzzle_id: z.string().min(1, "puzzle_id must not be empty"),
   next_scene_id: z.string().nullable(),
+  /** Optional wrong choice_id → consequence ("bad branch") scene_id. */
+  on_incorrect_scene_id: z
+    .record(z.string().min(1), z.string().min(1, "bad-branch scene_id must not be empty"))
+    .optional(),
 });
 
 export const ConsequenceSceneSchema = SceneBaseSchema.extend({

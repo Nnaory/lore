@@ -16,6 +16,8 @@ export const ConceptSchema = z.object({
   prerequisites: z.array(z.string()),
   misconceptions: z.array(z.string()),
   source_evidence: z.array(z.string()),
+  notation: z.array(z.string()).optional(),
+  examples: z.array(z.string()).optional(),
 });
 
 export const MaterialBlueprintSchema = z.object({

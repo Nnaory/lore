@@ -350,3 +350,35 @@ textarea:focus-visible {
    ───────────────────────────────────────────────────────────────────────── */
 
 /* no additional CSS needed — ring and panel handled via React state inline styles */
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Stage character (layered SVG) — breathing, blinking, talking
+   (all switched off by the prefers-reduced-motion rule above)
+   ───────────────────────────────────────────────────────────────────────── */
+
+@keyframes stage-breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.008); }
+}
+.stage-breathe {
+  animation: stage-breathe 4s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+
+@keyframes stage-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  95% { transform: scaleY(0.1); }
+}
+.stage-blink {
+  animation: stage-blink 5s infinite;
+  transform-box: view-box;
+}
+
+@keyframes stage-talk {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(1.8); }
+}
+.stage-talk {
+  animation: stage-talk 0.28s ease-in-out infinite;
+  transform-box: view-box;
+}

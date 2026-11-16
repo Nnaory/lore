@@ -184,3 +184,40 @@ describe("validateStory — knowledge_mapping concept consistency", () => {
     }
   });
 });
+
+describe("validateStory — bad-branch references (on_incorrect_scene_id)", () => {
+  /** The demo story's first puzzle scene, which already has bad branches. */
+  function firstPuzzleScene(story: StoryBlueprint) {
+    const scene = story.chapters[0].scenes.find((s) => s.scene_id === "scene_05_puzzle");
+    if (!scene || scene.type !== "puzzle") throw new Error("fixture changed: scene_05_puzzle");
+    return scene;
+  }
+
+  function codesOf(story: StoryBlueprint): string[] {
+    const result = validateStory(story);
+    return result.valid ? [] : result.errors.map((e) => e.code);
+  }
+
+  it("accepts the demo story's existing bad branches", () => {
+    expect(codesOf(cloneStory())).toEqual([]);
+  });
+
+  it("detects a bad branch pointing to a scene that does not exist", () => {
+    const story = cloneStory();
+    firstPuzzleScene(story).on_incorrect_scene_id = { choice_A: "scene_DOES_NOT_EXIST" };
+    expect(codesOf(story)).toContain("INVALID_BAD_BRANCH_SCENE_REF");
+  });
+
+  it("detects a bad branch keyed by a choice the puzzle does not have", () => {
+    const story = cloneStory();
+    firstPuzzleScene(story).on_incorrect_scene_id = { choice_Z: "scene_bad_A_start" };
+    expect(codesOf(story)).toContain("INVALID_BAD_BRANCH_CHOICE_REF");
+  });
+
+  it("detects a bad branch keyed by the correct choice", () => {
+    const story = cloneStory();
+    // choice_B is the correct answer for puzzle_01
+    firstPuzzleScene(story).on_incorrect_scene_id = { choice_B: "scene_bad_A_start" };
+    expect(codesOf(story)).toContain("INVALID_BAD_BRANCH_CHOICE_REF");
+  });
+});
