@@ -84,16 +84,16 @@ export function ChatBox({
       data-testid="story-main"
       aria-label="Dialogue"
       onClick={handleClick}
-      className="relative flex flex-col gap-3 rounded-lg px-5 pt-4 pb-3 cursor-pointer select-text"
-      style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border)", minHeight: "11rem" }}
+      className="lore-glass lore-glass-panel rounded-panel relative flex flex-col gap-3 px-5 pt-4 pb-3 cursor-pointer select-text"
+      style={{ minHeight: "11rem" }}
     >
       {/* fast | animate */}
       <div
         data-testid="pacing-toggle"
         role="group"
         aria-label="Story pacing"
-        className="absolute top-3 right-3 flex rounded overflow-hidden text-xs"
-        style={{ border: "1px solid var(--border)" }}
+        className="absolute top-3 right-3 flex rounded-pill overflow-hidden text-xs"
+        style={{ border: "1px solid var(--glass-edge)" }}
         onClick={(e) => e.stopPropagation()}
       >
         {(["fast", "animate"] as const).map((option) => (
@@ -102,7 +102,7 @@ export function ChatBox({
             type="button"
             aria-pressed={pacing === option}
             onClick={() => onPacingChange(option)}
-            className="px-2.5 py-1"
+            className="px-3 py-1"
             style={{
               backgroundColor: pacing === option ? "var(--accent-gold)" : "transparent",
               color: pacing === option ? "var(--background)" : "var(--foreground-muted)",
@@ -160,15 +160,14 @@ export function ChatBox({
           aria-label="Ask a question (coming soon)"
           title="Asking the characters questions is coming soon"
           placeholder={`Ask ${askName ?? "a character"} something… (coming soon)`}
-          className="flex-1 min-w-0 rounded px-3 py-2 text-sm disabled:cursor-not-allowed"
-          style={{ backgroundColor: "var(--background)", border: "1px solid var(--border-dim)", color: "var(--foreground-faint)" }}
+          className="lore-well flex-1 min-w-0 rounded-pill px-4 py-2 text-sm disabled:cursor-not-allowed"
+          style={{ color: "var(--foreground-faint)" }}
         />
         <button
           type="button"
           data-testid="log-chat-button"
           onClick={onOpenLog}
-          className="flex-shrink-0 px-3 py-2 rounded text-sm"
-          style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
+          className="lore-pill flex-shrink-0"
         >
           log chat
         </button>
