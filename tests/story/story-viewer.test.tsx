@@ -375,6 +375,22 @@ describe("StoryViewer — stage", () => {
     expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
   });
 
+  it("illustrates the lesson on the canvas when it has a visual", () => {
+    const illustrated: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    for (const scene of illustrated.chapters.flatMap((c) => c.scenes)) {
+      if (!("content" in scene)) continue;
+      for (const block of scene.content) {
+        if (block.type === "learning_info") {
+          block.visual = { kind: "vectors", vectors: [{ from: [0, 0], to: [2, 1], label: "A" }] };
+        }
+      }
+    }
+    const view = render(<StoryViewer story={illustrated} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
+  });
+
   it("draws the puzzle as a decision graph and reacts to a wrong answer", () => {
     const view = advanceToPuzzle();
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("decision");
