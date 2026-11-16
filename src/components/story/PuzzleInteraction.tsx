@@ -13,12 +13,8 @@
 
 "use client";
 
-import { useState } from "react";
 import type { Puzzle } from "@/lib/types/puzzle";
-import { validateMultipleChoice } from "@/lib/game/answer-validator";
-import type { ValidationResult } from "@/lib/game/answer-validator";
-
-type PuzzleInteractionState = "idle" | "incorrect" | "correct";
+import { usePuzzleInteraction } from "./use-puzzle-interaction";
 
 type PuzzleInteractionProps = {
   puzzle: Puzzle;
@@ -58,51 +54,16 @@ export function PuzzleInteraction({
   isFailed = false,
   badBranchChoiceIds,
 }: PuzzleInteractionProps) {
-  const [selectedChoiceId, setSelectedChoiceId] = useState<string | null>(null);
-  const [interactionState, setInteractionState] =
-    useState<PuzzleInteractionState>("idle");
-  const [lastResult, setLastResult] = useState<ValidationResult | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const isCorrect = interactionState === "correct";
-  const canSubmit =
-    selectedChoiceId !== null && !isCorrect && !isSubmitting && !isFailed;
-
-  function handleSelect(choiceId: string) {
-    if (isCorrect || isFailed) return;
-    setSelectedChoiceId(choiceId);
-    if (interactionState === "incorrect") {
-      setInteractionState("idle");
-      setLastResult(null);
-    }
-  }
-
-  function handleSubmit() {
-    if (!canSubmit) return;
-
-    setIsSubmitting(true);
-    const result = validateMultipleChoice(puzzle, selectedChoiceId);
-    setLastResult(result);
-
-    if (result.outcome === "correct") {
-      setInteractionState("correct");
-      onAnswerSubmitted?.(true);
-    } else if (result.outcome === "incorrect") {
-      onAnswerSubmitted?.(false);
-
-      // If this choice has a bad-branch scene, hand off to the branch handler
-      // instead of staying in the puzzle with inline feedback.
-      if (selectedChoiceId && badBranchChoiceIds?.has(selectedChoiceId) && onBadBranch) {
-        setIsSubmitting(false);
-        onBadBranch(selectedChoiceId);
-        return;
-      }
-
-      setInteractionState("incorrect");
-      onIncorrect?.();
-    }
-    setIsSubmitting(false);
-  }
+  const {
+    selectedChoiceId,
+    interactionState,
+    lastResult,
+    isSubmitting,
+    isCorrect,
+    canSubmit,
+    select: handleSelect,
+    submit: handleSubmit,
+  } = usePuzzleInteraction(puzzle, { onIncorrect, onBadBranch, onAnswerSubmitted, isFailed, badBranchChoiceIds });
 
   return (
     <div
