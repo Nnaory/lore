@@ -375,6 +375,28 @@ describe("StoryViewer — stage", () => {
     expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
   });
 
+  it("walks through a lesson taught in several steps, one step per click", () => {
+    const stepped: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    const scene = stepped.chapters.flatMap((c) => c.scenes).find((s) => s.scene_id === "scene_02_learning")!;
+    if (!("content" in scene)) throw new Error("expected content");
+    const at = scene.content.findIndex((b) => b.type === "learning_info");
+    scene.content.splice(at + 1, 0, {
+      type: "learning_info",
+      title: "Worked Example",
+      body: "2×(2,1) + 1×(1,2) = (5,4).",
+      concept_ids: ["concept_linear_combination"],
+      visual: { kind: "vectors", vectors: [{ from: [0, 0], to: [5, 4], label: "(5, 4)" }] },
+    });
+    const view = render(<StoryViewer story={stepped} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
+    clickToAdvance(view);
+    expect(screen.getByTestId("learning-card").textContent).toContain("Worked Example");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
+  });
+
   it("illustrates the lesson on the canvas when it has a visual", () => {
     const illustrated: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
     for (const scene of illustrated.chapters.flatMap((c) => c.scenes)) {
