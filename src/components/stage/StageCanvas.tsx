@@ -105,6 +105,9 @@ export function StageCanvas({ scene, sceneKey, pacing, children }: StageCanvasPr
         spaceKeyToPlayOrPause={false}
         autoPlay={!fast || loop}
         loop={loop}
+        // Hold the finished drawing. The Player's default jumps back to frame
+        // 0 at the end, where every element is still invisible.
+        moveToBeginningWhenEnded={false}
         initialFrame={fast && !loop ? duration - 1 : 0}
         acknowledgeRemotionLicense
       />
