@@ -4,8 +4,8 @@
  * Entry point for LORE: create a story from your own material (/create)
  * or play the built-in demo campaign (/game).
  *
- * Halloween theme: liquid-glass panels over the ASCII pumpkin night, after
- * the ascii-animals reference. The night itself is the root layout's
+ * Liquid-glass panels over the pumpkin night, after the ascii-animals
+ * reference. The night itself is the root layout's
  * (components/backdrop/PumpkinBackdrop), so this page has no background of
  * its own and only draws what sits on top of it.
  */
@@ -14,12 +14,11 @@ import Link from "next/link";
 import { ArrowRight, FileText, ScrollText } from "lucide-react";
 import { SavedStories } from "@/components/home/SavedStories";
 import { PlayerAvatarCard } from "@/components/avatar/PlayerAvatarCard";
-import { GlassScope } from "@/components/home/GlassScope";
 import { PumpkinMark } from "@/components/home/PumpkinMark";
 
 export default function Home() {
   return (
-    <GlassScope className="theme-halloween relative flex-1 min-h-dvh">
+    <div className="relative flex-1 min-h-dvh">
       <main className="relative z-10 min-h-dvh flex flex-col items-center justify-center px-4 py-16">
         <div className="w-full max-w-[720px] flex flex-col gap-4">
           <header className="flex flex-col items-center gap-4 mb-3 text-center">
@@ -88,6 +87,6 @@ export default function Home() {
           <SavedStories />
         </div>
       </main>
-    </GlassScope>
+    </div>
   );
 }

@@ -6,10 +6,7 @@
  * tab: nothing restarts on navigation, and what happens inside a page (opening
  * the avatar editor, say) cannot touch the background.
  *
- * Pages that still paint their own background would only hide it, so the
- * canvas is shown, and animating, only on BACKDROP_ROUTES. Elsewhere it is
- * display: none: the engine pauses on its own (see lib/ascii-field/engine.ts)
- * and picks up where it left off when the canvas comes back.
+ * Pages must not paint a background of their own, or they hide it.
  *
  * Clicking the open sky (anywhere that is not a control or a glass panel)
  * startles the pumpkins near the click.
@@ -17,17 +14,9 @@
 
 "use client";
 
-import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 import { AsciiFieldEngine } from "@/lib/ascii-field/engine";
 import { HALLOWEEN_NIGHT, pumpkins, type Pumpkin } from "@/lib/ascii-field/pumpkins";
-
-/**
- * Routes drawn over the backdrop: their page has no background of its own.
- * Add a route when its page drops its background; once every page has,
- * delete this list and the `hidden` attribute below.
- */
-const BACKDROP_ROUTES = ["/"];
 
 /** What a click must NOT land on to count as a click on the sky. */
 const NOT_SKY = "a, button, input, textarea, select, label, summary, [role='button'], .lore-glass";
@@ -46,7 +35,6 @@ function startEngine(canvas: HTMLCanvasElement): AsciiFieldEngine<Pumpkin> | nul
 
 export function PumpkinBackdrop() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const shown = BACKDROP_ROUTES.includes(usePathname());
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -55,5 +43,5 @@ export function PumpkinBackdrop() {
     return () => engine?.destroy();
   }, []);
 
-  return <canvas ref={canvasRef} hidden={!shown} aria-hidden="true" data-testid="pumpkin-field" className="lore-ascii-field" />;
+  return <canvas ref={canvasRef} aria-hidden="true" data-testid="pumpkin-field" className="lore-ascii-field" />;
 }

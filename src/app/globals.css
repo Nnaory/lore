@@ -1,55 +1,58 @@
 @import "tailwindcss";
 
 /* ─────────────────────────────────────────────────────────────────────────
-   LORE Design Tokens — Dark Sci-Fi Gold Theme
+   LORE Design Tokens — Halloween ("Trick-or-Treat" palette) + liquid glass
+   The glass recipe and radii follow the ascii-animals reference.
    ───────────────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Core palette — Dark + Gold only */
-  --color-void:           #0a0a0c;      /* True black center */
-  --color-void-elevated:  #111114;      /* Slightly elevated black */
-  --color-sci-panel:      #1a1410;      /* Brown-ish sci-fi panel */
-  --color-sci-panel-hover:#221a14;      /* Hover state */
-  --color-sci-border:     #3a2d20;      /* Brown-gold border */
-  --color-sci-border-dim: #2a2018;      /* Dim border */
-  --color-gold:           #e8c547;      /* Primary gold */
-  --color-gold-dim:       #b89636;      /* Dim gold */
-  --color-gold-faint:     #8a7028;      /* Faint gold */
-  --color-text:           #f0ebe0;      /* Warm off-white */
-  --color-text-dim:       #a8a090;      /* Muted text */
-  --color-text-faint:     #6a6050;      /* Faint text */
-  --color-danger:         #d84a3a;      /* Red for HP loss/exit */
-  --color-danger-bg:      #2a1010;      /* Danger background */
+  /* The palette */
+  --hw-candy-apple: #c83e3e;  /* Candy Apple Red */
+  --hw-pumpkin:     #f68928;  /* Bright Pumpkin */
+  --hw-grape:       #7443a8;  /* Grape Purple */
+  --hw-candy-corn:  #f6c84e;  /* Candy Corn Yellow */
+  --hw-licorice:    #222222;  /* Licorice Black */
 
-  /* Semantic aliases */
-  --background:           var(--color-void);
-  --background-center:    var(--color-void);
-  --background-panel:     var(--color-sci-panel);
-  --background-panel-hover: var(--color-sci-panel-hover);
-  --accent:               var(--color-gold);
-  --accent-gold:          var(--color-gold);
-  --accent-gold-dim:      var(--color-gold-dim);
-  --accent-gold-faint:    var(--color-gold-faint);
-  --foreground:           var(--color-text);
-  --foreground-muted:     var(--color-text-dim);
-  --foreground-faint:     var(--color-text-faint);
-  --border:               var(--color-sci-border);
-  --border-dim:           var(--color-sci-border-dim);
-  --border-gold:          var(--color-gold);
-  --danger:               var(--color-danger);
-  --danger-bg:            var(--color-danger-bg);
+  /*
+   * Semantic tokens, used all over the app. The "gold" names predate the
+   * Halloween palette: --accent-gold is now Candy Corn Yellow, and --accent
+   * (the main action colour) is Bright Pumpkin.
+   */
+  --background:          var(--hw-licorice);
+  --background-panel:    #2a2a2e;
+  --accent:              var(--hw-pumpkin);
+  --accent-gold:         var(--hw-candy-corn);
+  --accent-gold-dim:     rgba(246, 200, 78, 0.72);
+  --accent-gold-faint:   rgba(246, 200, 78, 0.42);
+  --foreground:          #f3ece3;
+  --foreground-muted:    rgba(243, 236, 227, 0.72);
+  --foreground-faint:    rgba(243, 236, 227, 0.55);
+  --border:              rgba(255, 255, 255, 0.14);
+  --border-dim:          rgba(255, 255, 255, 0.08);
+  --danger:              #ec7b7b;  /* Candy Apple Red, lifted to read as text on the dark */
+  --danger-bg:           rgba(200, 62, 62, 0.16);
+
+  /* Glass: the reference's dark values, with a grape-purple inner glow. */
+  --tint-a: 0.1;
+  --tint-b: 0.03;
+  --glass-edge:     rgba(255, 255, 255, 0.14);
+  --glass-rim:      rgba(255, 255, 255, 0.32);
+  --glass-rim-low:  rgba(255, 255, 255, 0.08);
+  --glass-glow:     rgba(116, 67, 168, 0.14);
+  --glass-sheen:    rgba(255, 255, 255, 0.1);
+  --glass-shadow:   0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 
   /* Typography */
   --font-sans: var(--font-geist-sans, "Arial", sans-serif);
   --font-mono: var(--font-geist-mono, "Courier New", monospace);
+
+  color-scheme: dark;
 }
 
 /* Tailwind v4 theme registration */
 @theme inline {
   --color-background:        var(--background);
-  --color-background-center: var(--background-center);
   --color-background-panel:  var(--background-panel);
-  --color-background-panel-hover: var(--background-panel-hover);
   --color-accent:            var(--accent);
   --color-accent-gold:       var(--accent-gold);
   --color-accent-gold-dim:   var(--accent-gold-dim);
@@ -59,7 +62,6 @@
   --color-foreground-faint:  var(--foreground-faint);
   --color-border:            var(--border);
   --color-border-dim:        var(--border-dim);
-  --color-border-gold:       var(--border-gold);
   --color-danger:            var(--danger);
   --color-danger-bg:         var(--danger-bg);
   --font-sans:               var(--font-sans);
@@ -98,44 +100,6 @@ body {
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Backgrounds
-   ───────────────────────────────────────────────────────────────────────── */
-
-.lore-bg {
-  background-color: var(--background);
-  /* Subtle sci-fi grid pattern */
-  background-image:
-    linear-gradient(
-      rgba(232, 197, 71, 0.02) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(232, 197, 71, 0.02) 1px,
-      transparent 1px
-    );
-  background-size: 60px 60px;
-}
-
-/* Center area — pure black with subtle vignette */
-.lore-center-bg {
-  background-color: var(--background-center);
-  box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.8);
-}
-
-/* Side panels — brown sci-fi */
-.lore-panel-bg {
-  background-color: var(--background-panel);
-  background-image:
-    linear-gradient(
-      180deg,
-      rgba(232, 197, 71, 0.03) 0%,
-      transparent 50%,
-      rgba(232, 197, 71, 0.03) 100%
-    );
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -394,56 +358,13 @@ textarea:focus-visible {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Halloween theme ("Trick-or-Treat" palette) + liquid glass
-   Adopted page by page: a page opts in by wrapping itself in .theme-halloween
-   (the home page does; the others still use the gold theme above).
-   The glass recipe and radii follow the ascii-animals reference.
+   The night behind every page, and liquid glass
    ───────────────────────────────────────────────────────────────────────── */
 
-:root {
-  --hw-candy-apple: #c83e3e;  /* Candy Apple Red */
-  --hw-pumpkin:     #f68928;  /* Bright Pumpkin */
-  --hw-grape:       #7443a8;  /* Grape Purple */
-  --hw-candy-corn:  #f6c84e;  /* Candy Corn Yellow */
-  --hw-licorice:    #222222;  /* Licorice Black */
-}
-
-.theme-halloween {
-  /* The semantic tokens, pointed at the Halloween palette. */
-  --background:          var(--hw-licorice);
-  --background-center:   var(--hw-licorice);
-  --background-panel:    #2a2a2e;
-  --accent:              var(--hw-pumpkin);
-  --accent-gold:         var(--hw-candy-corn);
-  --accent-gold-dim:     rgba(246, 200, 78, 0.72);
-  --accent-gold-faint:   rgba(246, 200, 78, 0.42);
-  --foreground:          #f3ece3;
-  --foreground-muted:    rgba(243, 236, 227, 0.72);
-  --foreground-faint:    rgba(243, 236, 227, 0.55);
-  --border:              rgba(255, 255, 255, 0.14);
-  --border-dim:          rgba(255, 255, 255, 0.08);
-  --danger:              #ec7b7b;  /* Candy Apple Red, lifted to read as text on the dark */
-  --danger-bg:           rgba(200, 62, 62, 0.16);
-
-  /* Glass: the reference's dark values, with a grape-purple inner glow. */
-  --tint-a: 0.1;
-  --tint-b: 0.03;
-  --glass-edge:     rgba(255, 255, 255, 0.14);
-  --glass-rim:      rgba(255, 255, 255, 0.32);
-  --glass-rim-low:  rgba(255, 255, 255, 0.08);
-  --glass-glow:     rgba(116, 67, 168, 0.14);
-  --glass-sheen:    rgba(255, 255, 255, 0.1);
-  --glass-shadow:   0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
-
-  /* No background-color: the page sits on the root layout's night (see .lore-ascii-field). */
-  color: var(--foreground);
-  color-scheme: dark;
-}
-
 /*
- * The ASCII night behind every page that shows it (see PumpkinBackdrop).
- * It sits under all content (z-index -1), so a page never has to stack itself
- * above it, and its pages must not paint a background of their own.
+ * The ASCII night behind every page (see PumpkinBackdrop). It sits under all
+ * content (z-index -1), so a page never has to stack itself above it, and
+ * pages must not paint a background of their own.
  *
  * The size is 100vw x 100lvh rather than inset: 0 / 100%. Those two do not
  * change when a scrollbar appears or a phone's address bar slides away, while
@@ -465,11 +386,6 @@ textarea:focus-visible {
   /* The renderer draws its glyphs in this font. */
   font-family: var(--font-mono);
 }
-.lore-ascii-field[hidden] {
-  display: none;
-}
-
-/* ── liquid glass ─────────────────────────────────────────────── */
 
 .lore-glass {
   position: relative;
@@ -552,6 +468,7 @@ textarea:focus-visible {
 .lore-pill:hover { background: rgba(255, 255, 255, 0.05); color: var(--foreground); }
 .lore-pill:disabled { opacity: 0.4; cursor: not-allowed; }
 .lore-pill-sm { height: 28px; padding: 0 12px; gap: 6px; font-size: 12px; }
+.lore-pill-lg { height: 44px; padding: 0 24px; font-size: 14px; }
 .lore-pill-primary { border-color: transparent; background: var(--accent); color: var(--background); font-weight: 500; }
 .lore-pill-primary:hover { background: color-mix(in srgb, var(--accent) 86%, white); color: var(--background); }
 .lore-pill-accent { border-color: color-mix(in srgb, var(--accent-gold) 55%, transparent); color: var(--accent-gold); }
