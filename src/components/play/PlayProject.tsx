@@ -1,7 +1,7 @@
 /**
  * PlayProject — client side of /play/[projectId]
  *
- * Loads the project from localStorage (in the browser only, after mount, so
+ * Loads the project from IndexedDB (in the browser only, after mount, so
  * server and client render the same loading state) and saves campaign
  * progress back whenever it changes. A returning player starts at the
  * campaign lobby; a new campaign starts straight in its first story.
@@ -38,10 +38,15 @@ export function PlayProject() {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
-    const project = loadProject(projectId);
-    // Reading localStorage must happen after mount; this sets state once.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoaded(project ? { status: "ready", project, stories: projectStories(project) } : { status: "missing" });
+    // Browser storage is only readable after mount.
+    let active = true;
+    loadProject(projectId).then((project) => {
+      if (!active) return;
+      setLoaded(project ? { status: "ready", project, stories: projectStories(project) } : { status: "missing" });
+    });
+    return () => {
+      active = false;
+    };
   }, [projectId]);
 
   if (loaded.status === "loading") return <PlayLoading />;
@@ -84,8 +89,8 @@ export function PlayProject() {
         homeHref="/"
         materials={project.materials}
         onStateChange={(state) => {
-          const result = saveCampaignState(project.id, state);
-          setSaveError(result.ok ? null : result.message);
+          // Saves run in order (one IndexedDB transaction each).
+          void saveCampaignState(project.id, state).then((result) => setSaveError(result.ok ? null : result.message));
         }}
       />
     </>
