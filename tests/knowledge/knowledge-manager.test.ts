@@ -75,6 +75,7 @@ import {
 } from "@/lib/game/knowledge-manager";
 import type { PlayerKnowledge } from "@/lib/types/game";
 import { linearStory } from "../fixtures/linear-story";
+import type { StoryBlueprint } from "@/lib/types/story";
 
 // ── 1–3. Initial state ───────────────────────────────────────────────────────
 
@@ -368,6 +369,15 @@ describe("getConceptIdsFromScene", () => {
   it("should return empty array for an unknown scene_id", () => {
     const ids = getConceptIdsFromScene(linearStory, "scene_NONEXISTENT");
     expect(ids).toHaveLength(0);
+  });
+
+  it("should list a concept once when it is taught in several lesson steps", () => {
+    const story: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    const scene = story.chapters.flatMap((c) => c.scenes).find((s) => s.scene_id === "scene_02_learning")!;
+    if (!("content" in scene)) throw new Error("expected content");
+    const lesson = scene.content.find((b) => b.type === "learning_info")!;
+    scene.content.push({ ...lesson }, { ...lesson });
+    expect(getConceptIdsFromScene(story, "scene_02_learning")).toEqual(["concept_linear_combination"]);
   });
 });
 
