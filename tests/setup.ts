@@ -3,6 +3,8 @@
  * Imported by vitest before every test file via vitest.config.ts setupFiles.
  */
 import "@testing-library/jest-dom";
+// In-memory IndexedDB (the project store) for node and jsdom tests.
+import "fake-indexeddb/auto";
 
 // jsdom does not implement scrollIntoView — polyfill it for component tests.
 if (typeof window !== "undefined") {
