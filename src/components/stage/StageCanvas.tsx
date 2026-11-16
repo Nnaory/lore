@@ -24,10 +24,13 @@ import {
   type DecisionGraphProps,
   type LessonBoardProps,
 } from "./compositions";
+import { LessonVisualBoard, type LessonVisualBoardProps } from "./visual-compositions";
+import { visualDuration } from "./visual-layout";
 
 export type CanvasScene =
   | { kind: "ambient"; props: AmbientSceneProps }
   | { kind: "lesson"; props: LessonBoardProps }
+  | { kind: "visual"; props: LessonVisualBoardProps }
   | { kind: "decision"; props: DecisionGraphProps };
 
 function sceneSpec(scene: CanvasScene) {
@@ -38,6 +41,12 @@ function sceneSpec(scene: CanvasScene) {
       return {
         component: LessonBoard as React.ComponentType<Record<string, unknown>>,
         duration: lessonDuration(scene.props.body),
+        loop: false,
+      };
+    case "visual":
+      return {
+        component: LessonVisualBoard as React.ComponentType<Record<string, unknown>>,
+        duration: visualDuration(scene.props.visual),
         loop: false,
       };
     case "decision":
