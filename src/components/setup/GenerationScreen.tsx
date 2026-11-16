@@ -61,8 +61,8 @@ export function GenerationScreen({
   const selectedCount = state.selectedConceptIds.length;
 
   return (
-    <div className="lore-bg min-h-screen flex flex-col" data-testid="generation-screen">
-      <main className="flex-1 w-full max-w-xl mx-auto px-5 py-14 flex flex-col gap-8">
+    <div className="min-h-screen flex items-center justify-center px-4 py-10" data-testid="generation-screen">
+      <main className="lore-glass lore-glass-panel rounded-card w-full max-w-xl p-6 sm:p-8 flex flex-col gap-8">
         <div className="text-center">
           <p className="text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "var(--accent-gold-dim)" }}>
             Building your world
@@ -109,8 +109,7 @@ export function GenerationScreen({
           <section
             data-testid="concept-review"
             aria-labelledby="concept-review-heading"
-            className="rounded-lg p-4 flex flex-col gap-3"
-            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border)" }}
+            className="lore-tile rounded-panel p-4 flex flex-col gap-3"
           >
             <div>
               <h2 id="concept-review-heading" className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
@@ -158,8 +157,7 @@ export function GenerationScreen({
                 data-testid="confirm-concepts"
                 onClick={onConfirmConcepts}
                 disabled={selectedCount === 0}
-                className="px-5 py-2.5 rounded text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+                className="lore-pill lore-pill-lg lore-pill-primary"
               >
                 Write the story →
               </button>
@@ -177,8 +175,7 @@ export function GenerationScreen({
           <section
             data-testid="world-preview"
             aria-label="Your world"
-            className="rounded-lg p-4 flex flex-col gap-2 animate-fade-in-up"
-            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border-dim)" }}
+            className="lore-tile rounded-panel p-4 flex flex-col gap-2 animate-fade-in-up"
           >
             <p className="text-base font-semibold tracking-wide" style={{ color: "var(--accent-gold)" }}>
               {state.campaign.title}
@@ -208,17 +205,11 @@ export function GenerationScreen({
                 type="button"
                 data-testid="generation-retry"
                 onClick={onRetry}
-                className="px-5 py-2 rounded text-sm font-medium"
-                style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+                className="lore-pill lore-pill-primary"
               >
                 Try again
               </button>
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-5 py-2 rounded text-sm"
-                style={{ color: "var(--foreground-muted)", border: "1px solid var(--border-dim)" }}
-              >
+              <button type="button" onClick={onBack} className="lore-pill">
                 Back to edit
               </button>
             </div>

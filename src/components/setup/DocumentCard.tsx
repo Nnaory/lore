@@ -41,15 +41,12 @@ export function DocumentCard({ doc, materialLength, onRemove, onToggle, onSetAll
     <div
       data-testid="document-card"
       data-status={doc.status}
-      className="rounded-lg p-4 flex flex-col gap-4"
-      style={{
-        backgroundColor: "var(--background-panel)",
-        border: `1px solid ${isError ? "var(--danger)" : "var(--border)"}`,
-      }}
+      className="lore-tile rounded-panel p-4 flex flex-col gap-4"
+      style={isError ? { borderColor: "var(--danger)" } : undefined}
     >
       <div className="flex items-start gap-3">
         <span
-          className="flex-shrink-0 text-[10px] font-mono font-semibold tracking-wider px-1.5 py-1 rounded"
+          className="flex-shrink-0 text-[10px] font-mono font-semibold tracking-wider px-2 py-1 rounded-pill"
           style={{
             border: "1px solid var(--accent-gold-dim)",
             color: "var(--accent-gold)",
@@ -85,7 +82,7 @@ export function DocumentCard({ doc, materialLength, onRemove, onToggle, onSetAll
           onClick={onRemove}
           aria-label={isError ? "Choose another file" : "Remove document"}
           data-testid="document-remove"
-          className="flex-shrink-0 p-1 rounded transition-colors hover:bg-white/5"
+          className="flex-shrink-0 p-1.5 rounded-pill transition-colors hover:bg-white/5"
           style={{ color: "var(--foreground-faint)" }}
         >
           <X size={16} aria-hidden="true" />
@@ -95,7 +92,7 @@ export function DocumentCard({ doc, materialLength, onRemove, onToggle, onSetAll
       {doc.status === "ready" && doc.document.warnings.length > 0 && (
         <ul className="flex flex-col gap-1.5" data-testid="document-warnings">
           {doc.document.warnings.map((w) => (
-            <li key={w.code} className="flex gap-2 text-xs" style={{ color: "#e0b25a" }}>
+            <li key={w.code} className="flex gap-2 text-xs" style={{ color: "var(--accent-gold)" }}>
               <TriangleAlert size={14} className="flex-shrink-0 mt-px" aria-hidden="true" />
               <span>{w.message}</span>
             </li>

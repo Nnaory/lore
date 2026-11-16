@@ -49,12 +49,8 @@ export function AdvancedOptions(props: AdvancedOptionsProps) {
               return (
                 <label
                   key={option.value}
-                  className="px-3 py-1.5 rounded text-xs cursor-pointer focus-within:outline focus-within:outline-2"
-                  style={{
-                    border: `1px solid ${checked ? "var(--accent-gold)" : "var(--border-dim)"}`,
-                    color: checked ? "var(--accent-gold)" : "var(--foreground-muted)",
-                    outlineColor: "var(--accent-gold)",
-                  }}
+                  className={`lore-pill lore-pill-sm ${checked ? "lore-pill-accent" : ""} focus-within:outline focus-within:outline-2`}
+                  style={{ outlineColor: "var(--accent-gold)" }}
                 >
                   <input
                     type="radio"
@@ -79,12 +75,8 @@ export function AdvancedOptions(props: AdvancedOptionsProps) {
             id="story-language"
             value={props.language}
             onChange={(e) => props.onLanguageChange(e.target.value as StoryLanguage)}
-            className="px-3 py-2 rounded text-sm"
-            style={{
-              backgroundColor: "var(--background-panel)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="lore-well rounded-tip px-3 py-2 text-sm"
+            style={{ color: "var(--foreground)" }}
           >
             <option value="en">English</option>
             <option value="id">Bahasa Indonesia</option>
@@ -102,12 +94,8 @@ export function AdvancedOptions(props: AdvancedOptionsProps) {
             value={props.customInstructions}
             onChange={(e) => props.onInstructionsChange(e.target.value)}
             placeholder="e.g. Set it in a coastal town. Keep the tone light."
-            className="w-full rounded p-3 text-sm resize-y"
-            style={{
-              backgroundColor: "var(--background-panel)",
-              border: "1px solid var(--border)",
-              color: "var(--foreground)",
-            }}
+            className="lore-well rounded-tip w-full p-3 text-sm resize-y"
+            style={{ color: "var(--foreground)" }}
           />
           <p className="text-xs text-right mt-1" style={{ color: "var(--foreground-faint)" }}>
             {props.customInstructions.length} / {MAX_INSTRUCTIONS_CHARS}

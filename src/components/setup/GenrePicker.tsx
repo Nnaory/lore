@@ -24,7 +24,7 @@ export const GENRE_CHOICES: readonly GenreChoice[] = [
     label: "Fantasy",
     description: "Ancient realms, fading magic, old secrets.",
     pattern: {
-      backgroundImage: "radial-gradient(circle at 25% 15%, rgba(232, 197, 71, 0.16), transparent 60%)",
+      backgroundImage: "radial-gradient(circle at 25% 15%, rgba(246, 137, 40, 0.24), transparent 60%)",
     },
   },
   {
@@ -32,7 +32,7 @@ export const GENRE_CHOICES: readonly GenreChoice[] = [
     label: "Non-fiction",
     description: "The real world, here and now.",
     pattern: {
-      backgroundImage: "repeating-linear-gradient(0deg, rgba(232, 197, 71, 0.06) 0 1px, transparent 1px 14px)",
+      backgroundImage: "repeating-linear-gradient(0deg, rgba(246, 200, 78, 0.08) 0 1px, transparent 1px 14px)",
     },
   },
   {
@@ -40,7 +40,7 @@ export const GENRE_CHOICES: readonly GenreChoice[] = [
     label: "Sci-fi",
     description: "Research stations and the technology of tomorrow.",
     pattern: {
-      backgroundImage: "radial-gradient(rgba(232, 197, 71, 0.18) 1px, transparent 1px)",
+      backgroundImage: "radial-gradient(rgba(176, 132, 224, 0.4) 1px, transparent 1px)",
       backgroundSize: "12px 12px",
     },
   },
@@ -62,10 +62,10 @@ export function GenrePicker({ value, onChange }: GenrePickerProps) {
             <label
               key={choice.genre}
               data-testid={`genre-${choice.genre}`}
-              className="relative flex flex-col gap-1.5 rounded-lg p-4 min-h-28 cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
+              className="lore-tile relative flex flex-col gap-1.5 rounded-tip p-4 min-h-28 cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
               style={{
-                backgroundColor: "var(--background-panel)",
-                border: `1px solid ${checked ? "var(--accent-gold)" : "var(--border-dim)"}`,
+                borderColor: checked ? "var(--accent-gold)" : undefined,
+                backgroundColor: checked ? "rgba(246, 200, 78, 0.08)" : undefined,
                 outlineColor: "var(--accent-gold)",
                 ...choice.pattern,
               }}
