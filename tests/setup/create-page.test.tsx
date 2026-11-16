@@ -8,13 +8,14 @@
  * calls go to the real AI route handlers in-process (dummy provider).
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CreatePage from "@/app/create/page";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
 import { BUILD_MESSAGES } from "@/lib/setup/request-campaign";
 import { loadProject } from "@/lib/state/project-store";
 import { routeFetch } from "../fixtures/route-fetch";
+import { freshStore } from "../fixtures/fresh-store";
 import { Activity } from "react";
 
 vi.mock("next/link", () => ({
@@ -26,11 +27,12 @@ vi.mock("next/link", () => ({
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
+beforeEach(freshStore);
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
   push.mockReset();
-  window.localStorage.clear();
 });
 
 // Mentions "linear combination", so the dummy provider returns two concepts.
@@ -151,7 +153,7 @@ describe("/create — build", () => {
       "/api/ai/generate-story",
     ]);
     const id = (push.mock.calls[0][0] as string).replace("/play/", "");
-    const saved = loadProject(id);
+    const saved = await loadProject(id);
     expect(saved?.source).toEqual({ file_name: "Pasted text", file_type: "text" });
     const story = Object.values(saved!.stories)[0];
     expect(story.knowledge_mapping).toHaveLength(1);
@@ -200,7 +202,7 @@ describe("/create — build", () => {
   it("still plays the story, with a warning, when it cannot be saved", async () => {
     await startBuild();
     await screen.findByTestId("concept-review");
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+    vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {
       throw new DOMException("quota", "QuotaExceededError");
     });
     await act(async () => {
