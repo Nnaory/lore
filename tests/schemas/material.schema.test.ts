@@ -18,6 +18,23 @@ describe("MaterialBlueprintSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("should keep the optional notation and examples of a concept", () => {
+    const withExtras = {
+      ...dummyMaterial,
+      concepts: dummyMaterial.concepts.map((c, i) =>
+        i === 0 ? { ...c, notation: ["‖v‖ = length of v"], examples: ["(1,2)+(3,1)=(4,3)"] } : c
+      ),
+    };
+    const result = MaterialBlueprintSchema.parse(withExtras);
+    expect(result.concepts[0]).toMatchObject({ notation: ["‖v‖ = length of v"], examples: ["(1,2)+(3,1)=(4,3)"] });
+    expect(result.concepts[1].notation).toBeUndefined(); // older blueprints have neither
+  });
+
+  it("should reject notation that is not a list of strings", () => {
+    const bad = { ...dummyMaterial, concepts: [{ ...dummyMaterial.concepts[0], notation: "‖v‖" }] };
+    expect(MaterialBlueprintSchema.safeParse(bad).success).toBe(false);
+  });
+
   it("should reject a material with an empty material_id", () => {
     const bad = { ...dummyMaterial, material_id: "" };
     const result = MaterialBlueprintSchema.safeParse(bad);
