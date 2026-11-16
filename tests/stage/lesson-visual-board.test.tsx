@@ -3,17 +3,18 @@ import { describe, expect, it } from "vitest";
 import { render } from "@testing-library/react";
 import { Thumbnail } from "@remotion/player";
 import { LessonVisualBoard } from "@/components/stage/visual-compositions";
+import { lessonHeading, type LessonStep } from "@/components/stage/compositions";
 import { visualDuration } from "@/components/stage/visual-layout";
 import { CANVAS_FPS, CANVAS_HEIGHT, CANVAS_WIDTH } from "@/components/stage/canvas-layout";
 import type { LessonVisual } from "@/lib/types/visual";
 
 /** Render the last frame of a lesson visual (what "fast" pacing shows). */
-function lastFrame(visual: LessonVisual, title = "Lesson title") {
+function lastFrame(visual: LessonVisual, title = "Lesson title", step?: LessonStep) {
   const duration = visualDuration(visual);
   return render(
     <Thumbnail
       component={LessonVisualBoard as unknown as React.ComponentType<Record<string, unknown>>}
-      inputProps={{ title, visual, seed: 1 }}
+      inputProps={{ title, visual, seed: 1, step }}
       compositionWidth={CANVAS_WIDTH}
       compositionHeight={CANVAS_HEIGHT}
       durationInFrames={duration}
@@ -78,5 +79,19 @@ describe("LessonVisualBoard", () => {
     const text = container.textContent ?? "";
     expect(text).toContain("Crystal Vectors");
     for (const label of labels) expect(text).toContain(label);
+  });
+});
+
+describe("lesson step heading", () => {
+  it("numbers the steps of a multi-step lesson", () => {
+    expect(lessonHeading()).toBe("Lesson");
+    expect(lessonHeading({ index: 0, total: 1 })).toBe("Lesson");
+    expect(lessonHeading({ index: 1, total: 4 })).toBe("Lesson · 2 / 4");
+  });
+
+  it("shows the step on the illustrated board", () => {
+    const visual: LessonVisual = { kind: "vectors", vectors: [{ from: [0, 0], to: [1, 1] }] };
+    const { container } = lastFrame(visual, "Penjumlahan Vektor", { index: 2, total: 3 });
+    expect(container.textContent).toContain("Lesson · 3 / 3");
   });
 });
