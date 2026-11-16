@@ -52,7 +52,8 @@ export const DiagramVisualSchema = z
       .array(z.object({ id: label(40), label: label(32), detail: label(70).optional() }))
       .min(2)
       .max(8),
-    edges: z.array(z.object({ from: label(40), to: label(40), label: label(24).optional() })).max(12),
+    // Boxes without arrows (e.g. two side-by-side cases) are a valid diagram.
+    edges: z.array(z.object({ from: label(40), to: label(40), label: label(24).optional() })).max(12).default([]),
     caption,
   })
   .superRefine((d, ctx) => {
@@ -73,7 +74,8 @@ export const TableVisualSchema = z
   .object({
     kind: z.literal("table"),
     headers: z.array(label(24)).min(1).max(6),
-    rows: z.array(z.array(z.string().trim().max(24))).min(1).max(10),
+    // Cells wrap onto two lines on the canvas, so short phrases fit.
+    rows: z.array(z.array(z.string().trim().max(40))).min(1).max(10),
     highlight_rows: z.array(z.number().int().min(0)).max(10).optional(),
     caption,
   })
