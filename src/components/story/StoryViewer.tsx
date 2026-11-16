@@ -398,13 +398,16 @@ export function StoryViewer({
       </StageCanvas>
     );
   } else if (currentBlock?.type === "learning_info") {
+    // A concept may be taught in several steps (lesson blocks) in one scene.
+    const lessons = (blocks ?? []).filter((b) => b.type === "learning_info");
+    const step = { index: lessons.indexOf(currentBlock), total: lessons.length };
     // Illustrated when the lesson has a visual; otherwise its text is written out.
     canvas = (
       <StageCanvas
         scene={
           currentBlock.visual
-            ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed } }
-            : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed } }
+            ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
+            : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } }
         }
         sceneKey={entryKey}
         pacing={pacing}
