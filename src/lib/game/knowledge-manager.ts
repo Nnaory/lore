@@ -345,13 +345,14 @@ export function getConceptIdsFromScene(
     ) {
       continue;
     }
-    const conceptIds: string[] = [];
+    // A concept taught over several lesson steps is listed once.
+    const conceptIds = new Set<string>();
     for (const block of scene.content) {
       if (block.type === "learning_info") {
-        conceptIds.push(...block.concept_ids);
+        for (const id of block.concept_ids) conceptIds.add(id);
       }
     }
-    return conceptIds;
+    return [...conceptIds];
   }
   return [];
 }
