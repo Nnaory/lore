@@ -15,6 +15,7 @@ import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
 import { runFullWorkflow, resetFullWorkflowCaches } from "@/lib/ai/full-workflow";
 import { dummyMaterial } from "@/data/dummy-campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
+import type { StoryBlueprint } from "@/lib/types/story";
 
 const KEY = "test-key-should-never-leak";
 const config: GeminiConfig = { apiKey: KEY, models: ["model-a", "model-b"], timeoutMs: 5_000, attemptsPerModel: 2, backoffMs: 0, deadlineMs: 60_000 };
@@ -302,6 +303,39 @@ describe("mergeStoryContent", () => {
     expect(again.blueprint.puzzles).toEqual(blueprint.puzzles);
   });
 
+  const lessons = (b: StoryBlueprint) =>
+    b.chapters.flatMap((c) => c.scenes).flatMap((s) => ("content" in s ? s.content : [])).filter((x) => x.type === "learning_info");
+
+  it("attaches a valid lesson_visual to the lesson", () => {
+    const content = contentFor(conceptIds);
+    (content.concepts[0] as Record<string, unknown>).lesson_visual = {
+      kind: "table",
+      headers: ["A", "B", "A AND B"],
+      rows: [["0", "0", "0"], ["1", "1", "1"]],
+      caption: "Only 1 when both are 1.",
+    };
+    const { blueprint, droppedVisuals } = mergeStoryContent(skeleton.blueprint, content);
+    expect(droppedVisuals).toEqual([]);
+    expect(lessons(blueprint)[0]).toMatchObject({ visual: { kind: "table", headers: ["A", "B", "A AND B"] } });
+    expect(StoryBlueprintSchema.parse(blueprint)).toEqual(blueprint); // survives save/load
+    expect(validateGeneratedStory(blueprint, dummyMaterial, { entry: request.story }).valid).toBe(true);
+  });
+
+  it("drops an invalid lesson_visual but keeps the lesson text", () => {
+    const content = contentFor(conceptIds);
+    (content.concepts[0] as Record<string, unknown>).lesson_visual = {
+      kind: "diagram",
+      layout: "flow",
+      nodes: [{ id: "a", label: "A" }],
+      edges: [{ from: "a", to: "ghost" }],
+    };
+    const { blueprint, droppedVisuals, templated } = mergeStoryContent(skeleton.blueprint, content);
+    expect(droppedVisuals).toEqual([conceptIds[0]]);
+    expect(templated).toEqual([]);
+    expect(lessons(blueprint)[0]).toMatchObject({ title: "Lesson 1", body: "Lesson body 1." });
+    expect(lessons(blueprint)[0]).not.toHaveProperty("visual");
+  });
+
   it("keeps the template puzzle when the written one has duplicate answers", () => {
     const content = contentFor(conceptIds);
     (content.concepts[0].puzzle as { wrong_answers: string[] }).wrong_answers = ["Right 1", "right 1 "];
@@ -329,6 +363,34 @@ describe("Gemini story generator provider", () => {
     if (!result.ok) return;
     expect(result.value.meta.warnings.map((w) => w.code)).toContain("CONTENT_PARTIAL_FALLBACK");
     expect(validateStory(result.value.blueprint, dummyMaterial).valid).toBe(true);
+  });
+
+  it("asks for lesson illustrations and reports the ones it had to drop", async () => {
+    const skeleton = buildStoryBlueprint(storyRequest());
+    if (!skeleton.ok) throw new Error("engine failed");
+    const ids = skeleton.blueprint.knowledge_mapping.map((m) => m.concept_id);
+    const content = contentFor(ids);
+    (content.concepts[0] as Record<string, unknown>).lesson_visual = {
+      kind: "vectors",
+      vectors: [{ from: [0, 0], to: [3, 4], label: "v" }],
+    };
+    (content.concepts[1] as Record<string, unknown>).lesson_visual = { kind: "table", headers: ["A"], rows: [["1", "2"]] };
+    const q = queue(geminiOk(content));
+    const result = await new GeminiStoryGeneratorProvider(config, q.fetch).generateStory(storyRequest());
+
+    const prompt = JSON.parse(String(q.calls[0].init.body)).contents[0].parts[0].text as string;
+    expect(prompt).toContain('"lesson_visual"');
+    expect(prompt).toContain('"kind":"diagram"');
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const visuals = result.value.blueprint.chapters
+      .flatMap((c) => c.scenes)
+      .flatMap((s) => ("content" in s ? s.content : []))
+      .flatMap((b) => (b.type === "learning_info" && b.visual ? [b.visual.kind] : []));
+    expect(visuals).toEqual(["vectors"]);
+    const dropped = result.value.meta.warnings.find((w) => w.code === "VISUAL_DROPPED");
+    expect(dropped?.message).toContain(ids[1]);
   });
 });
 
