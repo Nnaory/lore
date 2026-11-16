@@ -9,6 +9,9 @@
  *    keeps the template, so the story is always playable.
  * 4. Puzzle choices are shuffled deterministically so the correct answer is
  *    not always first.
+ * 5. Each lesson may carry an illustration spec (`lesson_visual`) drawn on
+ *    the stage canvas. Only specs that pass LessonVisualSchema are kept; a
+ *    bad one is dropped and the lesson is shown as text.
  *
  * Gemini never decides correctness at play time: the correct choice is
  * recorded as data (`correct_choice_id`) and evaluated by the game engine.
@@ -27,6 +30,7 @@ import type { ValidationError } from "@/lib/validation/story-validator";
 import { buildStoryBlueprint } from "@/lib/ai/story-generator-engine";
 import { validateGeneratedStory } from "@/lib/validation/generator-validator";
 import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
+import { LessonVisualSchema } from "@/lib/ai/schemas/visual.schema";
 import { seededShuffle } from "@/lib/ai/hash";
 import { generateJson, type GeminiConfig } from "./gemini-client";
 
@@ -48,6 +52,7 @@ const ConceptContentSchema = z.object({
   companion_line: line.optional(),
   lesson_title: z.string().trim().min(1).max(120).optional(),
   lesson_body: paragraph.optional(),
+  lesson_visual: z.unknown().optional(),
   puzzle: z.unknown().optional(),
   result_narration: paragraph.optional(),
   guide_line: line.optional(),
@@ -64,6 +69,23 @@ export type StoryContent = z.infer<typeof StoryContentSchema>;
 // ---------------------------------------------------------------------------
 // Prompt
 // ---------------------------------------------------------------------------
+
+/** How to write a lesson_visual: one primitive, exact data, short labels. */
+const VISUAL_GUIDE = [
+  "VISUAL is ONE of these JSON objects — pick the kind that makes the concept easiest to SEE:",
+  `- {"kind":"vectors","vectors":[{"from":[x,y],"to":[x,y],"label":string,"tone":"primary"|"secondary"|"result"|"muted"}] (1-6),"points":[{"at":[x,y],"label":string}] (optional),"caption":string}`,
+  `  for vectors, displacement, forces, coordinates. Chain arrows tip-to-tail to show addition; use tone "result" for a sum.`,
+  `- {"kind":"plot","x_label":string,"y_label":string,"series":[{"label":string,"points":[[x,y],...] (2-60, computed exactly),"tone":...}] (1-3),"caption":string}`,
+  "  for functions, rates, growth, experimental data.",
+  `- {"kind":"diagram","layout":"flow"|"tree"|"cycle","nodes":[{"id":string,"label":string (max 32 chars),"detail":string (optional, max 70)}] (2-8),"edges":[{"from":id,"to":id,"label":string (optional)}],"caption":string}`,
+  "  flow = steps of a process or cause → effect, tree = hierarchy or classification, cycle = repeating process.",
+  `- {"kind":"table","headers":[string] (1-6),"rows":[[string]] (1-10, one cell per header, max 24 chars per cell),"highlight_rows":[int] (optional),"caption":string}`,
+  "  for truth tables, comparisons, worked values.",
+  `- {"kind":"formula","expression":string (max 80 chars; write maths with Unicode symbols like √ ² ³ · × ÷ ≤ ≥ ≠ → Σ π θ, never LaTeX, ^ or sqrt()),"terms":[{"symbol":string,"meaning":string}] (1-5),"example":string (optional, one worked line),"caption":string}`,
+  "  for an equation whose symbols need explaining.",
+  "Visual rules: every number, coordinate and label must be correct and match the lesson; labels are short and in the story's language;",
+  "caption (max 160 chars) says what to notice; the visual must not reveal the puzzle's answer. Plain values only (no expressions inside numbers).",
+];
 
 function buildPrompt(request: GenerateStoryRequest, skeleton: StoryBlueprint): string {
   const { campaign, story: entry, material } = request;
@@ -105,11 +127,14 @@ function buildPrompt(request: GenerateStoryRequest, skeleton: StoryBlueprint): s
     `{"intro": {"narration": string (2-4 sentences, second person "you"), "guide_line": string (what the guide says)},`,
     ` "concepts": [{"concept_id": string (copy exactly),`,
     `   "companion_line": string, "lesson_title": string, "lesson_body": string (max 120 words, accurate, teaches the principle without giving away the puzzle answer),`,
+    `   "lesson_visual": VISUAL (the illustration drawn on the big screen while the lesson is taught — see below),`,
     `   "puzzle": {"narrative_context": string (the in-story problem), "question": string, "correct_answer": string,`,
     `              "wrong_answers": [string, string] (2-3 plausible answers based on the misconceptions, clearly wrong to someone who understood the lesson),`,
     `              "explanation": string (why the correct answer is right, academically), "correct_feedback": string, "incorrect_feedback": string (a hint, not the answer)},`,
     `   "result_narration": string (1-2 sentences: how solving it changes the story), "guide_line": string}],`,
     ` "ending": {"title": string, "narration": string (3-5 sentences that resolve this story's conflict)}}`,
+    "",
+    ...VISUAL_GUIDE,
     "",
     "Rules:",
     "- Academic accuracy beats storytelling: the correct answer must follow from the definition and lesson; every wrong answer must be genuinely wrong.",
@@ -174,15 +199,18 @@ function writtenPuzzle(base: Puzzle, raw: unknown): Puzzle | null {
 }
 
 /**
- * Overlay generated content onto the skeleton. Returns a new blueprint and
- * the list of slots that kept their template text.
+ * Overlay generated content onto the skeleton. Returns a new blueprint, the
+ * list of slots that kept their template text, and the concepts whose
+ * illustration was dropped as invalid.
  */
 export function mergeStoryContent(
   skeleton: StoryBlueprint,
   content: StoryContent
-): { blueprint: StoryBlueprint; templated: string[] } {
+): { blueprint: StoryBlueprint; templated: string[]; droppedVisuals: string[] } {
   const story: StoryBlueprint = JSON.parse(JSON.stringify(skeleton));
   const templated: string[] = [];
+  /** Concepts whose lesson_visual was present but unusable. */
+  const droppedVisuals: string[] = [];
   const scenes = new Map(story.chapters.flatMap((c) => c.scenes).map((s) => [s.scene_id, s]));
 
   // Intro = first scene of the first chapter.
@@ -214,6 +242,11 @@ export function mergeStoryContent(
         if (c.lesson_title) lesson.title = c.lesson_title;
         if (c.lesson_body) lesson.body = c.lesson_body;
         else templated.push(`lesson:${mapping.concept_id}`);
+        if (c.lesson_visual !== undefined) {
+          const visual = LessonVisualSchema.safeParse(c.lesson_visual);
+          if (visual.success) lesson.visual = visual.data;
+          else droppedVisuals.push(mapping.concept_id);
+        }
       }
     }
 
@@ -250,7 +283,7 @@ export function mergeStoryContent(
     choices: seededShuffle(p.choices, `${p.puzzle_id}|${p.question}|${p.choices.map((c) => c.text).join("|")}`),
   }));
 
-  return { blueprint: story, templated };
+  return { blueprint: story, templated, droppedVisuals };
 }
 
 // ---------------------------------------------------------------------------
@@ -280,7 +313,7 @@ export class GeminiStoryGeneratorProvider implements IStoryGeneratorProvider {
       {
         system: "You write accurate, engaging educational visual-novel content. Respond with JSON only.",
         prompt: buildPrompt(request, engine.blueprint),
-        maxOutputTokens: 8_000,
+        maxOutputTokens: 12_000,
         temperature: 0.8,
       },
       this.config,
@@ -302,7 +335,7 @@ export class GeminiStoryGeneratorProvider implements IStoryGeneratorProvider {
 
     const parsedContent = StoryContentSchema.safeParse(result.json);
     const content: StoryContent = parsedContent.success ? parsedContent.data : {};
-    let { blueprint, templated } = mergeStoryContent(engine.blueprint, content);
+    let { blueprint, templated, droppedVisuals } = mergeStoryContent(engine.blueprint, content);
 
     // Defence in depth: if the merge somehow broke the story, fall back to the
     // skeleton (choices still shuffled) rather than failing.
@@ -312,12 +345,20 @@ export class GeminiStoryGeneratorProvider implements IStoryGeneratorProvider {
     if (!valid) {
       ({ blueprint } = mergeStoryContent(engine.blueprint, {}));
       templated = ["*"];
+      droppedVisuals = [];
     }
 
     if (templated.length > 0) {
       warnings.push({
         code: "CONTENT_PARTIAL_FALLBACK",
         message: `Template text was kept for: ${templated.join(", ")}.`,
+        path: "story",
+      });
+    }
+    if (droppedVisuals.length > 0) {
+      warnings.push({
+        code: "VISUAL_DROPPED",
+        message: `Lesson illustrations were invalid and are shown as text for: ${droppedVisuals.join(", ")}.`,
         path: "story",
       });
     }
