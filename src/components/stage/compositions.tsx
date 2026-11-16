@@ -15,11 +15,11 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import { MONO_CELL_ASPECT } from "@/lib/ascii/image-to-ascii";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, DECISION_NODE, choiceBoxes } from "./canvas-layout";
 
-const GOLD = "#e8c547";
-const GOLD_DIM = "#b89636";
-const TEXT = "#f0ebe0";
-const TEXT_DIM = "#a8a090";
-const VOID = "#0a0a0c";
+export const GOLD = "#e8c547";
+export const GOLD_DIM = "#b89636";
+export const TEXT = "#f0ebe0";
+export const TEXT_DIM = "#a8a090";
+export const VOID = "#0a0a0c";
 
 /** Deterministic pseudo-random numbers in [0, 1) from a seed. */
 function rand(seed: number): number {
@@ -27,7 +27,8 @@ function rand(seed: number): number {
   return x - Math.floor(x);
 }
 
-function Field({ seed }: { seed: number }) {
+/** The drifting gold background shared by every scene. */
+export function Field({ seed }: { seed: number }) {
   const frame = useCurrentFrame();
   return (
     <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 35%, #1a1410 0%, ${VOID} 70%)` }}>
