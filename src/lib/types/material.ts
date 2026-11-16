@@ -19,6 +19,14 @@ export type Concept = {
   misconceptions: string[];
   /** Verbatim or paraphrased passages from the source material as evidence. */
   source_evidence: string[];
+  /**
+   * Symbols and terms exactly as the material writes them, e.g.
+   * "‖v‖ = length of v". Lessons reuse this notation. Optional: older
+   * blueprints and the dummy provider do not have it.
+   */
+  notation?: string[];
+  /** Worked examples or exercises from the material, summarised. Optional. */
+  examples?: string[];
 };
 
 /**
