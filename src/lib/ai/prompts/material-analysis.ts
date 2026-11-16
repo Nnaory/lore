@@ -27,7 +27,9 @@ Schema:
     "methods": ["string", ...] (step-by-step procedures),
     "prerequisites": ["concept_id", ...] (other concept_ids from this blueprint),
     "misconceptions": ["string", ...] (common student misunderstandings),
-    "source_evidence": ["string", ...] (verbatim or paraphrased passages from source)
+    "source_evidence": ["string", ...] (verbatim or paraphrased passages from source),
+    "notation": ["string", ...] (symbols, formulas and key terms exactly as the material writes them, each with its meaning, e.g. "‖v‖ = panjang vektor v"; [] if none),
+    "examples": ["string", ...] (worked examples or exercises from the material, summarised with their numbers and result; [] if none)
   }, ...] (at least 1 concept),
   "scope_limitations": ["string", ...] (topics NOT covered by the material)
 }
@@ -35,6 +37,7 @@ Schema:
 Rules:
 - Extract ONLY what is in the source material. Do not hallucinate.
 - Every concept must have source_evidence quoting the material.
+- notation and examples must come from the material itself — never invent them.
 - prerequisites must reference concept_ids from THIS blueprint.
 - learning_objectives must be measurable (Bloom's taxonomy: understand, apply, analyze).
 - If material covers multiple topics, create separate concepts for each.
