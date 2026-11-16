@@ -379,7 +379,8 @@ describe("Gemini story generator provider", () => {
     const result = await new GeminiStoryGeneratorProvider(config, q.fetch).generateStory(storyRequest());
 
     const prompt = JSON.parse(String(q.calls[0].init.body)).contents[0].parts[0].text as string;
-    expect(prompt).toContain('"lesson_visual"');
+    expect(prompt).toContain('"lesson_steps"');
+    expect(prompt).toContain('"visual": VISUAL');
     expect(prompt).toContain('"kind":"diagram"');
 
     expect(result.ok).toBe(true);
@@ -391,6 +392,120 @@ describe("Gemini story generator provider", () => {
     expect(visuals).toEqual(["vectors"]);
     const dropped = result.value.meta.warnings.find((w) => w.code === "VISUAL_DROPPED");
     expect(dropped?.message).toContain(ids[1]);
+  });
+
+  it("fences the story to the material's concepts, notation and scope", async () => {
+    const request = storyRequest();
+    const material = {
+      ...request.material,
+      concepts: request.material.concepts.map((c, i) => (i === 0 ? { ...c, notation: ["‖v‖ = panjang vektor v"], examples: ["(1,2)+(3,1)=(4,3)"] } : c)),
+    };
+    const skeleton = buildStoryBlueprint({ ...request, material });
+    if (!skeleton.ok) throw new Error("engine failed");
+    const q = queue(geminiOk(contentFor(skeleton.blueprint.knowledge_mapping.map((m) => m.concept_id))));
+    await new GeminiStoryGeneratorProvider(config, q.fetch).generateStory({ ...request, material });
+
+    const prompt = JSON.parse(String(q.calls[0].init.body)).contents[0].parts[0].text as string;
+    expect(prompt).toContain("‖v‖ = panjang vektor v");
+    expect(prompt).toContain("(1,2)+(3,1)=(4,3)");
+    expect(prompt).toContain("The material does NOT cover");
+    for (const limit of material.scope_limitations) expect(prompt).toContain(limit);
+    expect(prompt).toContain("ONLY about the concepts listed above");
+    expect(prompt).toContain("Worked example");
+  });
+
+  it("gives the story request a longer timeout than the default", async () => {
+    const skeleton = buildStoryBlueprint(storyRequest());
+    if (!skeleton.ok) throw new Error("engine failed");
+    // A fetch that resolves after 40 ms would time out under a 20 ms default.
+    const slow = vi.fn(async (_url: unknown, init?: RequestInit) => {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(resolve, 40);
+        init?.signal?.addEventListener("abort", () => {
+          clearTimeout(timer);
+          reject(new DOMException("aborted", "AbortError"));
+        });
+      });
+      return geminiOk(contentFor(skeleton.blueprint.knowledge_mapping.map((m) => m.concept_id)));
+    });
+    const tight = { ...config, timeoutMs: 20, deadlineMs: 50, attemptsPerModel: 1 };
+    const result = await new GeminiStoryGeneratorProvider(tight, slow as unknown as typeof fetch).generateStory(storyRequest());
+    expect(result.ok).toBe(true);
+  });
+});
+
+describe("mergeStoryContent — lesson steps", () => {
+  const request = storyRequest();
+  const skeleton = buildStoryBlueprint(request);
+  if (!skeleton.ok) throw new Error("engine failed");
+  const conceptIds = skeleton.blueprint.knowledge_mapping.map((m) => m.concept_id);
+  const learningSceneOf = (b: StoryBlueprint, conceptId: string) => {
+    const id = b.knowledge_mapping.find((m) => m.concept_id === conceptId)!.introduced_in_scene_id;
+    const scene = b.chapters.flatMap((c) => c.scenes).find((s) => s.scene_id === id)!;
+    if (!("content" in scene)) throw new Error("learning scene has no content");
+    return scene;
+  };
+
+  const step = (n: number, extra: Record<string, unknown> = {}) => ({ title: `Step ${n}`, body: `Body ${n}.`, ...extra });
+
+  it("teaches one concept in several lesson blocks with the companion between them", () => {
+    const content = contentFor(conceptIds);
+    (content.concepts[0] as Record<string, unknown>).lesson_steps = [
+      step(1, { visual: { kind: "vectors", vectors: [{ from: [0, 0], to: [1, 2] }] } }),
+      step(2, { companion_line: "So how do we add them?" }),
+      step(3),
+    ];
+    const { blueprint, templated, droppedVisuals } = mergeStoryContent(skeleton.blueprint, content);
+    expect(templated).toEqual([]);
+    expect(droppedVisuals).toEqual([]);
+
+    const scene = learningSceneOf(blueprint, conceptIds[0]);
+    expect(scene.content.map((b) => (b.type === "learning_info" ? b.title : b.type))).toEqual([
+      "dialogue", // the companion's opening line
+      "Step 1",
+      "dialogue",
+      "Step 2",
+      "Step 3",
+    ]);
+    const lessons = scene.content.filter((b) => b.type === "learning_info");
+    expect(lessons.every((b) => b.type === "learning_info" && b.concept_ids.join() === conceptIds[0])).toBe(true);
+    expect(lessons[0]).toMatchObject({ visual: { kind: "vectors" } });
+    const between = scene.content[2];
+    expect(between).toMatchObject({ type: "dialogue", text: "So how do we add them?" });
+    expect(between.type === "dialogue" && scene.content[0].type === "dialogue" && between.character_id).toBe(
+      scene.content[0].type === "dialogue" ? scene.content[0].character_id : null
+    );
+
+    // Still a valid, playable, generator-compliant story.
+    expect(StoryBlueprintSchema.parse(blueprint)).toEqual(blueprint);
+    expect(validateStory(blueprint, dummyMaterial).valid).toBe(true);
+    expect(validateGeneratedStory(blueprint, dummyMaterial, { entry: request.story }).valid).toBe(true);
+  });
+
+  it("drops invalid steps, keeps the valid ones and caps the count", () => {
+    const content = contentFor(conceptIds);
+    (content.concepts[0] as Record<string, unknown>).lesson_steps = [
+      { title: "", body: "no title" },
+      step(1),
+      step(2, { visual: { kind: "table", headers: ["A"], rows: [["1", "2"]] } }),
+      step(3),
+      step(4),
+      step(5),
+    ];
+    const { blueprint, droppedVisuals } = mergeStoryContent(skeleton.blueprint, content);
+    const titles = learningSceneOf(blueprint, conceptIds[0]).content.flatMap((b) => (b.type === "learning_info" ? [b.title] : []));
+    expect(titles).toEqual(["Step 1", "Step 2", "Step 3", "Step 4"]);
+    expect(droppedVisuals).toEqual([conceptIds[0]]);
+  });
+
+  it("falls back to the single lesson fields when no step is usable", () => {
+    const content = contentFor(conceptIds);
+    (content.concepts[0] as Record<string, unknown>).lesson_steps = [{ title: "Only a title" }];
+    const { blueprint, templated } = mergeStoryContent(skeleton.blueprint, content);
+    const lessons = learningSceneOf(blueprint, conceptIds[0]).content.filter((b) => b.type === "learning_info");
+    expect(lessons).toHaveLength(1);
+    expect(lessons[0]).toMatchObject({ title: "Lesson 1", body: "Lesson body 1." });
+    expect(templated).toEqual([]);
   });
 });
 
