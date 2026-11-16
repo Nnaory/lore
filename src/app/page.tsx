@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { SavedStories } from "@/components/home/SavedStories";
+import { PlayerAvatarCard } from "@/components/avatar/PlayerAvatarCard";
 
 export default function Home() {
   return (
@@ -90,6 +91,8 @@ export default function Home() {
         >
           PDF · DOCX · PPTX · or pasted text
         </p>
+
+        <PlayerAvatarCard />
 
         <SavedStories />
       </main>
