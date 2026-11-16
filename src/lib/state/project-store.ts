@@ -1,16 +1,23 @@
 /**
- * Project store — browser localStorage
+ * Project store — browser IndexedDB
  *
  * A "project" is one generated campaign: its blueprint, its stories, and the
  * player's campaign progress. Everything is validated with Zod when read
- * back, because localStorage can hold stale or hand-edited data.
+ * back, because stored data can be stale or hand-edited.
  *
- * Layout:
- *   lore:projects           → JSON array of ProjectSummary (newest first)
- *   lore:project:<id>       → JSON Project
+ * Layout (database "lore", see idb.ts):
+ *   projects  → Project, keyed by id
+ *   summaries → ProjectSummary, keyed by id (written in the same
+ *               transaction as its project, so the two never disagree)
  *
- * All functions are SSR-safe (no-ops without `window`) and never throw:
- * storage errors (quota, private mode) come back as `{ ok: false }`.
+ * IndexedDB replaces localStorage, whose ~5 MB limit filled up quickly once
+ * stories carried several illustrated lesson steps per concept. Projects
+ * saved by older versions in localStorage are moved over automatically the
+ * first time the store is used (see migrateFromLocalStorage).
+ *
+ * Every function is async, SSR-safe (no IndexedDB → empty / not saved) and
+ * never throws: storage errors (quota, private mode) come back as
+ * `{ ok: false }`.
  */
 
 import { z } from "zod";
@@ -24,9 +31,7 @@ import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { CampaignState } from "@/lib/types/game";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { DocumentFileType } from "@/lib/types/document";
-
-const INDEX_KEY = "lore:projects";
-const projectKey = (id: string) => `lore:project:${id}`;
+import { indexedDbAvailable, PROJECTS, resetDatabaseConnection, SUMMARIES, transact } from "./idb";
 
 export type Project = {
   id: string;
@@ -75,13 +80,11 @@ const SummarySchema = z.object({
 
 export type StoreResult<T = void> = { ok: true; value: T } | { ok: false; message: string };
 
-function storage(): Storage | null {
-  try {
-    return typeof window !== "undefined" ? window.localStorage : null;
-  } catch {
-    return null; // access can throw when storage is disabled
-  }
-}
+const UNAVAILABLE_MESSAGE = "Saving is not available in this browser.";
+const QUOTA_MESSAGE =
+  "Your browser's storage is full. Delete a saved story from the home page, then try again.";
+const FAILED_MESSAGE = "Your story could not be saved in this browser. Try again.";
+const MISSING_MESSAGE = "This story is no longer saved.";
 
 function newId(): string {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
@@ -100,22 +103,126 @@ function summarize(p: Project): ProjectSummary {
   };
 }
 
-const QUOTA_MESSAGE =
-  "Your browser's storage is full. Delete a saved story from the home page, then try again.";
-
-function writeIndex(store: Storage, summaries: ProjectSummary[]) {
-  store.setItem(INDEX_KEY, JSON.stringify(summaries));
+function failure(err: unknown): { ok: false; message: string } {
+  const name = (err as { name?: string } | null)?.name;
+  return { ok: false, message: name === "QuotaExceededError" ? QUOTA_MESSAGE : FAILED_MESSAGE };
 }
 
-/** Saved projects, newest first. Entries whose project is missing are dropped. */
-export function listProjects(): ProjectSummary[] {
-  const store = storage();
-  if (!store) return [];
+/** A stored value as a Project, dropping invalid progress; null if unusable. */
+function readProject(raw: unknown): Project | null {
+  const parsed = ProjectSchema.safeParse(raw);
+  if (!parsed.success) return null;
+  // Invalid progress is dropped (the player restarts) rather than losing the story.
+  const state = CampaignStateSchema.safeParse(parsed.data.campaign_state);
+  return { ...parsed.data, campaign_state: state.success ? state.data : undefined };
+}
+
+// ---------------------------------------------------------------------------
+// One-time move from localStorage (projects saved by older versions)
+// ---------------------------------------------------------------------------
+
+const LEGACY_INDEX_KEY = "lore:projects";
+const LEGACY_PROJECT_PREFIX = "lore:project:";
+
+function legacyStorage(): Storage | null {
   try {
-    const parsed = z.array(SummarySchema).safeParse(JSON.parse(store.getItem(INDEX_KEY) ?? "[]"));
-    if (!parsed.success) return [];
-    return parsed.data
-      .filter((s) => store.getItem(projectKey(s.id)) !== null)
+    return typeof window !== "undefined" ? window.localStorage : null;
+  } catch {
+    return null; // access can throw when storage is disabled
+  }
+}
+
+/**
+ * Copy every valid localStorage project into IndexedDB, then remove the
+ * copied keys. A project already in IndexedDB is only replaced by an older
+ * copy's newer version, so progress made after an interrupted move is kept.
+ * On any failure the localStorage data stays put and the move is retried on
+ * the next page load.
+ */
+async function migrateFromLocalStorage(): Promise<void> {
+  const ls = legacyStorage();
+  if (!ls) return;
+  const keys: string[] = [];
+  for (let i = 0; i < ls.length; i++) {
+    const key = ls.key(i);
+    if (key?.startsWith(LEGACY_PROJECT_PREFIX)) keys.push(key);
+  }
+  if (keys.length === 0) {
+    if (ls.getItem(LEGACY_INDEX_KEY) !== null) ls.removeItem(LEGACY_INDEX_KEY);
+    return;
+  }
+
+  const legacy: Array<{ key: string; project: Project }> = [];
+  for (const key of keys) {
+    try {
+      const project = readProject(JSON.parse(ls.getItem(key) ?? "null"));
+      if (project) legacy.push({ key, project });
+    } catch {
+      // unreadable — left in place, never shown (as before)
+    }
+  }
+
+  try {
+    await transact<void>([PROJECTS, SUMMARIES], "readwrite", (tx) => {
+      const projects = tx.objectStore(PROJECTS);
+      const summaries = tx.objectStore(SUMMARIES);
+      for (const { project } of legacy) {
+        const existing = projects.get(project.id);
+        existing.onsuccess = () => {
+          const current = readProject(existing.result);
+          if (current && current.updated_at >= project.updated_at) return;
+          projects.put(project);
+          summaries.put(summarize(project));
+        };
+      }
+    });
+  } catch (err) {
+    console.warn("[project-store] Could not move saved stories to IndexedDB; will retry.", err);
+    return;
+  }
+
+  for (const { key } of legacy) ls.removeItem(key);
+  if (legacy.length === keys.length) ls.removeItem(LEGACY_INDEX_KEY);
+}
+
+let ready: Promise<boolean> | null = null;
+
+/** True once IndexedDB is usable and any legacy projects have been moved. */
+function storeReady(): Promise<boolean> {
+  ready ??= indexedDbAvailable() ? migrateFromLocalStorage().then(() => true, () => true) : Promise.resolve(false);
+  return ready;
+}
+
+/** Forget the connection and migration state (tests use a fresh database). */
+export async function resetProjectStoreForTests(): Promise<void> {
+  ready = null;
+  await resetDatabaseConnection();
+}
+
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+/** Saved projects, newest first. Summaries whose project is missing are dropped. */
+export async function listProjects(): Promise<ProjectSummary[]> {
+  if (!(await storeReady())) return [];
+  try {
+    const { summaries, ids } = await transact<{ summaries: unknown[]; ids: IDBValidKey[] }>(
+      [PROJECTS, SUMMARIES],
+      "readonly",
+      (tx, setResult) => {
+        const all = tx.objectStore(SUMMARIES).getAll();
+        const keys = tx.objectStore(PROJECTS).getAllKeys();
+        // Requests in a transaction complete in order: `all` is done by now.
+        keys.onsuccess = () => setResult({ summaries: all.result ?? [], ids: keys.result });
+      }
+    );
+    const present = new Set(ids);
+    return summaries
+      .flatMap((raw) => {
+        const parsed = SummarySchema.safeParse(raw);
+        return parsed.success && present.has(parsed.data.id) ? [parsed.data] : [];
+      })
       .sort((a, b) => b.updated_at - a.updated_at);
   } catch {
     return [];
@@ -123,61 +230,84 @@ export function listProjects(): ProjectSummary[] {
 }
 
 /** Load a project, or null if it is missing or invalid. */
-export function loadProject(id: string): Project | null {
-  const store = storage();
-  if (!store) return null;
+export async function loadProject(id: string): Promise<Project | null> {
+  if (!(await storeReady())) return null;
   try {
-    const raw = store.getItem(projectKey(id));
-    if (!raw) return null;
-    const parsed = ProjectSchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) return null;
-    // Invalid progress is dropped (the player restarts) rather than losing the story.
-    const state = CampaignStateSchema.safeParse(parsed.data.campaign_state);
-    return { ...parsed.data, campaign_state: state.success ? state.data : undefined };
+    const raw = await transact<unknown>([PROJECTS], "readonly", (tx, setResult) => {
+      const request = tx.objectStore(PROJECTS).get(id);
+      request.onsuccess = () => setResult(request.result);
+    });
+    return readProject(raw);
   } catch {
     return null;
   }
 }
 
-function persist(project: Project): StoreResult<Project> {
-  const store = storage();
-  if (!store) return { ok: false, message: "Saving is not available in this browser." };
-  try {
-    store.setItem(projectKey(project.id), JSON.stringify(project));
-    const others = listProjects().filter((s) => s.id !== project.id);
-    writeIndex(store, [summarize(project), ...others]);
-    return { ok: true, value: project };
-  } catch {
-    return { ok: false, message: QUOTA_MESSAGE };
-  }
-}
-
 /** Save a newly built campaign as a project. */
-export function createProject(input: {
+export async function createProject(input: {
   source: Project["source"];
   campaign: CampaignBlueprint;
   stories: ReadonlyMap<string, StoryBlueprint> | Record<string, StoryBlueprint>;
   materials?: MaterialBlueprint[];
-}): StoreResult<Project> {
+}): Promise<StoreResult<Project>> {
+  if (!(await storeReady())) return { ok: false, message: UNAVAILABLE_MESSAGE };
   const now = Date.now();
   const stories = input.stories instanceof Map ? Object.fromEntries(input.stories) : { ...input.stories };
-  return persist({ id: newId(), created_at: now, updated_at: now, source: input.source, campaign: input.campaign, stories, materials: input.materials });
-}
-
-/** Record the player's campaign progress. */
-export function saveCampaignState(id: string, campaignState: CampaignState): StoreResult {
-  const project = loadProject(id);
-  if (!project) return { ok: false, message: "This story is no longer saved." };
-  const result = persist({ ...project, campaign_state: campaignState, updated_at: Date.now() });
-  return result.ok ? { ok: true, value: undefined } : result;
-}
-
-export function deleteProject(id: string): void {
-  const store = storage();
-  if (!store) return;
+  const project: Project = {
+    id: newId(),
+    created_at: now,
+    updated_at: now,
+    source: input.source,
+    campaign: input.campaign,
+    stories,
+    ...(input.materials ? { materials: input.materials } : {}),
+  };
   try {
-    store.removeItem(projectKey(id));
-    writeIndex(store, listProjects().filter((s) => s.id !== id));
+    await transact<void>([PROJECTS, SUMMARIES], "readwrite", (tx) => {
+      tx.objectStore(PROJECTS).put(project);
+      tx.objectStore(SUMMARIES).put(summarize(project));
+    });
+    return { ok: true, value: project };
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+/**
+ * Record the player's campaign progress. Read and write happen in one
+ * transaction, so back-to-back saves apply in order and never lose each
+ * other's changes.
+ */
+export async function saveCampaignState(id: string, campaignState: CampaignState): Promise<StoreResult> {
+  if (!(await storeReady())) return { ok: false, message: UNAVAILABLE_MESSAGE };
+  try {
+    return await transact<StoreResult>([PROJECTS, SUMMARIES], "readwrite", (tx, setResult) => {
+      const projects = tx.objectStore(PROJECTS);
+      const request = projects.get(id);
+      request.onsuccess = () => {
+        const project = readProject(request.result);
+        if (!project) {
+          setResult({ ok: false, message: MISSING_MESSAGE });
+          return;
+        }
+        const updated: Project = { ...project, campaign_state: campaignState, updated_at: Date.now() };
+        projects.put(updated);
+        tx.objectStore(SUMMARIES).put(summarize(updated));
+        setResult({ ok: true, value: undefined });
+      };
+    });
+  } catch (err) {
+    return failure(err);
+  }
+}
+
+export async function deleteProject(id: string): Promise<void> {
+  if (!(await storeReady())) return;
+  try {
+    await transact<void>([PROJECTS, SUMMARIES], "readwrite", (tx) => {
+      tx.objectStore(PROJECTS).delete(id);
+      tx.objectStore(SUMMARIES).delete(id);
+    });
   } catch {
     // nothing else to do
   }
