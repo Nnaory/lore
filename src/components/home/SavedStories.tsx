@@ -42,20 +42,19 @@ export function SavedStories() {
   }
 
   return (
-    <section className="w-full flex flex-col gap-3 text-left" aria-labelledby="saved-stories-heading" data-testid="saved-stories">
-      <h2 id="saved-stories-heading" className="text-xs tracking-widest uppercase" style={{ color: "var(--foreground-faint)" }}>
+    <section
+      className="lore-glass lore-glass-panel rounded-panel w-full flex flex-col gap-3 p-4 text-left"
+      aria-labelledby="saved-stories-heading"
+      data-testid="saved-stories"
+    >
+      <h2 id="saved-stories-heading" className="lore-eyebrow">
         Your stories
       </h2>
       <ul className="flex flex-col gap-2">
         {projects.map((p) => {
           const done = p.stories_completed >= p.stories_total;
           return (
-            <li
-              key={p.id}
-              data-testid={`saved-story-${p.id}`}
-              className="rounded-lg p-3 flex items-center gap-3"
-              style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border-dim)" }}
-            >
+            <li key={p.id} data-testid={`saved-story-${p.id}`} className="lore-tile rounded-tip p-3 flex items-center gap-3">
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
                   {p.title}
@@ -71,28 +70,17 @@ export function SavedStories() {
                     type="button"
                     data-testid={`confirm-delete-${p.id}`}
                     onClick={() => remove(p.id)}
-                    className="px-2.5 py-1.5 rounded text-xs"
-                    style={{ color: "var(--danger)", border: "1px solid var(--danger)", backgroundColor: "var(--danger-bg)" }}
+                    className="lore-pill lore-pill-sm lore-pill-danger"
                   >
                     Delete
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => setConfirming(null)}
-                    className="px-2.5 py-1.5 rounded text-xs"
-                    style={{ color: "var(--foreground-muted)", border: "1px solid var(--border-dim)" }}
-                  >
+                  <button type="button" onClick={() => setConfirming(null)} className="lore-pill lore-pill-sm">
                     Keep
                   </button>
                 </div>
               ) : (
                 <div className="flex gap-2 flex-shrink-0">
-                  <Link
-                    href={`/play/${p.id}`}
-                    data-testid={`continue-${p.id}`}
-                    className="px-3 py-1.5 rounded text-xs font-medium"
-                    style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
-                  >
+                  <Link href={`/play/${p.id}`} data-testid={`continue-${p.id}`} className="lore-pill lore-pill-sm lore-pill-primary">
                     {done ? "Replay" : "Continue"}
                   </Link>
                   <button
@@ -100,8 +88,7 @@ export function SavedStories() {
                     data-testid={`delete-${p.id}`}
                     onClick={() => setConfirming(p.id)}
                     aria-label={`Delete ${p.title}`}
-                    className="px-2.5 py-1.5 rounded text-xs"
-                    style={{ color: "var(--foreground-faint)", border: "1px solid var(--border-dim)" }}
+                    className="lore-pill lore-pill-sm"
                   >
                     Delete
                   </button>
