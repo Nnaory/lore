@@ -110,6 +110,7 @@ export function CampaignPlayer({
         key={activeStory.story_id}
         story={activeStory}
         characters={campaign.characters}
+        genre={campaign.genre}
         onStoryComplete={onStoryComplete}
         onExit={onExitStory}
         isCampaignComplete={isCampaignComplete}
