@@ -121,7 +121,7 @@ const SuccessEnvelope = z.object({ ok: z.literal(true), data: z.object({ bluepri
 export async function postBlueprint<T>(
   url: string,
   body: unknown,
-  schema: z.ZodType<T>,
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   options: { signal?: AbortSignal; fetchImpl?: typeof fetch } = {}
 ): Promise<ApiResult<T>> {
   const fetchImpl = options.fetchImpl ?? fetch;
