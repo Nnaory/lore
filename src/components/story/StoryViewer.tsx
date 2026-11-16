@@ -8,7 +8,8 @@
  * - Navbar: story/chapter/location, HP, exit.
  * - Character: the current speaker, whose emotion follows the dialogue
  *   and reacts to answers.
- * - Canvas: ambient scene, the lesson board, or the decision graph puzzle;
+ * - Canvas: ambient scene, the lesson (its illustration when the lesson has
+ *   a visual, else its text), or the decision graph puzzle;
  *   endings, completion and failure appear as overlays on it. The player's
  *   ASCII avatar (chosen on the home page) stands in the ambient and
  *   puzzle scenes.
@@ -397,9 +398,14 @@ export function StoryViewer({
       </StageCanvas>
     );
   } else if (currentBlock?.type === "learning_info") {
+    // Illustrated when the lesson has a visual; otherwise its text is written out.
     canvas = (
       <StageCanvas
-        scene={{ kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed } }}
+        scene={
+          currentBlock.visual
+            ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed } }
+            : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed } }
+        }
         sceneKey={entryKey}
         pacing={pacing}
       />
