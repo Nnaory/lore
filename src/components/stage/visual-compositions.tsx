@@ -12,7 +12,7 @@ import { useId, type CSSProperties } from "react";
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import type { DiagramVisual, FormulaVisual, LessonVisual, PlotVisual, TableVisual, VectorsVisual, VisualTone } from "@/lib/types/visual";
 import { CANVAS_HEIGHT, CANVAS_WIDTH } from "./canvas-layout";
-import { Field, GOLD, GOLD_DIM, TEXT, TEXT_DIM, VOID } from "./compositions";
+import { Field, GOLD, GOLD_DIM, lessonHeading, TEXT, TEXT_DIM, VOID, type LessonStep } from "./compositions";
 import {
   boxEdgePoint,
   center,
@@ -319,9 +319,10 @@ function TableView({ visual, area }: { visual: TableVisual; area: Area }) {
   const frame = useCurrentFrame();
   const rowHeight = Math.min(58, area.h / (visual.rows.length + 1));
   const fontSize = Math.round(rowHeight * 0.42);
-  const width = Math.min(area.w, visual.headers.length * 230);
+  const width = Math.min(area.w, visual.headers.length * 300);
   const highlighted = new Set(visual.highlight_rows ?? []);
-  const cell: CSSProperties = { height: rowHeight, padding: "0 16px", textAlign: "center", whiteSpace: "nowrap" };
+  // Long phrases wrap inside their cell instead of pushing the table wider.
+  const cell: CSSProperties = { height: rowHeight, padding: "4px 16px", textAlign: "center", lineHeight: 1.15, overflowWrap: "anywhere" };
 
   return (
     <div style={{ position: "absolute", left: area.x, top: area.y, width: area.w, height: area.h, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -439,9 +440,9 @@ export function LessonVisualView({ visual, area = VISUAL_AREA }: { visual: Lesso
   }
 }
 
-export type LessonVisualBoardProps = { title: string; visual: LessonVisual; seed: number };
+export type LessonVisualBoardProps = { title: string; visual: LessonVisual; seed: number; step?: LessonStep };
 
-export function LessonVisualBoard({ title, visual, seed }: LessonVisualBoardProps) {
+export function LessonVisualBoard({ title, visual, seed, step }: LessonVisualBoardProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 } });
@@ -450,7 +451,7 @@ export function LessonVisualBoard({ title, visual, seed }: LessonVisualBoardProp
     <AbsoluteFill>
       <Field seed={seed} />
       <AbsoluteFill style={{ padding: "40px 90px", opacity: enter }}>
-        <div style={{ color: GOLD_DIM, fontSize: 20, letterSpacing: 8, textTransform: "uppercase" }}>Lesson</div>
+        <div style={{ color: GOLD_DIM, fontSize: 20, letterSpacing: 8, textTransform: "uppercase" }}>{lessonHeading(step)}</div>
         <div style={{ color: GOLD, fontSize: 38, fontWeight: 600, marginTop: 6, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
           {title}
         </div>
