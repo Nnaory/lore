@@ -147,7 +147,15 @@ export function AmbientScene({ title, subtitle, seed, avatar }: AmbientSceneProp
   );
 }
 
-export type LessonBoardProps = { title: string; body: string; seed: number };
+/** Position of a lesson within its concept's steps (index is zero-based). */
+export type LessonStep = { index: number; total: number };
+
+/** "Lesson", or "Lesson · 2 / 4" when a concept is taught in several steps. */
+export function lessonHeading(step?: LessonStep): string {
+  return step && step.total > 1 ? `Lesson · ${step.index + 1} / ${step.total}` : "Lesson";
+}
+
+export type LessonBoardProps = { title: string; body: string; seed: number; step?: LessonStep };
 
 /** Frames needed to reveal a lesson of this length. */
 export function lessonDuration(body: string): number {
@@ -155,7 +163,7 @@ export function lessonDuration(body: string): number {
   return Math.min(30 + Math.ceil(words * 1.6) + 30, 900);
 }
 
-export function LessonBoard({ title, body, seed }: LessonBoardProps) {
+export function LessonBoard({ title, body, seed, step }: LessonBoardProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({ frame, fps, config: { damping: 200 } });
@@ -165,7 +173,7 @@ export function LessonBoard({ title, body, seed }: LessonBoardProps) {
     <AbsoluteFill>
       <Field seed={seed} />
       <AbsoluteFill style={{ padding: "60px 90px", opacity: enter }}>
-        <div style={{ color: GOLD_DIM, fontSize: 22, letterSpacing: 8, textTransform: "uppercase" }}>Lesson</div>
+        <div style={{ color: GOLD_DIM, fontSize: 22, letterSpacing: 8, textTransform: "uppercase" }}>{lessonHeading(step)}</div>
         <div style={{ color: GOLD, fontSize: 44, fontWeight: 600, marginTop: 10 }}>{title}</div>
         <div
           style={{
