@@ -90,14 +90,20 @@ describe("StoryViewer — basic render", () => {
     expect(screen.getByTestId("story-viewer")).toBeTruthy();
   });
 
-  it("should show the story title in the right progress panel", () => {
+  it("should show the story title in the navbar", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
-    expect(screen.getByTestId("right-sidebar-panel").textContent).toContain(
-      "The Fading Light"
-    );
+    expect(screen.getByTestId("sidebar-story-title").textContent).toBe("The Fading Light");
   });
 
-  it("should render left sidebar with an icon exit button", () => {
+  it("should lay out the stage: character, canvas, and chat box", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("stage-character").dataset.characterId).toBe("eldric");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("ambient");
+    expect(screen.getByTestId("story-main")).toBeTruthy();
+    expect(screen.getByTestId("pacing-toggle")).toBeTruthy();
+  });
+
+  it("should render an icon exit button in the navbar", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     const exitBtn = screen.getByTestId("sidebar-exit-button");
     expect(exitBtn).toHaveAttribute("aria-label", "Exit story");
@@ -175,19 +181,42 @@ describe("StoryViewer — dialogue", () => {
 // ── 5. Click-to-advance interaction ──────────────────────────────────────────
 
 describe("StoryViewer — click-to-advance interaction", () => {
-  it("should reveal more content on each click", () => {
+  it("should show the next line on each click (one line at a time, like a visual novel)", () => {
     const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    const line = () => screen.getByTestId("scene-content").textContent;
 
-    // Click 1 → reveals block index 1 (dialogue)
+    const first = line();
+    clickToAdvance(view); // block 1: Eldric's first line
+    const second = line();
+    clickToAdvance(view); // block 2: narration
+    const third = line();
+
+    expect(new Set([first, second, third]).size).toBe(3);
+    expect(second).toContain("You arrived just in time");
+  });
+
+  it("should keep every line seen so far in the story log", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
-    const after1 = screen.getAllByRole("paragraph", { hidden: true }).length;
-
-    // Click 2 → reveals block index 2
     clickToAdvance(view);
-    const after2 = screen.getAllByRole("paragraph", { hidden: true }).length;
+    fireEvent.click(screen.getByTestId("log-chat-button"));
 
-    // Content should grow
-    expect(after2).toBeGreaterThanOrEqual(after1);
+    const log = screen.getByTestId("chat-log").textContent ?? "";
+    expect(log).toContain("stone corridor");
+    expect(log).toContain("You arrived just in time");
+    expect(log).toContain("diagrams scattered");
+    // Opening the log does not advance the story.
+    expect(screen.getByTestId("scene-content").textContent).toContain("diagrams scattered");
+  });
+
+  it("should switch pacing without advancing the story", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const before = screen.getByTestId("scene-content").textContent;
+    fireEvent.click(screen.getByRole("button", { name: "fast" }));
+    expect(screen.getByRole("button", { name: "fast" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("scene-content").textContent).toBe(before);
+    expect(window.localStorage.getItem("lore:pacing")).toBe("fast");
+    window.localStorage.removeItem("lore:pacing");
   });
 
   it("should show click hint when not at puzzle/ending", () => {
@@ -321,25 +350,11 @@ describe("StoryViewer — exit functionality", () => {
 
 // ── 11. Right sidebar progress ───────────────────────────────────────────────
 
-describe("StoryViewer — right sidebar progress", () => {
-  it("should show chapter progress list", () => {
+describe("StoryViewer — navbar progress", () => {
+  it("should show the chapter position and title", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
-    expect(screen.getByText("Chapters")).toBeTruthy();
-    expect(screen.getByTestId("sidebar-story-title").textContent).toContain(
-      "The Fading Light"
-    );
-  });
-
-  it("should reveal the progress panel only while the right edge is hovered", () => {
-    render(<StoryViewer story={linearStory} characters={characters} />);
-    const panel = screen.getByTestId("right-sidebar-panel");
-    expect(panel).toHaveStyle({ opacity: "0", pointerEvents: "none" });
-
-    fireEvent.mouseEnter(screen.getByTestId("right-sidebar"));
-    expect(panel).toHaveStyle({ opacity: "1", pointerEvents: "auto" });
-
-    fireEvent.mouseLeave(screen.getByTestId("right-sidebar"));
-    expect(panel).toHaveStyle({ opacity: "0" });
+    expect(screen.getByTestId("chapter-progress").textContent).toBe("Chapter 1 / 1");
+    expect(screen.getByTestId("story-header").textContent).toContain("The Fading Light");
   });
 
   it("should show HP display", () => {
@@ -347,10 +362,31 @@ describe("StoryViewer — right sidebar progress", () => {
     expect(screen.getByTestId("hp-display")).toBeTruthy();
     expect(screen.getByTestId("hp-value").textContent).toContain("5 / 5");
   });
+});
 
-  it("should mark current chapter", () => {
-    render(<StoryViewer story={linearStory} characters={characters} />);
-    const currentChapter = screen.getByTestId("sidebar-chapter-chapter_01");
-    expect(currentChapter).toHaveStyle({ borderColor: "var(--accent-gold)" });
+// ── 12. Stage reactions ─────────────────────────────────────────────────────
+
+describe("StoryViewer — stage", () => {
+  it("shows the lesson on the canvas and the character explaining", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    for (let i = 0; i < 6; i++) clickToAdvance(view); // into scene_02_learning, block 1
+    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
+  });
+
+  it("draws the puzzle as a decision graph and reacts to a wrong answer", () => {
+    const view = advanceToPuzzle();
+    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("decision");
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("thinking");
+    act(() => { fireEvent.click(view.getByTestId("choice-choice_A")); });
+    act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });
+    expect(screen.getByTestId("stage-character").dataset.emotion).toBe("worried");
+  });
+
+  it("follows the speaker's expression", () => {
+    const view = render(<StoryViewer story={linearStory} characters={characters} />);
+    clickToAdvance(view); // Eldric, "worried"
+    expect(screen.getByTestId("stage-character")).toMatchObject({ dataset: expect.objectContaining({ characterId: "eldric", emotion: "worried" }) });
   });
 });
