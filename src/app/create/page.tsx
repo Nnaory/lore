@@ -45,7 +45,6 @@ const BLOCKER_HINT: Record<SubmitBlocker, string> = {
   too_short: "The selected text is too short to build a story from.",
   too_long: "The selected text is over the limit — deselect some sections.",
   no_genre: "Choose a world for your story.",
-  submitting: "Building your story…",
 };
 
 function StepHeading({ id, index, title }: { id: string; index: string; title: string }) {
@@ -199,8 +198,6 @@ export default function CreatePage() {
     );
   }
 
-  const submitting = state.submit.status === "submitting";
-
   return (
     <div className="min-h-screen flex flex-col" data-testid="create-page">
       <header className="w-full max-w-2xl mx-auto px-5 pt-6 flex items-center justify-between">
@@ -270,9 +267,9 @@ export default function CreatePage() {
             className="text-xs"
             aria-live="polite"
             data-testid="submit-hint"
-            style={{ color: state.submit.status === "failed" ? "var(--danger)" : "var(--foreground-faint)" }}
+            style={{ color: "var(--foreground-faint)" }}
           >
-            {state.submit.status === "failed" ? state.submit.message : blocker ? BLOCKER_HINT[blocker] : "Ready when you are."}
+            {blocker ? BLOCKER_HINT[blocker] : "Ready when you are."}
           </p>
           <button
             type="button"
@@ -282,7 +279,7 @@ export default function CreatePage() {
             aria-disabled={blocker !== null}
             className="lore-pill lore-pill-lg lore-pill-primary"
           >
-            {submitting ? "Building your story…" : "Build the world →"}
+            Build the world →
           </button>
         </div>
       </footer>

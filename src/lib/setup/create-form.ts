@@ -3,7 +3,7 @@
  *
  * Pure reducer and selectors behind the /create page: the material the user
  * provided, which sections they selected, the world (genre) and advanced
- * options, and the submit status. No React, no I/O — testable directly.
+ * options. No React, no I/O — testable directly.
  */
 
 import type { Genre } from "@/lib/types/campaign";
@@ -25,18 +25,12 @@ export type DocumentState =
   | { status: "ready"; document: ExtractedDocument; selected: string[] }
   | { status: "error"; fileName: string; error: IngestFailure };
 
-export type SubmitState =
-  | { status: "idle" }
-  | { status: "submitting" }
-  | { status: "failed"; message: string };
-
 export type CreateFormState = {
   doc: DocumentState;
   genre: Genre | null;
   length: StoryLength;
   language: StoryLanguage;
   customInstructions: string;
-  submit: SubmitState;
 };
 
 export const initialCreateFormState: CreateFormState = {
@@ -45,7 +39,6 @@ export const initialCreateFormState: CreateFormState = {
   length: "short",
   language: "en",
   customInstructions: "",
-  submit: { status: "idle" },
 };
 
 export type CreateFormAction =
@@ -61,9 +54,7 @@ export type CreateFormAction =
   | { type: "genre_set"; genre: Genre }
   | { type: "length_set"; length: StoryLength }
   | { type: "language_set"; language: StoryLanguage }
-  | { type: "instructions_set"; text: string }
-  | { type: "submit_started" }
-  | { type: "submit_failed"; message: string };
+  | { type: "instructions_set"; text: string };
 
 /** True when a read result belongs to the read currently in progress. */
 function isCurrentRead(doc: DocumentState, requestId: number): boolean {
@@ -76,7 +67,7 @@ export function createFormReducer(state: CreateFormState, action: CreateFormActi
       return initialCreateFormState;
 
     case "read_started":
-      return { ...state, doc: { status: "reading", requestId: action.requestId, fileName: action.fileName }, submit: { status: "idle" } };
+      return { ...state, doc: { status: "reading", requestId: action.requestId, fileName: action.fileName } };
 
     case "read_succeeded":
       // Ignore results from a file the user has since replaced or removed.
@@ -95,7 +86,7 @@ export function createFormReducer(state: CreateFormState, action: CreateFormActi
       return { ...state, doc: { status: "error", fileName: action.fileName, error: action.error } };
 
     case "document_cleared":
-      return { ...state, doc: { status: "empty" }, submit: { status: "idle" } };
+      return { ...state, doc: { status: "empty" } };
 
     case "section_toggled": {
       if (state.doc.status !== "ready") return state;
@@ -127,12 +118,6 @@ export function createFormReducer(state: CreateFormState, action: CreateFormActi
 
     case "instructions_set":
       return { ...state, customInstructions: action.text.slice(0, MAX_INSTRUCTIONS_CHARS) };
-
-    case "submit_started":
-      return { ...state, submit: { status: "submitting" } };
-
-    case "submit_failed":
-      return { ...state, submit: { status: "failed", message: action.message } };
   }
 }
 
@@ -152,8 +137,7 @@ export type SubmitBlocker =
   | "no_sections"
   | "too_short"
   | "too_long"
-  | "no_genre"
-  | "submitting";
+  | "no_genre";
 
 /**
  * Why the form cannot be submitted yet, or null when it can.
@@ -163,7 +147,6 @@ export function selectSubmitBlocker(
   state: CreateFormState,
   materialText: string = selectMaterialText(state)
 ): SubmitBlocker | null {
-  if (state.submit.status === "submitting") return "submitting";
   if (state.doc.status === "reading") return "reading";
   if (state.doc.status !== "ready") return "no_document";
   if (state.doc.selected.length === 0) return "no_sections";
