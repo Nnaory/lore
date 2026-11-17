@@ -35,7 +35,7 @@
         "rds:RestoreDBInstanceFromDBSnapshot",
         "rds:RestoreDBInstanceToPointInTime"
       ],
-      "Resource": "*",
+      "Resource": "arn:aws:rds:*:*:db:*",
       "Condition": {
         "StringNotEquals": {
           "rds:DatabaseClass": "db.t3.micro"
@@ -120,7 +120,7 @@
       "Sid": "DenyNonS3VpcEndpoints",
       "Effect": "Deny",
       "Action": "ec2:CreateVpcEndpoint",
-      "Resource": "*",
+      "Resource": "arn:aws:ec2:*:*:vpc-endpoint/*",
       "Condition": {
         "StringNotEquals": {
           "ec2:VpceServiceName": "com.amazonaws.<AWS_REGION>.s3"
