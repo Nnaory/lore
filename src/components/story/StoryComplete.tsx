@@ -2,7 +2,7 @@
  * StoryComplete
  *
  * Displayed when a story reaches its ending and isComplete is true.
- * Minimalist gold/black theme with divider lines.
+ * A glass card with divider lines.
  */
 
 type StoryCompleteProps = {
@@ -30,13 +30,8 @@ export function StoryComplete({
       className="w-full max-w-md mx-auto px-4 py-6"
     >
       <div
-        className="w-full"
-        style={{
-          backgroundColor: "var(--background-panel)",
-          border: "1px solid var(--accent-gold)",
-          borderRadius: "0.5rem",
-          overflow: "hidden",
-        }}
+        className="lore-glass lore-glass-panel rounded-panel w-full overflow-hidden"
+        style={{ borderColor: "var(--accent-gold)" }}
         role="region"
         aria-label={`${isCampaignComplete ? "Campaign complete" : "Story complete"}: ${storyTitle}`}
       >
@@ -96,8 +91,7 @@ export function StoryComplete({
             <button
               data-testid="view-results-button"
               onClick={onViewResults}
-              className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
-              style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+              className="lore-pill lore-pill-lg lore-pill-primary w-full"
             >
               See your results →
             </button>
@@ -106,11 +100,7 @@ export function StoryComplete({
             <button
               data-testid="continue-campaign-button"
               onClick={onContinue}
-              className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
-              style={{
-                backgroundColor: "var(--accent-gold)",
-                color: "var(--background)",
-              }}
+              className="lore-pill lore-pill-lg lore-pill-primary w-full"
             >
               Continue Campaign →
             </button>
@@ -118,12 +108,7 @@ export function StoryComplete({
           <button
             data-testid="exit-button"
             onClick={onExit}
-            className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
-            style={{
-              backgroundColor: "transparent",
-              color: "var(--foreground-faint)",
-              border: "1px solid var(--border-dim)",
-            }}
+            className="lore-pill lore-pill-lg w-full"
           >
             {isCampaignComplete ? "Return to Lobby" : "Exit Story"}
           </button>

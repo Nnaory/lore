@@ -2,7 +2,7 @@
  * StoryFailure
  *
  * Displayed when HP reaches 0 and the story enters the failed state.
- * Minimalist gold/black theme with divider lines.
+ * A glass card edged in red, with divider lines.
  */
 
 type StoryFailureProps = {
@@ -20,13 +20,8 @@ export function StoryFailure({ storyTitle, onRetry }: StoryFailureProps) {
       aria-live="assertive"
     >
       <div
-        className="w-full max-w-md"
-        style={{
-          backgroundColor: "var(--background-panel)",
-          border: "1px solid var(--danger)",
-          borderRadius: "0.5rem",
-          overflow: "hidden",
-        }}
+        className="lore-glass lore-glass-panel rounded-panel w-full max-w-md overflow-hidden"
+        style={{ borderColor: "var(--danger)" }}
         role="region"
         aria-label={`Story failed: ${storyTitle}`}
       >
@@ -89,11 +84,7 @@ export function StoryFailure({ storyTitle, onRetry }: StoryFailureProps) {
           <button
             data-testid="retry-button"
             onClick={onRetry}
-            className="w-full px-6 py-2.5 rounded text-sm font-medium tracking-wide transition-all"
-            style={{
-              backgroundColor: "var(--accent-gold)",
-              color: "var(--background)",
-            }}
+            className="lore-pill lore-pill-lg lore-pill-primary w-full"
           >
             Retry Story
           </button>

@@ -81,12 +81,13 @@ export function StageCanvas({ scene, sceneKey, pacing, children }: StageCanvasPr
     <div
       data-testid="stage-canvas"
       data-canvas-kind={scene.kind}
-      className="relative mx-auto overflow-hidden rounded-lg"
+      className="relative mx-auto overflow-hidden rounded-panel"
       style={{
         aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
         // Fill the width, but never overflow the height of a size container.
         width: `min(100%, calc(100cqh * ${CANVAS_WIDTH} / ${CANVAS_HEIGHT}))`,
-        border: "1px solid var(--border)",
+        border: "1px solid var(--glass-edge)",
+        boxShadow: "var(--glass-shadow)",
       }}
     >
       {isClient ? (

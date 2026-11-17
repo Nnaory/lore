@@ -116,7 +116,7 @@ function speakerFor(scene: Scene | null, blockIndex: number, characters: Charact
 
 function overlay(children: ReactNode) {
   return (
-    <div className="absolute inset-0 overflow-y-auto flex items-start sm:items-center justify-center p-4" style={{ backgroundColor: "rgba(10, 10, 12, 0.55)" }}>
+    <div className="absolute inset-0 overflow-y-auto flex items-start sm:items-center justify-center p-4" style={{ backgroundColor: "rgba(34, 34, 34, 0.55)" }}>
       <div className="w-full max-w-2xl flex flex-col gap-4">{children}</div>
     </div>
   );
@@ -318,8 +318,8 @@ export function StoryViewer({
             data-testid="story-viewer-error"
             role="alert"
             aria-live="assertive"
-            className="rounded-lg p-6 text-center"
-            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--danger)" }}
+            className="lore-glass lore-glass-panel rounded-panel p-6 text-center"
+            style={{ borderColor: "var(--danger)" }}
           >
             <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--danger)" }}>
               Navigation Error
@@ -376,8 +376,8 @@ export function StoryViewer({
                   type="button"
                   data-testid="bad-ending-return-btn"
                   onClick={returnToPuzzle}
-                  className="px-6 py-3 rounded text-sm font-medium"
-                  style={{ color: "var(--accent-gold)", border: "1px solid var(--accent-gold)", backgroundColor: "var(--background-panel)" }}
+                  className="lore-pill lore-pill-lg lore-pill-accent"
+                  style={{ backgroundColor: "var(--background-panel)" }}
                 >
                   ↩ Try a different choice
                 </button>
@@ -424,7 +424,7 @@ export function StoryViewer({
   }
 
   return (
-    <div data-testid="story-viewer" className="lore-bg h-screen flex flex-col overflow-hidden">
+    <div data-testid="story-viewer" className="h-screen flex flex-col overflow-hidden">
       <StageNavbar
         storyTitle={story.title}
         chapterTitle={currentChapter?.title}
@@ -439,8 +439,7 @@ export function StoryViewer({
       <div className="flex-1 min-h-0 flex gap-3 p-3">
         <aside
           aria-label="Character"
-          className="hidden md:flex w-[30%] lg:w-[28%] rounded-lg p-4 lore-panel-bg"
-          style={{ border: "1px solid var(--border)" }}
+          className="lore-glass lore-glass-panel rounded-panel hidden md:flex w-[30%] lg:w-[28%] p-4"
         >
           {speaker.character && (
             <StageCharacter
@@ -475,8 +474,7 @@ export function StoryViewer({
                 type="button"
                 data-testid="bad-branch-return-btn"
                 onClick={returnToPuzzle}
-                className="px-4 py-1.5 rounded text-xs font-medium"
-                style={{ color: "var(--accent-gold)", border: "1px solid var(--accent-gold)" }}
+                className="lore-pill lore-pill-sm lore-pill-accent"
               >
                 ↩ Try a different choice
               </button>
@@ -491,14 +489,13 @@ export function StoryViewer({
         <div
           data-testid="exit-confirm-dialog"
           className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(10, 10, 12, 0.8)" }}
+          style={{ backgroundColor: "rgba(34, 34, 34, 0.7)" }}
           role="dialog"
           aria-modal="true"
           aria-labelledby="exit-confirm-title"
         >
           <div
-            className="rounded-lg p-6 max-w-sm w-full mx-4"
-            style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border)" }}
+            className="lore-glass lore-glass-panel rounded-card p-6 max-w-sm w-full mx-4"
           >
             <h3 id="exit-confirm-title" className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
               Exit Story?
@@ -509,8 +506,7 @@ export function StoryViewer({
             <div className="flex gap-3">
               <button
                 onClick={() => setShowExitConfirm(false)}
-                className="flex-1 px-4 py-2 rounded text-sm font-medium"
-                style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
+                className="lore-pill flex-1"
               >
                 Cancel
               </button>
@@ -519,8 +515,7 @@ export function StoryViewer({
                   setShowExitConfirm(false);
                   onExit?.();
                 }}
-                className="flex-1 px-4 py-2 rounded text-sm font-medium"
-                style={{ backgroundColor: "var(--danger-bg)", color: "var(--danger)", border: "1px solid var(--danger)" }}
+                className="lore-pill lore-pill-danger flex-1"
               >
                 Exit Anyway
               </button>

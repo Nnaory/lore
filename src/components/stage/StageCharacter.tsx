@@ -150,7 +150,7 @@ export function StageCharacter({ characterId, name, role, emotion, talking, genr
         <div
           aria-hidden="true"
           className="absolute inset-x-6 bottom-0 top-10 rounded-full"
-          style={{ background: "radial-gradient(circle at 50% 60%, rgba(232,197,71,0.16), transparent 65%)" }}
+          style={{ background: "radial-gradient(circle at 50% 60%, rgba(246,200,78,0.16), transparent 65%)" }}
         />
         <svg
           viewBox="0 0 240 300"

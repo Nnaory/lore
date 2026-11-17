@@ -65,7 +65,7 @@ export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callb
                     width: `${box.w}%`,
                     height: `${box.h}%`,
                     border: `2px solid ${border}`,
-                    backgroundColor: selected ? "rgba(232, 197, 71, 0.10)" : "rgba(10, 10, 12, 0.35)",
+                    backgroundColor: selected ? "rgba(246, 200, 78, 0.12)" : "rgba(34, 34, 34, 0.5)",
                     color: lockedIn ? "#6fcf97" : wrong ? "var(--danger)" : "var(--foreground)",
                     opacity: p.isCorrect && !selected ? 0.4 : 1,
                     cursor: p.isCorrect ? "default" : "pointer",
@@ -85,8 +85,7 @@ export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callb
       </div>
 
       <div
-        className="rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
-        style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border-dim)" }}
+        className="lore-glass lore-glass-panel rounded-panel px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3"
       >
         <div className="flex-1 min-w-0" aria-live="polite">
           <p className="text-sm font-medium" style={{ color: "var(--foreground)" }} data-testid="puzzle-question">
@@ -118,8 +117,7 @@ export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callb
             onClick={p.submit}
             disabled={!p.canSubmit}
             aria-disabled={!p.canSubmit}
-            className="flex-shrink-0 px-5 py-2.5 rounded text-sm font-medium transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            className="lore-pill lore-pill-lg lore-pill-primary flex-shrink-0"
           >
             {p.isSubmitting ? "Submitting…" : p.selectedBranches ? "Confirm choice →" : "Submit Answer"}
           </button>
@@ -128,8 +126,7 @@ export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callb
             type="button"
             data-testid="puzzle-continue"
             onClick={onComplete}
-            className="flex-shrink-0 px-5 py-2.5 rounded text-sm font-medium"
-            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            className="lore-pill lore-pill-lg lore-pill-primary flex-shrink-0"
           >
             Continue →
           </button>

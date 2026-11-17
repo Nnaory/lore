@@ -176,71 +176,70 @@ export default function CreatePage() {
   const submitting = state.submit.status === "submitting";
 
   return (
-    <div className="lore-bg min-h-screen flex flex-col" data-testid="create-page">
+    <div className="min-h-screen flex flex-col" data-testid="create-page">
       <header className="w-full max-w-2xl mx-auto px-5 pt-6 flex items-center justify-between">
         <Link
           href="/"
-          className="flex items-center gap-1.5 text-xs tracking-wide"
+          className="lore-glass lore-glass-panel rounded-pill h-8 pl-3 pr-4 flex items-center gap-1.5 text-xs tracking-wide"
           style={{ color: "var(--foreground-muted)" }}
         >
           <ArrowLeft size={14} aria-hidden="true" />
           Back
         </Link>
-        <span className="text-xs font-semibold tracking-[0.3em]" style={{ color: "var(--accent-gold-dim)" }}>
+        <span className="lore-halo text-xs font-semibold tracking-[0.3em]" style={{ color: "var(--accent-gold)" }}>
           LORE
         </span>
       </header>
 
-      <main className="flex-1 w-full max-w-2xl mx-auto px-5 pt-10 pb-6 flex flex-col gap-12">
-        <div>
-          <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--foreground-faint)" }}>
-            New story
-          </p>
-          <h1 className="text-2xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
-            Turn your material into a story
-          </h1>
-          <p className="text-sm mt-2 leading-6" style={{ color: "var(--foreground-muted)" }}>
-            Bring lecture notes, a chapter, or a slide deck. LORE builds a world around it where every
-            challenge is solved with what you learn.
-          </p>
-        </div>
-
-        <section aria-labelledby="step-material">
-          <StepHeading id="step-material" index="01" title="Material" />
-          {state.doc.status === "empty" ? (
-            <MaterialInput onFile={handleFile} onPaste={handlePaste} />
-          ) : (
-            <DocumentCard
-              doc={state.doc}
-              materialLength={materialText.length}
-              onRemove={() => dispatch({ type: "document_cleared" })}
-              onToggle={(sectionId) => dispatch({ type: "section_toggled", sectionId })}
-              onSetAll={(selected) => dispatch({ type: "all_sections_set", selected })}
-            />
-          )}
-        </section>
-
-        <section aria-labelledby="step-world" className="flex flex-col gap-5">
+      <main className="flex-1 w-full max-w-2xl mx-auto px-5 pt-8 pb-6">
+        <div className="lore-glass lore-glass-panel rounded-card p-6 sm:p-8 flex flex-col gap-10">
           <div>
-            <StepHeading id="step-world" index="02" title="World" />
-            <GenrePicker value={state.genre} onChange={(genre) => dispatch({ type: "genre_set", genre })} />
+            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--foreground-faint)" }}>
+              New story
+            </p>
+            <h1 className="text-2xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
+              Turn your material into a story
+            </h1>
+            <p className="text-sm mt-2 leading-6" style={{ color: "var(--foreground-muted)" }}>
+              Bring lecture notes, a chapter, or a slide deck. LORE builds a world around it where every
+              challenge is solved with what you learn.
+            </p>
           </div>
-          <AdvancedOptions
-            length={state.length}
-            language={state.language}
-            customInstructions={state.customInstructions}
-            onLengthChange={(length) => dispatch({ type: "length_set", length })}
-            onLanguageChange={(language) => dispatch({ type: "language_set", language })}
-            onInstructionsChange={(text) => dispatch({ type: "instructions_set", text })}
-          />
-        </section>
+
+          <section aria-labelledby="step-material">
+            <StepHeading id="step-material" index="01" title="Material" />
+            {state.doc.status === "empty" ? (
+              <MaterialInput onFile={handleFile} onPaste={handlePaste} />
+            ) : (
+              <DocumentCard
+                doc={state.doc}
+                materialLength={materialText.length}
+                onRemove={() => dispatch({ type: "document_cleared" })}
+                onToggle={(sectionId) => dispatch({ type: "section_toggled", sectionId })}
+                onSetAll={(selected) => dispatch({ type: "all_sections_set", selected })}
+              />
+            )}
+          </section>
+
+          <section aria-labelledby="step-world" className="flex flex-col gap-5">
+            <div>
+              <StepHeading id="step-world" index="02" title="World" />
+              <GenrePicker value={state.genre} onChange={(genre) => dispatch({ type: "genre_set", genre })} />
+            </div>
+            <AdvancedOptions
+              length={state.length}
+              language={state.language}
+              customInstructions={state.customInstructions}
+              onLengthChange={(length) => dispatch({ type: "length_set", length })}
+              onLanguageChange={(language) => dispatch({ type: "language_set", language })}
+              onInstructionsChange={(text) => dispatch({ type: "instructions_set", text })}
+            />
+          </section>
+        </div>
       </main>
 
-      <footer
-        className="sticky bottom-0 w-full"
-        style={{ background: "linear-gradient(to top, var(--background) 70%, transparent)" }}
-      >
-        <div className="max-w-2xl mx-auto px-5 py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
+      <footer className="sticky bottom-0 w-full px-5 pb-5 pt-2">
+        <div className="lore-glass lore-glass-panel rounded-card max-w-2xl mx-auto px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
           <p
             className="text-xs"
             aria-live="polite"
@@ -255,8 +254,7 @@ export default function CreatePage() {
             onClick={handleSubmit}
             disabled={blocker !== null}
             aria-disabled={blocker !== null}
-            className="px-6 py-3 rounded text-sm font-medium tracking-wide transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            className="lore-pill lore-pill-lg lore-pill-primary"
           >
             {submitting ? "Building your story…" : "Build the world →"}
           </button>

@@ -291,7 +291,7 @@ function DiagramView({ visual, area }: { visual: DiagramVisual; area: Area }) {
               transform: `scale(${0.8 + 0.2 * pop})`,
               border: `2px solid ${GOLD_DIM}`,
               borderRadius: 14,
-              background: "rgba(26, 20, 16, 0.92)",
+              background: "rgba(34, 34, 34, 0.92)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -299,7 +299,7 @@ function DiagramView({ visual, area }: { visual: DiagramVisual; area: Area }) {
               textAlign: "center",
               padding: "8px 12px",
               overflow: "hidden",
-              boxShadow: "0 0 24px rgba(232, 197, 71, 0.08)",
+              boxShadow: "0 0 24px rgba(246, 200, 78, 0.08)",
             }}
           >
             <div style={{ color: TEXT, fontSize, fontWeight: 600, lineHeight: 1.2 }}>{n.label}</div>
@@ -344,8 +344,8 @@ function TableView({ visual, area }: { visual: TableVisual; area: Area }) {
                 style={{
                   opacity: appear,
                   transform: `translateX(${(1 - appear) * -16}px)`,
-                  background: hot ? "rgba(232, 197, 71, 0.14)" : r % 2 ? "rgba(255, 255, 255, 0.02)" : "transparent",
-                  borderBottom: "1px solid rgba(58, 45, 32, 0.8)",
+                  background: hot ? "rgba(246, 200, 78, 0.14)" : r % 2 ? "rgba(255, 255, 255, 0.02)" : "transparent",
+                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
                 }}
               >
                 {row.map((value, c) => (
@@ -406,7 +406,7 @@ function FormulaView({ visual, area }: { visual: FormulaVisual; area: Area }) {
             padding: "12px 24px",
             border: `1px solid ${GOLD_DIM}`,
             borderRadius: 10,
-            background: "rgba(26, 20, 16, 0.85)",
+            background: "rgba(34, 34, 34, 0.85)",
             whiteSpace: "pre",
           }}
         >

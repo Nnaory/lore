@@ -15,11 +15,13 @@ import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } fr
 import { MONO_CELL_ASPECT } from "@/lib/ascii/image-to-ascii";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, DECISION_NODE, choiceBoxes } from "./canvas-layout";
 
-export const GOLD = "#e8c547";
-export const GOLD_DIM = "#b89636";
-export const TEXT = "#f0ebe0";
-export const TEXT_DIM = "#a8a090";
-export const VOID = "#0a0a0c";
+// The Trick-or-Treat palette, as the canvas needs it (see :root in globals.css).
+// GOLD is Candy Corn Yellow and VOID is Licorice Black; the names are older than the palette.
+export const GOLD = "#f6c84e";
+export const GOLD_DIM = "#c9a23f";
+export const TEXT = "#f3ece3";
+export const TEXT_DIM = "#b8b3ad";
+export const VOID = "#222222";
 
 /** Deterministic pseudo-random numbers in [0, 1) from a seed. */
 function rand(seed: number): number {
@@ -31,7 +33,7 @@ function rand(seed: number): number {
 export function Field({ seed }: { seed: number }) {
   const frame = useCurrentFrame();
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 35%, #1a1410 0%, ${VOID} 70%)` }}>
+    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 35%, #2e2438 0%, ${VOID} 70%)` }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`} style={{ position: "absolute", inset: 0 }}>
         {Array.from({ length: 9 }, (_, i) => (
           <line
@@ -94,7 +96,7 @@ function PlayerFigure({ art, box }: { art: string; box: { x: number; y: number; 
           lineHeight: 1,
           whiteSpace: "pre",
           color: GOLD,
-          textShadow: `0 0 ${fontSize * 0.6}px rgba(232, 197, 71, 0.35)`,
+          textShadow: `0 0 ${fontSize * 0.6}px rgba(246, 200, 78, 0.35)`,
           transform: `translateY(${bob}px)`,
         }}
       >
@@ -236,7 +238,7 @@ export function DecisionGraph({ label, count, seed, avatar }: DecisionGraphProps
                 width={(b.w / 100) * CANVAS_WIDTH}
                 height={(b.h / 100) * CANVAS_HEIGHT}
                 rx={12}
-                fill="#1a1410"
+                fill="#2e2438"
                 fillOpacity={0.55 * boxIn}
                 stroke={GOLD_DIM}
                 strokeOpacity={0.5 * boxIn}
@@ -244,7 +246,7 @@ export function DecisionGraph({ label, count, seed, avatar }: DecisionGraphProps
             </g>
           );
         })}
-        <circle cx={node.x} cy={node.y} r={34 * nodeIn} fill="#1a1410" stroke={GOLD} strokeWidth={2} />
+        <circle cx={node.x} cy={node.y} r={34 * nodeIn} fill="#2e2438" stroke={GOLD} strokeWidth={2} />
         <circle
           cx={node.x}
           cy={node.y}

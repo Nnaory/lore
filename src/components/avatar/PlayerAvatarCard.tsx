@@ -76,17 +76,21 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
   }
 
   return (
-    <section className="w-full flex flex-col gap-3 text-left" aria-labelledby="player-avatar-heading" data-testid="player-avatar">
-      <h2 id="player-avatar-heading" className="text-xs tracking-widest uppercase" style={{ color: "var(--foreground-faint)" }}>
+    <section
+      className="lore-glass lore-glass-panel rounded-panel @container w-full flex flex-col gap-3 p-4 text-left"
+      aria-labelledby="player-avatar-heading"
+      data-testid="player-avatar"
+    >
+      <h2 id="player-avatar-heading" className="lore-eyebrow">
         Your avatar
       </h2>
 
-      <div
-        className="rounded-lg p-3 flex items-center gap-4"
-        style={{ backgroundColor: "var(--background-panel)", border: "1px solid var(--border-dim)" }}
-      >
-        <div className="w-24 h-20 flex-shrink-0 flex items-center justify-center overflow-hidden" data-testid="player-avatar-current">
-          <AsciiArt art={current} size={fitSize(current, 92, 8)} label={`Your avatar: ${avatarName(avatar)}`} />
+      <div className="flex items-center gap-4">
+        <div
+          className="lore-well rounded-tip w-24 h-20 flex-shrink-0 flex items-center justify-center overflow-hidden"
+          data-testid="player-avatar-current"
+        >
+          <AsciiArt art={current} size={fitSize(current, 84, 8)} label={`Your avatar: ${avatarName(avatar)}`} />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
@@ -101,16 +105,15 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
           data-testid="player-avatar-toggle"
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className="flex-shrink-0 px-3 py-1.5 rounded text-xs"
-          style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
+          className="lore-pill lore-pill-sm flex-shrink-0"
         >
           {open ? "Done" : "Change"}
         </button>
       </div>
 
       {open && (
-        <div className="flex flex-col gap-4" data-testid="player-avatar-editor">
-          <div role="radiogroup" aria-label="Preset avatars" className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <div className="flex flex-col gap-4 pt-1" data-testid="player-avatar-editor">
+          <div role="radiogroup" aria-label="Preset avatars" className="grid grid-cols-2 @md:grid-cols-4 gap-2">
             {AVATAR_PRESETS.map((preset) => {
               const selected = avatar.kind === "preset" && avatar.id === preset.id;
               return (
@@ -121,11 +124,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
                   aria-checked={selected}
                   data-testid={`avatar-preset-${preset.id}`}
                   onClick={() => save({ kind: "preset", id: preset.id })}
-                  className="rounded-lg p-2 flex flex-col items-center gap-2 transition-colors"
-                  style={{
-                    backgroundColor: "var(--background-panel)",
-                    border: `1px solid ${selected ? "var(--accent-gold)" : "var(--border-dim)"}`,
-                  }}
+                  className="lore-tile rounded-tip p-2 flex flex-col items-center gap-2"
                 >
                   <div className="h-16 flex items-center justify-center overflow-hidden">
                     <AsciiArt art={preset.art} size={fitSize(preset.art, 84, 7)} label={preset.name} />
@@ -139,10 +138,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
           </div>
 
           <div className="flex flex-col gap-2">
-            <label
-              className="self-start px-4 py-2 rounded text-xs font-medium cursor-pointer focus-within:ring-2"
-              style={{ color: "var(--accent-gold)", border: "1px solid var(--accent-gold)" }}
-            >
+            <label className="lore-pill lore-pill-sm lore-pill-accent self-start focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent-gold)]">
               {reading ? "Reading…" : "Use your own picture"}
               <input
                 type="file"
@@ -164,11 +160,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
           </div>
 
           {preview && (
-            <div
-              data-testid="avatar-preview"
-              className="rounded-lg p-4 flex flex-col items-center gap-4"
-              style={{ backgroundColor: "var(--background)", border: "1px solid var(--border)" }}
-            >
+            <div data-testid="avatar-preview" className="lore-well rounded-tip p-4 flex flex-col items-center gap-4">
               <AsciiArt art={preview} size={fitSize(preview, 280, 11)} label="Preview of your picture as ASCII art" />
               <div className="w-full flex flex-wrap items-center gap-x-5 gap-y-2 text-xs" style={{ color: "var(--foreground-muted)" }}>
                 <label className="flex items-center gap-2 flex-1 min-w-40">
@@ -181,7 +173,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
                     value={columns}
                     onChange={(e) => setColumns(Number(e.target.value))}
                     data-testid="avatar-detail"
-                    className="flex-1 accent-[var(--accent-gold)]"
+                    className="flex-1 accent-[var(--accent)]"
                   />
                 </label>
                 <label className="flex items-center gap-2">
@@ -190,7 +182,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
                     checked={invert}
                     onChange={(e) => setInvert(e.target.checked)}
                     data-testid="avatar-invert"
-                    className="accent-[var(--accent-gold)]"
+                    className="accent-[var(--accent)]"
                   />
                   Invert (for bright backgrounds)
                 </label>
@@ -200,8 +192,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
                   type="button"
                   data-testid="avatar-preview-cancel"
                   onClick={() => setPixels(null)}
-                  className="flex-1 px-4 py-2 rounded text-xs"
-                  style={{ color: "var(--foreground-muted)", border: "1px solid var(--border)" }}
+                  className="lore-pill lore-pill-sm flex-1"
                 >
                   Cancel
                 </button>
@@ -209,8 +200,7 @@ export function PlayerAvatarCard({ readPixels = readImagePixels }: PlayerAvatarC
                   type="button"
                   data-testid="avatar-preview-save"
                   onClick={saveCustom}
-                  className="flex-1 px-4 py-2 rounded text-xs font-medium"
-                  style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+                  className="lore-pill lore-pill-sm lore-pill-primary flex-1"
                 >
                   Use this avatar
                 </button>

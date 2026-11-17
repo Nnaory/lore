@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 104">
+  <!-- Silhouette of LORE's pumpkin mark, used as a CSS mask (see .lore-pumpkin-mark). -->
+  <path d="M55 26 C55 17 56 11 61 6 C63 4 67 5 66 8 C63 12 62 18 63 26 Z" />
+  <ellipse cx="25" cy="64" rx="21" ry="31" />
+  <ellipse cx="95" cy="64" rx="21" ry="31" />
+  <ellipse cx="42" cy="63" rx="24" ry="36" />
+  <ellipse cx="78" cy="63" rx="24" ry="36" />
+  <ellipse cx="60" cy="62" rx="22" ry="38" />
+</svg>

@@ -30,8 +30,7 @@ export function StageNavbar({
 }: StageNavbarProps) {
   return (
     <header
-      className="flex items-center gap-4 px-4 py-2.5 border-b"
-      style={{ backgroundColor: "var(--background-panel)", borderBottomColor: "var(--border)" }}
+      className="lore-glass lore-glass-panel rounded-panel mx-3 mt-3 flex items-center gap-4 px-4 py-2.5"
     >
       <button
         type="button"
@@ -45,7 +44,7 @@ export function StageNavbar({
         <LogOut size={16} aria-hidden="true" />
       </button>
 
-      <span className="hidden sm:block text-xs font-semibold tracking-[0.3em]" style={{ color: "var(--accent-gold-dim)" }}>
+      <span className="hidden sm:block text-xs font-semibold tracking-[0.3em]" style={{ color: "var(--accent-gold)" }}>
         LORE
       </span>
 
@@ -67,7 +66,7 @@ export function StageNavbar({
           {Array.from({ length: MAX_HP }).map((_, i) => (
             <span
               key={i}
-              className="w-2.5 h-2.5 rounded-sm transition-colors"
+              className="w-2.5 h-2.5 rounded-full transition-colors"
               style={{ backgroundColor: i < hp ? "var(--accent-gold)" : "var(--border-dim)" }}
             />
           ))}

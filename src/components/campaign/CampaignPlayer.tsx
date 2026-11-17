@@ -89,7 +89,7 @@ export function CampaignPlayer({
 
   if (isAtLobby) {
     return (
-      <div className="h-screen flex flex-col overflow-hidden">
+      <div className="h-screen flex flex-col overflow-y-auto">
         <CampaignLobby
           campaign={campaign}
           campaignState={campaignState}

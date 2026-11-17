@@ -2,7 +2,7 @@
  * EndingDisplay
  *
  * Renders the story ending — shown when an ending scene is reached.
- * Minimalist gold/black theme with divider lines.
+ * A glass card with divider lines.
  */
 
 import type { Ending } from "@/lib/types/scene";
@@ -27,13 +27,8 @@ export function EndingDisplay({ ending }: EndingDisplayProps) {
   return (
     <div
       data-testid="ending-display"
-      className="w-full max-w-2xl mx-auto"
-      style={{
-        backgroundColor: "var(--background-panel)",
-        border: "1px solid var(--accent-gold)",
-        borderRadius: "0.5rem",
-        overflow: "hidden",
-      }}
+      className="lore-glass lore-glass-panel rounded-panel w-full max-w-2xl mx-auto overflow-hidden"
+      style={{ borderColor: "var(--accent-gold)" }}
       role="region"
       aria-label={`Story ending: ${ending.title}`}
     >

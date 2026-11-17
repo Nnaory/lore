@@ -49,12 +49,8 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
           value={pasted}
           onChange={(e) => setPasted(e.target.value)}
           placeholder="Lecture notes, a textbook chapter, an article…"
-          className="w-full rounded-lg p-4 text-sm leading-6 resize-y"
-          style={{
-            backgroundColor: "var(--background-panel)",
-            border: "1px solid var(--border)",
-            color: "var(--foreground)",
-          }}
+          className="lore-well rounded-tip w-full p-4 text-sm leading-6 resize-y"
+          style={{ color: "var(--foreground)" }}
         />
         <div className="flex gap-3">
           <button
@@ -62,16 +58,14 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
             data-testid="paste-submit"
             disabled={pasted.trim() === ""}
             onClick={() => onPaste(pasted)}
-            className="px-4 py-2 rounded text-sm font-medium transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-            style={{ backgroundColor: "var(--accent-gold)", color: "var(--background)" }}
+            className="lore-pill lore-pill-primary"
           >
             Use this text
           </button>
           <button
             type="button"
             onClick={() => setMode("file")}
-            className="px-4 py-2 rounded text-sm"
-            style={{ color: "var(--foreground-muted)", border: "1px solid var(--border-dim)" }}
+            className="lore-pill"
           >
             Upload a file instead
           </button>
@@ -88,10 +82,11 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
         onDragOver={(e) => handleDrag(e, true)}
         onDragLeave={(e) => handleDrag(e, false)}
         onDrop={handleDrop}
-        className="flex flex-col items-center gap-3 rounded-lg px-6 py-10 text-center cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
+        className="lore-well flex flex-col items-center gap-3 rounded-panel px-6 py-10 text-center cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
         style={{
-          border: `1px dashed ${dragActive ? "var(--accent-gold)" : "var(--border)"}`,
-          backgroundColor: dragActive ? "rgba(232, 197, 71, 0.06)" : "rgba(26, 20, 16, 0.4)",
+          borderStyle: "dashed",
+          borderColor: dragActive ? "var(--accent-gold)" : "var(--border)",
+          backgroundColor: dragActive ? "rgba(246, 200, 78, 0.08)" : undefined,
           outlineColor: "var(--accent-gold)",
         }}
       >
@@ -113,12 +108,7 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
         <span className="text-xs" style={{ color: "var(--foreground-faint)" }}>
           PDF · DOCX · PPTX · TXT — up to {MAX_MB} MB
         </span>
-        <span
-          className="mt-1 px-4 py-1.5 rounded text-xs font-medium tracking-wide"
-          style={{ border: "1px solid var(--accent-gold-dim)", color: "var(--accent-gold)" }}
-        >
-          Choose a file
-        </span>
+        <span className="lore-pill lore-pill-sm lore-pill-accent mt-1">Choose a file</span>
       </label>
       <p className="text-xs text-center" style={{ color: "var(--foreground-faint)" }}>
         Your file is read on this device; only the text you select is sent.{" "}
