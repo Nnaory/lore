@@ -1,0 +1,35 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "TerraformStateReadAndLock",
+      "Effect": "Allow",
+      "Action": "s3:ListBucket",
+      "Resource": "arn:aws:s3:::lore-tfstate-<ACCOUNT_ID>"
+    },
+    {
+      "Sid": "TerraformStateGet",
+      "Effect": "Allow",
+      "Action": "s3:GetObject",
+      "Resource": "arn:aws:s3:::lore-tfstate-<ACCOUNT_ID>/lore/prod/*"
+    },
+    {
+      "Sid": "TerraformStateLock",
+      "Effect": "Allow",
+      "Action": [
+        "s3:PutObject",
+        "s3:DeleteObject"
+      ],
+      "Resource": "arn:aws:s3:::lore-tfstate-<ACCOUNT_ID>/lore/prod/*.tflock"
+    },
+    {
+      "Sid": "DenySecretsRead",
+      "Effect": "Deny",
+      "Action": [
+        "secretsmanager:GetSecretValue",
+        "kms:Decrypt"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
