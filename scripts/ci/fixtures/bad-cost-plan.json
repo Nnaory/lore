@@ -1,0 +1,47 @@
+{
+  "resource_changes": [
+    {
+      "address": "aws_instance.big",
+      "type": "aws_instance",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "instance_type": "t3.small",
+          "monitoring": true,
+          "credit_specification": [{"cpu_credits": "unlimited"}],
+          "root_block_device": [{"volume_size": 50}]
+        }
+      }
+    },
+    {
+      "address": "aws_nat_gateway.forbidden",
+      "type": "aws_nat_gateway",
+      "change": {
+        "actions": ["create"],
+        "after": {}
+      }
+    },
+    {
+      "address": "aws_db_instance.expensive",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "instance_class": "db.t3.small",
+          "multi_az": true,
+          "allocated_storage": 100
+        }
+      }
+    },
+    {
+      "address": "aws_vpc_endpoint.interface",
+      "type": "aws_vpc_endpoint",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "vpc_endpoint_type": "Interface"
+        }
+      }
+    }
+  ]
+}
