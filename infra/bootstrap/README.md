@@ -26,7 +26,8 @@ cp infra/bootstrap/.env.example infra/bootstrap/.env
 | `ALERT_EMAIL` | Yes | - | Email for AWS Budgets and Cost Anomaly Detection alerts |
 | `AWS_PROFILE` | No | active CLI default | AWS CLI profile used to run bootstrap |
 | `AWS_REGION` | No | `ap-southeast-3` | Target AWS region |
-| `GITHUB_REPO` | No | `Nnaory/lore` | Exact `owner/repo` string for OIDC `sub` matching |
+| `GITHUB_REPO` | No | `Nnaory/lore` | Exact `owner/repo` string for tags and GitHub API lookup |
+| `GITHUB_OIDC_REPO` | No | auto-resolved | Immutable OIDC subject prefix (`owner@id/repo@id`) used in role trust policies |
 | `BUDGET_USD` | No | `70` | Monthly USD cost budget threshold (`IncludeCredit: false`) |
 | `ALLOW_NAT_GATEWAY` | No | `false` | Set `true` only if relaxing the `ec2:CreateNatGateway` deny guardrail |
 

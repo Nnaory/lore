@@ -38,6 +38,7 @@ load_env_file "${SCRIPT_DIR}/.env"
 
 AWS_REGION="${AWS_REGION:-ap-southeast-3}"
 GITHUB_REPO="${GITHUB_REPO:-Nnaory/lore}"
+GITHUB_OIDC_REPO="${GITHUB_OIDC_REPO:-}"
 ALERT_EMAIL="${ALERT_EMAIL:-}"
 BUDGET_USD="${BUDGET_USD:-70}"
 ALLOW_NAT_GATEWAY="${ALLOW_NAT_GATEWAY:-false}"
@@ -69,6 +70,29 @@ log() {
   printf '%s\n' "$*"
 }
 
+resolve_github_oidc_repo() {
+  if [[ -n "$GITHUB_OIDC_REPO" ]]; then
+    return 0
+  fi
+
+  local meta=""
+  if command -v gh >/dev/null 2>&1; then
+    meta="$(gh api "repos/${GITHUB_REPO}" 2>/dev/null || true)"
+  fi
+  if [[ -z "$meta" ]] && command -v curl >/dev/null 2>&1; then
+    meta="$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}" 2>/dev/null || true)"
+  fi
+
+  if [[ -n "$meta" ]]; then
+    GITHUB_OIDC_REPO="$(jq -r '"\(.owner.login)@\(.owner.id)/\(.name)@\(.id)"' <<<"$meta")"
+  fi
+
+  if [[ -z "$GITHUB_OIDC_REPO" || "$GITHUB_OIDC_REPO" == *"null"* ]]; then
+    echo "Error: could not resolve owner/repo numeric IDs for '${GITHUB_REPO}'. Set GITHUB_OIDC_REPO explicitly." >&2
+    exit 1
+  fi
+}
+
 render_policy() {
   local src="$1"
   local dst="$2"
@@ -76,6 +100,7 @@ render_policy() {
     -e "s|<ACCOUNT_ID>|${ACCOUNT_ID}|g" \
     -e "s|<AWS_REGION>|${AWS_REGION}|g" \
     -e "s|<GITHUB_REPO>|${GITHUB_REPO}|g" \
+    -e "s|<GITHUB_OIDC_REPO>|${GITHUB_OIDC_REPO}|g" \
     "$src" > "$dst"
 
   if [[ "$(basename "$src")" == "lore-guardrail-deny.json" && "$ALLOW_NAT_GATEWAY" == "true" ]]; then
@@ -626,11 +651,13 @@ main() {
     exit 1
   fi
 
+  resolve_github_oidc_repo
+
   log "=== lore bootstrap ==="
   log "Caller : $caller_arn"
   log "Account: $ACCOUNT_ID"
   log "Region : $AWS_REGION"
-  log "Repo   : $GITHUB_REPO"
+  log "Repo   : $GITHUB_REPO ($GITHUB_OIDC_REPO)"
   log "Budget : \$${BUDGET_USD}/mo -> $ALERT_EMAIL"
   log "NAT GW : $ALLOW_NAT_GATEWAY"
   log ""
