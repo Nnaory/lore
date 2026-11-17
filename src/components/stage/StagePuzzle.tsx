@@ -20,12 +20,10 @@ type StagePuzzleProps = PuzzleInteractionCallbacks & {
   puzzle: Puzzle;
   pacing: Pacing;
   seed: number;
-  /** The player's ASCII avatar, shown on the decision graph. */
-  avatar?: string;
   onComplete: () => void;
 };
 
-export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callbacks }: StagePuzzleProps) {
+export function StagePuzzle({ puzzle, pacing, seed, onComplete, ...callbacks }: StagePuzzleProps) {
   const p = usePuzzleInteraction(puzzle, callbacks);
   const boxes = choiceBoxes(puzzle.choices.length);
   const choices = puzzle.choices.slice(0, 4);
@@ -39,7 +37,7 @@ export function StagePuzzle({ puzzle, pacing, seed, avatar, onComplete, ...callb
     >
       <div className="flex-1 min-h-0 flex items-center" style={{ containerType: "size" }}>
         <StageCanvas
-          scene={{ kind: "decision", props: { label: "", count: choices.length, seed, avatar } }}
+          scene={{ kind: "decision", props: { label: "", count: choices.length, seed } }}
           sceneKey={`puzzle:${puzzle.puzzle_id}`}
           pacing={pacing}
         >

@@ -10,9 +10,7 @@
  *   and reacts to answers.
  * - Canvas: ambient scene, the lesson (its illustration when the lesson has
  *   a visual, else its text), or the decision graph puzzle;
- *   endings, completion and failure appear as overlays on it. The player's
- *   ASCII avatar (chosen on the home page) stands in the ambient and
- *   puzzle scenes.
+ *   endings, completion and failure appear as overlays on it.
  * - Chat box: the current line (typewriter in "animate" pacing), the
  *   fast|animate toggle, the story log, and the (coming soon) question box.
  *
@@ -30,8 +28,6 @@ import type { Scene, SceneContent } from "@/lib/types/scene";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
 import { loadPacing, savePacing, type Pacing } from "@/lib/story/pacing";
-import { avatarArt } from "@/lib/avatar/avatar";
-import { usePlayerAvatar } from "@/lib/avatar/use-player-avatar";
 import { stableHash } from "@/lib/ai/hash";
 import {
   getOrCreateKnowledge,
@@ -305,9 +301,8 @@ export function StoryViewer({
 
   // ── Canvas ─────────────────────────────────────────────────────────────────
   const seed = parseInt(stableHash(story.story_id), 36) % 1000;
-  const avatar = avatarArt(usePlayerAvatar());
   const chapterIndex = Math.max(0, story.chapters.findIndex((c) => c.chapter_id === currentChapter?.chapter_id));
-  const ambient = (title: string, subtitle?: string): CanvasScene => ({ kind: "ambient", props: { title, subtitle, seed, avatar } });
+  const ambient = (title: string, subtitle?: string): CanvasScene => ({ kind: "ambient", props: { title, subtitle, seed } });
 
   let canvas: ReactNode;
   if (navigationError) {
@@ -344,7 +339,6 @@ export function StoryViewer({
         puzzle={puzzle}
         pacing={pacing}
         seed={seed}
-        avatar={avatar}
         onComplete={completePuzzle}
         onIncorrect={onPuzzleIncorrect}
         onBadBranch={onPuzzleBadBranch}
