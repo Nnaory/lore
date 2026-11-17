@@ -1,0 +1,37 @@
+{
+  "resource_changes": [
+    {
+      "address": "aws_vpc.missing_name",
+      "type": "aws_vpc",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "network"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_subnet.bad_component",
+      "type": "aws_subnet",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "tags_all": {
+            "Project": "other",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "unknown",
+            "Name": "lore-prod-public-a"
+          }
+        }
+      }
+    }
+  ]
+}

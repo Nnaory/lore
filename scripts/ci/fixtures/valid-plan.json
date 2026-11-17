@@ -1,0 +1,101 @@
+{
+  "resource_changes": [
+    {
+      "address": "aws_vpc.main",
+      "type": "aws_vpc",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "cidr_block": "10.20.0.0/16",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "network",
+            "Name": "lore-prod-vpc"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_instance.web",
+      "type": "aws_instance",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "instance_type": "t3.micro",
+          "monitoring": false,
+          "credit_specification": [{"cpu_credits": "standard"}],
+          "root_block_device": [{"volume_size": 12}],
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "web",
+            "Name": "lore-prod-web"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_db_instance.db",
+      "type": "aws_db_instance",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "instance_class": "db.t3.micro",
+          "multi_az": false,
+          "allocated_storage": 20,
+          "max_allocated_storage": null,
+          "storage_type": "gp3",
+          "iops": null,
+          "performance_insights_enabled": false,
+          "monitoring_interval": 0,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "db",
+            "Name": "lore-prod-db"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_vpc_security_group_ingress_rule.web_https",
+      "type": "aws_vpc_security_group_ingress_rule",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore"
+          }
+        }
+      }
+    },
+    {
+      "address": "aws_vpc_endpoint.s3",
+      "type": "aws_vpc_endpoint",
+      "change": {
+        "actions": ["create"],
+        "after": {
+          "vpc_endpoint_type": "Gateway",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "network",
+            "Name": "lore-prod-s3-endpoint"
+          }
+        }
+      }
+    }
+  ]
+}

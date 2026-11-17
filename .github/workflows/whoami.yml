@@ -1,0 +1,81 @@
+name: whoami
+
+on:
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Print OIDC sub claim
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const token = await core.getIDToken("sts.amazonaws.com");
+            const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+            core.info(`OIDC sub: ${payload.sub}`);
+      - name: Configure AWS credentials (plan)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_PLAN_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Verify caller identity
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          echo "::add-mask::$ACCOUNT_ID"
+          aws sts get-caller-identity --query Arn --output text
+
+  apply:
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Print OIDC sub claim
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const token = await core.getIDToken("sts.amazonaws.com");
+            const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+            core.info(`OIDC sub: ${payload.sub}`);
+      - name: Configure AWS credentials (apply)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APPLY_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Verify caller identity
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          echo "::add-mask::$ACCOUNT_ID"
+          aws sts get-caller-identity --query Arn --output text
+
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production-release
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Print OIDC sub claim
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const token = await core.getIDToken("sts.amazonaws.com");
+            const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+            core.info(`OIDC sub: ${payload.sub}`);
+      - name: Configure AWS credentials (deploy)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_DEPLOY_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Verify caller identity
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          echo "::add-mask::$ACCOUNT_ID"
+          aws sts get-caller-identity --query Arn --output text

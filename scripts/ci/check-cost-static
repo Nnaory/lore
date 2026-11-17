@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Statically scan Terraform .tf files for denylisted resources and costly settings."""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+from policy_rules import ALLOWED_DB_CLASSES, ALLOWED_INSTANCE_TYPES, DENYLIST_RESOURCE_TYPES
+
+_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*|#[^\n]*", re.DOTALL)
+_RESOURCE_RE = re.compile(r'resource\s+"([^"]+)"\s+"([^"]+)"')
+_ATTR_STR_RE = re.compile(r'^\s*([a-zA-Z0-9_]+)\s*=\s*"([^"]*)"', re.MULTILINE)
+_ATTR_BOOL_RE = re.compile(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(true|false)\b", re.MULTILINE)
+
+
+def _strip_comments(text: str) -> str:
+    return _COMMENT_RE.sub("", text)
+
+
+def scan_tf_dir(infra_dir: str | Path) -> list[str]:
+    """Scan Terraform files under infra_dir (excluding .terraform and bootstrap) for violations."""
+    root = Path(infra_dir)
+    errors: list[str] = []
+
+    tf_files = sorted(
+        p
+        for p in root.rglob("*.tf")
+        if ".terraform" not in p.parts and "bootstrap" not in p.parts
+    )
+
+    for path in tf_files:
+        cleaned = _strip_comments(path.read_text(encoding="utf-8"))
+        rel = str(path)
+
+        for rtype, rname in _RESOURCE_RE.findall(cleaned):
+            if rtype in DENYLIST_RESOURCE_TYPES:
+                errors.append(f"{rel}: resource '{rtype}.{rname}' is on the cost denylist")
+
+        for key, val in _ATTR_STR_RE.findall(cleaned):
+            if key == "instance_type" and val not in ALLOWED_INSTANCE_TYPES:
+                errors.append(f"{rel}: literal instance_type '{val}' not allowed")
+            elif key == "instance_class" and val not in ALLOWED_DB_CLASSES:
+                errors.append(f"{rel}: literal instance_class '{val}' not allowed")
+            elif key == "vpc_endpoint_type" and val == "Interface":
+                errors.append(f"{rel}: vpc_endpoint_type 'Interface' is disallowed")
+            elif key == "cpu_credits" and val == "unlimited":
+                errors.append(f"{rel}: cpu_credits 'unlimited' is disallowed")
+            elif key == "tier" and val == "Advanced":
+                errors.append(f"{rel}: SSM parameter tier 'Advanced' is disallowed")
+            elif key == "storage_type" and val in ("io1", "io2"):
+                errors.append(f"{rel}: storage_type '{val}' is disallowed")
+
+        for key, val in _ATTR_BOOL_RE.findall(cleaned):
+            if key in ("multi_az", "monitoring", "performance_insights_enabled") and val == "true":
+                errors.append(f"{rel}: {key} = true is disallowed")
+
+    return errors
+
+
+def main() -> int:
+    """CLI entrypoint for static Terraform cost scanning."""
+    target = sys.argv[1] if len(sys.argv) > 1 else "infra"
+    errors = scan_tf_dir(target)
+    if errors:
+        for err in errors:
+            print(f"STATIC COST VIOLATION: {err}", file=sys.stderr)
+        return 1
+
+    print("check-cost-static: OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

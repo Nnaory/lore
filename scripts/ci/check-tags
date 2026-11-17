@@ -1,0 +1,87 @@
+#!/usr/bin/env python3
+"""Validate mandatory AWS resource tags in a Terraform plan JSON file."""
+
+from __future__ import annotations
+
+import sys
+from typing import Any
+
+from policy_rules import (
+    ALLOWED_COMPONENTS,
+    ALLOWED_PROJECT_VALUE,
+    COMPONENT_EXEMPT_TYPES,
+    NAME_REQUIRED_TYPES,
+    REQUIRED_COMMON_TAGS,
+    load_plan,
+)
+
+
+def _extract_tags(change: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    """Return known tags and whether common tags come from unknown tags_all."""
+    after = change.get("after") or {}
+    tags_all = after.get("tags_all")
+    if isinstance(tags_all, dict):
+        return tags_all, False
+
+    after_unknown = change.get("after_unknown") or {}
+    tags = after.get("tags")
+    if after_unknown.get("tags_all") and isinstance(tags, dict):
+        return tags, True
+    return {}, False
+
+
+def validate_tags(plan_path: str) -> list[str]:
+    """Return a list of tag policy violation messages for the given plan JSON."""
+    errors: list[str] = []
+
+    for entry in load_plan(plan_path):
+        change = entry.get("change") or {}
+        actions = change.get("actions") or []
+        after = change.get("after")
+        if actions == ["delete"] or not isinstance(after, dict) or "tags_all" not in after:
+            continue
+
+        address = entry.get("address", "<unknown>")
+        rtype = entry.get("type", "")
+        tags, partial_unknown = _extract_tags(change)
+
+        if not partial_unknown:
+            missing_common = [k for k in REQUIRED_COMMON_TAGS if not tags.get(k)]
+            if missing_common:
+                errors.append(f"{address}: missing required tags {','.join(missing_common)}")
+            elif tags.get("Project") != ALLOWED_PROJECT_VALUE:
+                errors.append(
+                    f"{address}: Project tag must be '{ALLOWED_PROJECT_VALUE}', got '{tags.get('Project')}'"
+                )
+
+        if rtype not in COMPONENT_EXEMPT_TYPES:
+            comp = tags.get("Component")
+            if not comp:
+                errors.append(f"{address}: missing required tag Component")
+            elif comp not in ALLOWED_COMPONENTS:
+                errors.append(f"{address}: invalid Component tag '{comp}'")
+
+        if rtype in NAME_REQUIRED_TYPES and not tags.get("Name"):
+            errors.append(f"{address}: missing required tag Name")
+
+    return errors
+
+
+def main() -> int:
+    """CLI entrypoint for tag compliance checking."""
+    if len(sys.argv) != 2:
+        print("Usage: check-tags <plan.json>", file=sys.stderr)
+        return 2
+
+    errors = validate_tags(sys.argv[1])
+    if errors:
+        for err in errors:
+            print(f"TAG VIOLATION: {err}", file=sys.stderr)
+        return 1
+
+    print("check-tags: OK")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
