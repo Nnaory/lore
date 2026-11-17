@@ -6,6 +6,36 @@ export AWS_PAGER=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 POLICIES_DIR="${SCRIPT_DIR}/policies"
 
+load_env_file() {
+  local env_file="$1"
+  [[ -f "$env_file" ]] || return 0
+
+  local line key val
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    line="${line#"${line%%[![:space:]]*}"}"
+    [[ -z "$line" || "$line" == \#* ]] && continue
+    [[ "$line" == export\ * ]] && line="${line#export }"
+    [[ "$line" == *=* ]] || continue
+
+    key="${line%%=*}"
+    val="${line#*=}"
+    key="${key%"${key##*[![:space:]]}"}"
+    val="${val#"${val%%[![:space:]]*}"}"
+    val="${val%"${val##*[![:space:]]}"}"
+
+    if [[ "$val" =~ ^\"(.*)\"$ || "$val" =~ ^\'(.*)\'$ ]]; then
+      val="${BASH_REMATCH[1]}"
+    fi
+
+    if [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ && -z "${!key:-}" ]]; then
+      printf -v "$key" '%s' "$val"
+      export "${key?}"
+    fi
+  done < "$env_file"
+}
+
+load_env_file "${SCRIPT_DIR}/.env"
+
 AWS_REGION="${AWS_REGION:-ap-southeast-3}"
 GITHUB_REPO="${GITHUB_REPO:-Nnaory/lore}"
 ALERT_EMAIL="${ALERT_EMAIL:-}"
@@ -17,7 +47,14 @@ ENVIRONMENT="prod"
 
 usage() {
   cat <<'EOF'
-Usage: ALERT_EMAIL=<email> [AWS_PROFILE=<profile>] [AWS_REGION=ap-southeast-3] [BUDGET_USD=70] [ALLOW_NAT_GATEWAY=false] ./bootstrap.sh
+Error: ALERT_EMAIL is required.
+
+Copy infra/bootstrap/.env.example to infra/bootstrap/.env and edit ALERT_EMAIL,
+or pass variables inline:
+
+  ALERT_EMAIL=<email> [AWS_PROFILE=<profile>] [AWS_REGION=ap-southeast-3] \
+    [GITHUB_REPO=Nnaory/lore] [BUDGET_USD=70] [ALLOW_NAT_GATEWAY=false] \
+    ./infra/bootstrap/bootstrap.sh
 EOF
 }
 
