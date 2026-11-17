@@ -40,3 +40,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# terraform
+infra/.terraform/
+*.tfstate*
+*.tfvars
+!*.tfvars.example
+infra/tfplan
+infra/plan.txt
+infra/plan.json
