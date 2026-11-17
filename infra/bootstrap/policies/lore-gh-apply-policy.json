@@ -41,6 +41,15 @@
       }
     },
     {
+      "Sid": "SsmPublicAmiParameters",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:GetParameters"
+      ],
+      "Resource": "arn:aws:ssm:<AWS_REGION>::parameter/aws/service/*"
+    },
+    {
       "Sid": "SecretsManagerRdsManagedOnly",
       "Effect": "Allow",
       "Action": [
