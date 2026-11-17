@@ -57,6 +57,3 @@ export const CampaignBlueprintSchema = z.object({
     .array(StorySummaryEntrySchema)
     .min(1, "story_sequence must contain at least one story"),
 });
-
-export type CharacterFromSchema = z.infer<typeof CharacterSchema>;
-export type CampaignBlueprintFromSchema = z.infer<typeof CampaignBlueprintSchema>;

@@ -1,8 +1,7 @@
 /**
  * usePuzzleInteraction — the rules of answering one puzzle
  *
- * Shared by the classic PuzzleInteraction card and the stage canvas puzzle,
- * so both behave identically:
+ * Used by StagePuzzle. The rules:
  *   - submission blocked with no choice, after a correct answer, or when failed
  *   - the selected choice locks after a correct answer
  *   - correctness comes only from validateMultipleChoice (the game engine)

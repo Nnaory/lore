@@ -33,5 +33,4 @@ export const MaterialBlueprintSchema = z.object({
 
 // Inferred TypeScript types from schemas (use these instead of hand-written types
 // when you need runtime-validated values)
-export type ConceptFromSchema = z.infer<typeof ConceptSchema>;
 export type MaterialBlueprintFromSchema = z.infer<typeof MaterialBlueprintSchema>;

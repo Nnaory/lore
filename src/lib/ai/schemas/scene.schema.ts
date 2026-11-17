@@ -128,7 +128,3 @@ export const SceneSchema = z.discriminatedUnion("type", [
   ConsequenceSceneSchema,
   EndingSceneSchema,
 ]);
-
-export type SceneContentFromSchema = z.infer<typeof SceneContentSchema>;
-export type SceneFromSchema = z.infer<typeof SceneSchema>;
-export type EndingFromSchema = z.infer<typeof EndingSchema>;

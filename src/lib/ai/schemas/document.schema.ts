@@ -39,5 +39,3 @@ export const ExtractedDocumentSchema = z
     (doc) => new Set(doc.sections.map((s) => s.section_id)).size === doc.sections.length,
     { message: "section_id values must be unique", path: ["sections"] }
   );
-
-export type ExtractedDocumentFromSchema = z.infer<typeof ExtractedDocumentSchema>;

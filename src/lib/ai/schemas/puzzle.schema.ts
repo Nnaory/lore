@@ -41,6 +41,3 @@ export const PuzzleSchema = z
       path: ["correct_choice_id"],
     }
   );
-
-export type PuzzleChoiceFromSchema = z.infer<typeof PuzzleChoiceSchema>;
-export type PuzzleFromSchema = z.infer<typeof PuzzleSchema>;

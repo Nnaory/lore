@@ -157,21 +157,4 @@ export interface IStoryGeneratorProvider {
   healthCheck?(): Promise<{ healthy: boolean; detail?: string }>;
 }
 
-// ---------------------------------------------------------------------------
-// Service-level request context (post-validation)
-// ---------------------------------------------------------------------------
-
-/**
- * The validated context the engine/validator work with. Produced by the
- * service after it verifies `story ∈ campaign.story_sequence` and
- * `material.material_id === story.material_id`.
- */
-export interface StoryGenerationContext {
-  campaign: CampaignBlueprint;
-  entry: StorySummaryEntry;
-  material: MaterialBlueprint;
-  previousSummaries: PreviousStorySummary[];
-  options: StoryGeneratorOptions;
-}
-
 export type { CampaignBlueprint, StorySummaryEntry, MaterialBlueprint, StoryBlueprint };

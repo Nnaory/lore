@@ -4,8 +4,7 @@
  * The canvas draws the decision graph (a node with lines to the answer
  * boxes); each answer box is a clickable HTML button laid over it. Below
  * the canvas, a strip holds the question, feedback and the submit/continue
- * button. Answer rules come from usePuzzleInteraction, shared with the
- * classic PuzzleInteraction card (same test ids).
+ * button. Answer rules come from usePuzzleInteraction.
  */
 
 "use client";
