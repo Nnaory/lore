@@ -14,6 +14,7 @@ import CreatePage from "@/app/create/page";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
 import { BUILD_MESSAGES } from "@/lib/setup/request-campaign";
 import { loadProject } from "@/lib/state/project-store";
+import { setPendingMaterial, takePendingMaterial } from "@/lib/setup/pending-material";
 import { routeFetch } from "../fixtures/route-fetch";
 import { freshStore } from "../fixtures/fresh-store";
 import { Activity } from "react";
@@ -27,7 +28,10 @@ vi.mock("next/link", () => ({
 const push = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 
-beforeEach(freshStore);
+beforeEach(() => {
+  takePendingMaterial();
+  return freshStore();
+});
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -47,6 +51,51 @@ function pasteMaterial(text: string) {
 function chooseGenre(genre: string) {
   fireEvent.click(screen.getByTestId(`genre-${genre}`).querySelector("input")!);
 }
+
+describe("/create — material sent from the home page", () => {
+  it("reads sent text as pasted material", () => {
+    setPendingMaterial({ kind: "text", text: NOTES });
+    render(<CreatePage />);
+
+    expect(screen.getByTestId("document-card").dataset.status).toBe("ready");
+    expect(screen.getByTestId("document-name").textContent).toBe("Pasted text");
+    expect(screen.queryByTestId("material-dropzone")).toBeNull();
+  });
+
+  it("reads a sent file", async () => {
+    setPendingMaterial({ kind: "file", file: new File([NOTES], "week3.txt", { type: "text/plain" }) });
+    render(<CreatePage />);
+
+    // Reading is async; give a loaded machine more than the 1 s default.
+    expect((await screen.findByTestId("document-stats", {}, { timeout: 10_000 })).textContent).toContain("2 sections");
+    expect(screen.getByTestId("document-name").textContent).toBe("week3.txt");
+  });
+
+  it("shows why a sent file cannot be read", async () => {
+    setPendingMaterial({ kind: "file", file: new File(["x"], "old.doc", { type: "application/msword" }) });
+    render(<CreatePage />);
+
+    expect((await screen.findByTestId("document-error", {}, { timeout: 10_000 })).textContent).toMatch(/\S/);
+    expect(screen.getByTestId("document-card").dataset.status).toBe("error");
+  });
+
+  it("uses the material once, then starts empty", () => {
+    setPendingMaterial({ kind: "text", text: NOTES });
+    const first = render(<CreatePage />);
+    first.unmount();
+
+    render(<CreatePage />);
+    expect(screen.getByTestId("material-dropzone")).toBeTruthy();
+  });
+
+  it("still lets the player choose a world and build", async () => {
+    setPendingMaterial({ kind: "text", text: NOTES });
+    render(<CreatePage />);
+    chooseGenre("fantasy");
+
+    expect(screen.getByTestId("build-button")).toBeEnabled();
+  });
+});
 
 describe("/create — material step", () => {
   it("starts with an upload area and a disabled build button", () => {
