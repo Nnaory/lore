@@ -49,3 +49,7 @@ infra/.terraform/
 infra/tfplan
 infra/plan.txt
 infra/plan.json
+
+# python
+__pycache__/
+*.py[cod]
