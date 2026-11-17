@@ -37,3 +37,13 @@ output "s3_endpoint_id" {
   description = "ID of the S3 Gateway VPC endpoint."
   value       = aws_vpc_endpoint.s3.id
 }
+
+output "nat_instance_id" {
+  description = "ID of the NAT instance (when nat_mode = instance)."
+  value       = var.nat_mode == "instance" ? aws_instance.nat[0].id : null
+}
+
+output "nat_public_ip" {
+  description = "Elastic IP address of the NAT instance."
+  value       = var.nat_mode == "instance" ? aws_eip.nat[0].public_ip : null
+}

@@ -97,6 +97,14 @@ resource "aws_route_table_association" "app_a" {
   route_table_id = aws_route_table.app.id
 }
 
+resource "aws_route" "app_default_via_nat_instance" {
+  count = var.nat_mode == "instance" ? 1 : 0
+
+  route_table_id         = aws_route_table.app.id
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = aws_instance.nat[0].primary_network_interface_id
+}
+
 resource "aws_route_table" "data" {
   vpc_id = aws_vpc.main.id
 
