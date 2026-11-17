@@ -7,10 +7,7 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { generateStory, generateCampaignStories } from "@/lib/ai/story-generator-service";
-import {
-  getStoryGeneratorProviderCached,
-  resetStoryGeneratorProviderCache,
-} from "@/lib/ai/providers";
+import { resetStoryGeneratorProviderCache } from "@/lib/ai/providers";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
 import type { StoryBlueprint } from "@/lib/types/story";
 import {
@@ -20,10 +17,8 @@ import {
   dummyPlannerOptions,
 } from "@/data/dummy-campaign";
 import type { GenerateStoryRequest } from "@/lib/ai/story-generator-types";
-import type { StorySummaryEntry } from "@/lib/types/campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { IStoryGeneratorProvider } from "@/lib/ai/story-generator-types";
-import type { AIProviderId } from "@/lib/ai/types";
 
 // ---------------------------------------------------------------------------
 // Fixtures
@@ -354,7 +349,6 @@ describe("generateCampaignStories", () => {
       [dummyMaterial, dummyMaterial2, dummyMaterial3]
     );
     expect(result.ok).toBe(true);
-    const story1 = result.stories.get(campaign.story_sequence[0].story_id)!;
     const story2 = result.stories.get(campaign.story_sequence[1].story_id)!;
     // story2's continuity should reference story1's outcome
     expect(story2.continuity_summary?.outcome_description).toBeTruthy();

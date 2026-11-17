@@ -65,7 +65,7 @@ describe("Puzzle story integration — navigation to puzzle", () => {
     expect(view.queryByTestId("puzzle-interaction")).toBeTruthy();
   });
 
-  it("should render PuzzleInteraction, not the old placeholder", () => {
+  it("should render the puzzle interaction, not the old placeholder", () => {
     const view = advanceToPuzzle();
     expect(view.queryByTestId("puzzle-placeholder")).toBeNull();
     expect(view.queryByTestId("puzzle-interaction")).toBeTruthy();

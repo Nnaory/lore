@@ -11,16 +11,10 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/ai/full-workflow/route";
-import {
-  dummyMaterial,
-  dummyMaterial2,
-  dummyMaterial3,
-  dummyPlannerOptions,
-} from "@/data/dummy-campaign";
+import { dummyPlannerOptions } from "@/data/dummy-campaign";
 import { resetProviderCache } from "@/lib/ai/providers";
 import { resetCampaignPlannerCache } from "@/lib/ai/campaign-planner";
 import { resetStoryGeneratorProviderCache } from "@/lib/ai/providers";
-import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import { validateCampaign } from "@/lib/validation/campaign-validator";
 
