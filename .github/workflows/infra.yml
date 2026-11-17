@@ -106,7 +106,7 @@ jobs:
       - name: Destroy guard for stateful resources
         if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.allow_destroy) }}
         run: |
-          jq -e '[.resource_changes[]
+          jq -e '[(.resource_changes // [])[]
             | select(.change.actions | index("delete"))
             | select(.type | IN("aws_db_instance", "aws_eip", "aws_s3_bucket"))] | length == 0' infra/plan.json
 
