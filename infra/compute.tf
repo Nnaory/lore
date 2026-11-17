@@ -5,14 +5,13 @@ data "aws_ssm_parameter" "al2023" {
 resource "aws_instance" "nat" {
   count = var.nat_mode == "instance" ? 1 : 0
 
-  ami                         = data.aws_ssm_parameter.al2023.value
-  instance_type               = var.instance_type
-  subnet_id                   = aws_subnet.public_a.id
-  vpc_security_group_ids      = [aws_security_group.nat.id]
-  iam_instance_profile        = aws_iam_instance_profile.instance["nat"].name
-  source_dest_check           = false
-  associate_public_ip_address = false
-  monitoring                  = false
+  ami                    = data.aws_ssm_parameter.al2023.value
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public_a.id
+  vpc_security_group_ids = [aws_security_group.nat.id]
+  iam_instance_profile   = aws_iam_instance_profile.instance["nat"].name
+  source_dest_check      = false
+  monitoring             = false
 
   credit_specification {
     cpu_credits = "standard"
@@ -35,7 +34,7 @@ resource "aws_instance" "nat" {
   user_data_replace_on_change = true
 
   lifecycle {
-    ignore_changes = [ami]
+    ignore_changes = [ami, associate_public_ip_address]
   }
 
   tags = {
