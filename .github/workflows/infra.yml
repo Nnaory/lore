@@ -1,0 +1,202 @@
+name: infra
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - "deploy/**"
+      - ".github/workflows/infra.yml"
+      - "scripts/ci/**"
+  push:
+    branches: [main]
+    paths:
+      - "infra/**"
+      - "deploy/**"
+      - ".github/workflows/infra.yml"
+      - "scripts/ci/**"
+  workflow_dispatch:
+    inputs:
+      allow_destroy:
+        description: "Allow destroying protected resources (RDS, EIP, S3 bucket)"
+        type: boolean
+        required: false
+        default: false
+      replace:
+        description: "Optional Terraform resource address for -replace"
+        type: string
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  id-token: write
+  pull-requests: write
+
+concurrency:
+  group: lore-prod-infra
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    outputs:
+      changes: ${{ steps.plan.outputs.changes }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configure AWS credentials (plan)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_PLAN_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Mask AWS account ID
+        id: account
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          echo "::add-mask::$ACCOUNT_ID"
+          echo "id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.15.9"
+          terraform_wrapper: false
+
+      - name: Terraform format check
+        run: terraform -chdir=infra fmt -check -recursive
+
+      - name: Terraform init and validate
+        run: |
+          terraform -chdir=infra init -input=false
+          terraform -chdir=infra validate
+
+      - name: Terraform plan
+        id: plan
+        working-directory: infra
+        env:
+          TF_REPLACE: ${{ inputs.replace }}
+        run: |
+          plan_args=(-detailed-exitcode -input=false -no-color -out=tfplan)
+          if [[ -n "${TF_REPLACE:-}" ]]; then
+            plan_args+=("-replace=${TF_REPLACE}")
+          fi
+          set +e
+          terraform plan "${plan_args[@]}" 2>&1 | tee plan.txt
+          code=${PIPESTATUS[0]}
+          set -e
+          if [[ "$code" -eq 1 ]]; then
+            exit 1
+          fi
+          if [[ "$code" -eq 2 ]]; then
+            echo "changes=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changes=false" >> "$GITHUB_OUTPUT"
+          fi
+          terraform show -json tfplan > plan.json
+
+      - name: Run static and plan cost/tag checks
+        run: |
+          python3 scripts/ci/check-cost-static infra
+          python3 scripts/ci/check-tags infra/plan.json
+          python3 scripts/ci/check-cost infra/plan.json
+
+      - name: Destroy guard for stateful resources
+        if: ${{ !(github.event_name == 'workflow_dispatch' && inputs.allow_destroy) }}
+        run: |
+          jq -e '[.resource_changes[]
+            | select(.change.actions | index("delete"))
+            | select(.type | IN("aws_db_instance", "aws_eip", "aws_s3_bucket"))] | length == 0' infra/plan.json
+
+      - name: Redact AWS account ID from plan output
+        env:
+          ACCOUNT_ID: ${{ steps.account.outputs.id }}
+        run: |
+          if [[ -n "$ACCOUNT_ID" ]]; then
+            sed -i "s/${ACCOUNT_ID}/<ACCOUNT_ID>/g" infra/plan.txt
+          fi
+
+      - name: Post sticky PR plan comment
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        with:
+          script: |
+            const fs = require("fs");
+            const marker = "<!-- lore-tf-plan -->";
+            let plan = fs.readFileSync("infra/plan.txt", "utf8");
+            if (plan.length > 60000) {
+              plan = plan.slice(0, 60000) + "\n... (truncated)";
+            }
+            const backtickRuns = plan.match(/`+/g) || [];
+            const maxTicks = backtickRuns.reduce((m, s) => Math.max(m, s.length), 2);
+            const fence = "`".repeat(maxTicks + 1);
+            const body = `${marker}\n### Terraform plan\n\n${fence}\n${plan}\n${fence}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const existing = comments.find((c) => c.body && c.body.startsWith(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body,
+              });
+            }
+
+      - name: Upload tfplan artifact
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && steps.plan.outputs.changes == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: tfplan
+          path: infra/tfplan
+          retention-days: 1
+
+  apply:
+    needs: plan
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && needs.plan.outputs.changes == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Configure AWS credentials (apply)
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_APPLY_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Mask AWS account ID
+        run: |
+          ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+          echo "::add-mask::$ACCOUNT_ID"
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.15.9"
+          terraform_wrapper: false
+
+      - name: Download tfplan artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: tfplan
+          path: infra
+
+      - name: Terraform init and apply
+        working-directory: infra
+        run: |
+          terraform init -input=false
+          terraform apply -input=false tfplan
