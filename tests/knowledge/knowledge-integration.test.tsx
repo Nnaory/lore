@@ -17,7 +17,6 @@ import { linearStory } from "../fixtures/linear-story";
 import type { PlayerKnowledge } from "@/lib/types/game";
 
 const characters = dummyCampaign.characters;
-const LEARNING_SCENE_ID = "scene_02_learning";
 const CONCEPT_ID = "concept_linear_combination";
 
 // ── Helper: click chat area to advance ────────────────────────────────────────

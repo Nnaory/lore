@@ -236,7 +236,7 @@ describe("StoryViewer — click-to-advance interaction", () => {
 
 describe("StoryViewer — scene transition", () => {
   it("should transition to scene_02_learning after finishing scene_01_intro", () => {
-    const view = advanceThroughFirstScene();
+    advanceThroughFirstScene();
     // Location should still be "The Beacon Antechamber" (same location)
     const header = document.querySelector('[data-testid="story-header"]');
     expect(header).toBeTruthy();

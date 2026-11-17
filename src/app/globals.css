@@ -51,19 +51,6 @@
 
 /* Tailwind v4 theme registration */
 @theme inline {
-  --color-background:        var(--background);
-  --color-background-panel:  var(--background-panel);
-  --color-accent:            var(--accent);
-  --color-accent-gold:       var(--accent-gold);
-  --color-accent-gold-dim:   var(--accent-gold-dim);
-  --color-accent-gold-faint: var(--accent-gold-faint);
-  --color-foreground:        var(--foreground);
-  --color-foreground-muted:  var(--foreground-muted);
-  --color-foreground-faint:  var(--foreground-faint);
-  --color-border:            var(--border);
-  --color-border-dim:        var(--border-dim);
-  --color-danger:            var(--danger);
-  --color-danger-bg:         var(--danger-bg);
   --font-sans:               var(--font-sans);
   --font-mono:               var(--font-mono);
 }
@@ -163,43 +150,6 @@ textarea:focus-visible {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Responsive utilities
-   ───────────────────────────────────────────────────────────────────────── */
-
-.sidebar-width {
-  width: 16rem; /* 256px */
-  min-width: 16rem;
-  max-width: 16rem;
-}
-
-@media (max-width: 1024px) {
-  .hide-on-tablet {
-    display: none !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .hide-on-mobile {
-    display: none !important;
-  }
-
-  .mobile-full {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-  }
-
-  .sidebar-collapsed {
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    padding: 0 !important;
-    border: none !important;
-    overflow: hidden !important;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    Reduced motion
    ───────────────────────────────────────────────────────────────────────── */
 
@@ -212,54 +162,6 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Navbar (mobile)
-   ───────────────────────────────────────────────────────────────────────── */
-
-.navbar {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  background: var(--background-panel);
-  border-top: 1px solid var(--border);
-  padding: 0.5rem 1rem;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-}
-
-@media (min-width: 768px) {
-  .navbar {
-    display: none;
-  }
-}
-
-.navbar-btn {
-  background: transparent;
-  border: 1px solid var(--border-dim);
-  color: var(--foreground-muted);
-  padding: 0.5rem 1rem;
-  border-radius: 0.375rem;
-  font-size: 0.75rem;
-  font-family: var(--font-mono);
-  transition: all 0.15s ease;
-}
-
-.navbar-btn:hover,
-.navbar-btn:focus-visible {
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
-  background: rgba(232, 197, 71, 0.1);
-}
-
-.navbar-btn.active {
-  border-color: var(--accent-gold);
-  color: var(--accent-gold);
-  background: rgba(232, 197, 71, 0.15);
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -436,6 +338,11 @@ textarea:focus-visible {
     var(--glass-shadow);
 }
 
+/* The chat field inside the composer: the card's own focus glow marks focus, so no second ring. */
+.lore-composer-input:focus-visible { outline: none; }
+.lore-composer-input::placeholder { color: var(--foreground-faint); }
+.lore-composer-input:disabled { cursor: not-allowed; }
+
 /* Panels full of text and controls: frosted and darker, never refracted, so they stay readable. */
 .lore-glass-panel {
   --blur: 18px;
@@ -469,6 +376,8 @@ textarea:focus-visible {
 .lore-pill:disabled { opacity: 0.4; cursor: not-allowed; }
 .lore-pill-sm { height: 28px; padding: 0 12px; gap: 6px; font-size: 12px; }
 .lore-pill-lg { height: 44px; padding: 0 24px; font-size: 14px; }
+/* A round, icon-only button (attach, send). */
+.lore-pill-icon { width: 38px; height: 38px; padding: 0; }
 .lore-pill-primary { border-color: transparent; background: var(--accent); color: var(--background); font-weight: 500; }
 .lore-pill-primary:hover { background: color-mix(in srgb, var(--accent) 86%, white); color: var(--background); }
 .lore-pill-accent { border-color: color-mix(in srgb, var(--accent-gold) 55%, transparent); color: var(--accent-gold); }
@@ -502,8 +411,6 @@ button.lore-tile:hover { background: rgba(255, 255, 255, 0.08); }
   background: rgba(0, 0, 0, 0.24);
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
-
-.lore-hairline { height: 1px; background: rgba(255, 255, 255, 0.08); }
 
 /* A halo in the background colour keeps text legible over passing pumpkins. */
 .lore-halo { text-shadow: 0 0 6px var(--background), 0 0 24px var(--background); }

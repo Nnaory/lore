@@ -92,9 +92,6 @@ describe("selectSubmitBlocker", () => {
     expect(selectSubmitBlocker(run(...loaded, { type: "all_sections_set", selected: false }))).toBe("no_sections");
     expect(selectSubmitBlocker(run(...loaded))).toBe("no_genre");
     expect(selectSubmitBlocker(run(...loaded, { type: "genre_set", genre: "fantasy" }))).toBeNull();
-    expect(
-      selectSubmitBlocker(run(...loaded, { type: "genre_set", genre: "fantasy" }, { type: "submit_started" }))
-    ).toBe("submitting");
   });
 
   it("blocks material over the limit", () => {

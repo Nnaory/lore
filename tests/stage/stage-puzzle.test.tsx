@@ -1,5 +1,8 @@
 /**
- * Tests — PuzzleInteraction Component
+ * Tests — StagePuzzle (the puzzle the player sees on the stage)
+ *
+ * The answer rules live in usePuzzleInteraction; these tests drive them through the
+ * stage UI, which is the only puzzle UI the app renders.
  *
  * @vitest-environment jsdom
  *
@@ -21,7 +24,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { render, fireEvent } from "@testing-library/react";
-import { PuzzleInteraction } from "@/components/story/PuzzleInteraction";
+import { StagePuzzle } from "@/components/stage/StagePuzzle";
 import { dummyStory } from "@/data/dummy-campaign";
 
 const puzzle = dummyStory.puzzles[0];
@@ -29,22 +32,17 @@ const puzzle = dummyStory.puzzles[0];
 // incorrect choices: "choice_A", "choice_C"
 
 function makePuzzleView(onComplete = vi.fn()) {
-  return render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+  return render(<StagePuzzle puzzle={puzzle} pacing="fast" seed={1} onComplete={onComplete} />);
 }
 
 // ── 1. Question renders ──────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — render", () => {
+describe("StagePuzzle — render", () => {
   it("should render the puzzle question", () => {
     const view = makePuzzleView();
     const question = view.getByTestId("puzzle-question");
     expect(question.textContent).toContain("Crystal A");
     expect(question.textContent).toContain("Crystal B");
-  });
-
-  it("should render the narrative context", () => {
-    const view = makePuzzleView();
-    expect(view.getByTestId("puzzle-narrative-context").textContent?.length).toBeGreaterThan(0);
   });
 
   it("should render all choices", () => {
@@ -61,7 +59,7 @@ describe("PuzzleInteraction — render", () => {
 
 // ── 2. Submit button disabled with no selection ──────────────────────────────
 
-describe("PuzzleInteraction — submit disabled", () => {
+describe("StagePuzzle — submit disabled", () => {
   it("should have submit button disabled when no choice is selected", () => {
     const view = makePuzzleView();
     const submitBtn = view.getByTestId("puzzle-submit");
@@ -70,7 +68,7 @@ describe("PuzzleInteraction — submit disabled", () => {
 
   it("should not call onComplete when submit is clicked with no selection", () => {
     const onComplete = vi.fn();
-    const view = render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+    const view = makePuzzleView(onComplete);
     // Force-click submit despite disabled — should not trigger
     fireEvent.click(view.getByTestId("puzzle-submit"));
     expect(onComplete).not.toHaveBeenCalled();
@@ -79,7 +77,7 @@ describe("PuzzleInteraction — submit disabled", () => {
 
 // ── 3. Select a choice ───────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — choice selection", () => {
+describe("StagePuzzle — choice selection", () => {
   it("should enable submit button after selecting a choice", () => {
     const view = makePuzzleView();
     fireEvent.click(view.getByTestId("choice-choice_A"));
@@ -97,7 +95,7 @@ describe("PuzzleInteraction — choice selection", () => {
 
 // ── 4. Incorrect answer ──────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — incorrect answer", () => {
+describe("StagePuzzle — incorrect answer", () => {
   it("should show feedback after an incorrect submission", () => {
     const view = makePuzzleView();
     fireEvent.click(view.getByTestId("choice-choice_A")); // wrong answer
@@ -110,7 +108,7 @@ describe("PuzzleInteraction — incorrect answer", () => {
 
   it("should not call onComplete after an incorrect answer", () => {
     const onComplete = vi.fn();
-    const view = render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+    const view = makePuzzleView(onComplete);
     fireEvent.click(view.getByTestId("choice-choice_A"));
     fireEvent.click(view.getByTestId("puzzle-submit"));
     expect(onComplete).not.toHaveBeenCalled();
@@ -141,7 +139,7 @@ describe("PuzzleInteraction — incorrect answer", () => {
 
 // ── 5. Correct answer ────────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — correct answer", () => {
+describe("StagePuzzle — correct answer", () => {
   it("should show feedback after a correct submission", () => {
     const view = makePuzzleView();
     fireEvent.click(view.getByTestId("choice-choice_B")); // correct
@@ -171,7 +169,7 @@ describe("PuzzleInteraction — correct answer", () => {
 
   it("should call onComplete when continue is clicked after correct answer", () => {
     const onComplete = vi.fn();
-    const view = render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+    const view = makePuzzleView(onComplete);
     fireEvent.click(view.getByTestId("choice-choice_B"));
     fireEvent.click(view.getByTestId("puzzle-submit"));
     fireEvent.click(view.getByTestId("puzzle-continue"));
@@ -181,7 +179,7 @@ describe("PuzzleInteraction — correct answer", () => {
 
 // ── 6. Post-correct lock ─────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — locked after correct answer", () => {
+describe("StagePuzzle — locked after correct answer", () => {
   it("should disable all choice buttons after correct answer", () => {
     const view = makePuzzleView();
     fireEvent.click(view.getByTestId("choice-choice_B"));
@@ -194,7 +192,7 @@ describe("PuzzleInteraction — locked after correct answer", () => {
 
   it("should not call onComplete more than once even with multiple continue clicks", () => {
     const onComplete = vi.fn();
-    const view = render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+    const view = makePuzzleView(onComplete);
     fireEvent.click(view.getByTestId("choice-choice_B"));
     fireEvent.click(view.getByTestId("puzzle-submit"));
     // Click continue multiple times
@@ -203,7 +201,7 @@ describe("PuzzleInteraction — locked after correct answer", () => {
     fireEvent.click(continueBtn);
     fireEvent.click(continueBtn);
     // onComplete is called once per click — that's correct because
-    // the parent (SceneRenderer/StoryViewer) controls navigation.
+    // the parent (StoryViewer) controls navigation.
     // Each click advances the story: first call is what matters.
     expect(onComplete).toHaveBeenCalled();
   });
@@ -211,10 +209,10 @@ describe("PuzzleInteraction — locked after correct answer", () => {
 
 // ── 7. Retry flow ────────────────────────────────────────────────────────────
 
-describe("PuzzleInteraction — full retry → correct flow", () => {
+describe("StagePuzzle — full retry → correct flow", () => {
   it("should allow retry after incorrect and succeed on second attempt", () => {
     const onComplete = vi.fn();
-    const view = render(<PuzzleInteraction puzzle={puzzle} onComplete={onComplete} />);
+    const view = makePuzzleView(onComplete);
 
     // First attempt — wrong
     fireEvent.click(view.getByTestId("choice-choice_A"));

@@ -4,7 +4,7 @@
  * Rendered once by the root layout, which Next.js keeps mounted while the
  * player moves between pages, so the engine and its canvas live as long as the
  * tab: nothing restarts on navigation, and what happens inside a page (opening
- * the avatar editor, say) cannot touch the background.
+ * a panel, say) cannot touch the background.
  *
  * Pages must not paint a background of their own, or they hide it.
  *

@@ -62,26 +62,3 @@ export function buildMaterialAnalysisPrompt(request: AnalyzeMaterialRequest): st
 
   return prompt;
 }
-
-/** Parses and validates the model's raw text response. */
-export function parseMaterialAnalysisResponse(
-  rawText: string
-): { ok: true; blueprint: unknown } | { ok: false; error: string } {
-  // Strip markdown code fences if present
-  const cleaned = rawText
-    .replace(/^```(?:json)?\s*/i, "")
-    .replace(/\s*```$/, "")
-    .trim();
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(cleaned);
-  } catch (e) {
-    return {
-      ok: false,
-      error: `Invalid JSON: ${e instanceof Error ? e.message : "parse error"}`,
-    };
-  }
-
-  return { ok: true, blueprint: parsed };
-}

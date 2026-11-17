@@ -100,7 +100,3 @@ export const CampaignStateSchema = z.object({
   player_knowledge: z.record(z.string(), PlayerKnowledgeSchema),
   previous_story_summaries: z.array(PreviousStorySummarySchema),
 });
-
-export type StoryStateFromSchema = z.infer<typeof StoryStateSchema>;
-export type CampaignStateFromSchema = z.infer<typeof CampaignStateSchema>;
-export type PlayerKnowledgeFromSchema = z.infer<typeof PlayerKnowledgeSchema>;

@@ -17,7 +17,7 @@
  *     calls onKnowledgeUpdate on useCampaign.
  *
  *   - onPuzzleAnswer(puzzleId, correct, isFirstAttempt): called when the
- *     player submits a puzzle answer (via PuzzleInteraction / SceneRenderer).
+ *     player submits a puzzle answer (via StagePuzzle).
  *     StoryViewer wires this to onKnowledgeUpdate on useCampaign.
  *
  *   The hook itself tracks per-puzzle attempt counts (to determine isFirstAttempt)

@@ -12,7 +12,7 @@ import {
   completeStory,
 } from "@/lib/game/campaign-manager";
 import { dummyCampaign, dummyStory } from "@/data/dummy-campaign";
-import type { CampaignState, PlayerKnowledge } from "@/lib/types/game";
+import type { CampaignState } from "@/lib/types/game";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 
 // Build a campaign variant where story_02 has a required_knowledge entry.

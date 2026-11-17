@@ -4,6 +4,8 @@
  * 01 Material: upload a PDF/DOCX/PPTX/TXT (read in the browser) or paste
  *    text, then choose which sections to use.
  * 02 World: pick a genre and optional preferences.
+ * Material typed or attached on the home page arrives here already chosen
+ * (lib/setup/pending-material) and is read as if it were added in step 01.
  * "Build the world" opens the staged generation screen (concepts → the
  * player's review → world → story). The finished campaign is saved to
  * the browser (IndexedDB) and opened at /play/[id]. If saving fails (e.g. storage is
@@ -14,7 +16,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { createProject } from "@/lib/state/project-store";
 import { ArrowLeft } from "lucide-react";
 import { extractDocument, extractPastedText, type ExtractResult } from "@/lib/ingest";
@@ -28,6 +30,7 @@ import {
 } from "@/lib/setup/create-form";
 import { useGeneration, type GenerationResult } from "@/lib/generation/use-generation";
 import type { ExtractedDocument } from "@/lib/types/document";
+import { takePendingMaterial } from "@/lib/setup/pending-material";
 import { GenerationScreen } from "@/components/setup/GenerationScreen";
 import { MaterialInput } from "@/components/setup/MaterialInput";
 import { DocumentCard } from "@/components/setup/DocumentCard";
@@ -42,7 +45,6 @@ const BLOCKER_HINT: Record<SubmitBlocker, string> = {
   too_short: "The selected text is too short to build a story from.",
   too_long: "The selected text is over the limit — deselect some sections.",
   no_genre: "Choose a world for your story.",
-  submitting: "Building your story…",
 };
 
 function StepHeading({ id, index, title }: { id: string; index: string; title: string }) {
@@ -112,6 +114,29 @@ export default function CreatePage() {
     dispatch({ type: "reset" });
   }, [resetGeneration]);
 
+  // Material sent from the home page. Effects also re-run when this page is
+  // shown again (see above), so a second send from home is picked up too.
+  // The handoff can be taken once, which keeps the dev-mode double effect from
+  // reading it twice. A layout effect, so the form never paints empty first.
+  useLayoutEffect(() => {
+    const pending = takePendingMaterial();
+    if (!pending) return;
+    // New material means a new story: drop a run left going in the background.
+    resetGeneration();
+    // The handoff lives outside React, so an effect is the only place to learn of it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGenerating(false);
+    const requestId = ++lastRequestId.current;
+    if (pending.kind === "file") {
+      const { file } = pending;
+      dispatch({ type: "read_started", requestId, fileName: file.name });
+      void extractDocument(file).then((result) => applyResult(requestId, file.name, result));
+    } else {
+      dispatch({ type: "read_started", requestId, fileName: "Pasted text" });
+      applyResult(requestId, "Pasted text", extractPastedText(pending.text));
+    }
+  }, [resetGeneration]);
+
   const materialText = selectMaterialText(state);
   const blocker = selectSubmitBlocker(state, materialText);
 
@@ -172,8 +197,6 @@ export default function CreatePage() {
       />
     );
   }
-
-  const submitting = state.submit.status === "submitting";
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="create-page">
@@ -244,9 +267,9 @@ export default function CreatePage() {
             className="text-xs"
             aria-live="polite"
             data-testid="submit-hint"
-            style={{ color: state.submit.status === "failed" ? "var(--danger)" : "var(--foreground-faint)" }}
+            style={{ color: "var(--foreground-faint)" }}
           >
-            {state.submit.status === "failed" ? state.submit.message : blocker ? BLOCKER_HINT[blocker] : "Ready when you are."}
+            {blocker ? BLOCKER_HINT[blocker] : "Ready when you are."}
           </p>
           <button
             type="button"
@@ -256,7 +279,7 @@ export default function CreatePage() {
             aria-disabled={blocker !== null}
             className="lore-pill lore-pill-lg lore-pill-primary"
           >
-            {submitting ? "Building your story…" : "Build the world →"}
+            Build the world →
           </button>
         </div>
       </footer>

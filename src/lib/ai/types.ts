@@ -91,5 +91,3 @@ export const AnalyzeMaterialRequestSchema = z.object({
   context: z.record(z.unknown()).optional(),
   genre: z.string().optional(),
 });
-
-export type AnalyzeMaterialRequestInput = z.infer<typeof AnalyzeMaterialRequestSchema>;

@@ -54,6 +54,3 @@ export const StoryBlueprintSchema = z.object({
   continuity_summary: ContinuitySummarySchema.nullable(),
   knowledge_mapping: z.array(KnowledgeMappingEntrySchema),
 });
-
-export type StoryBlueprintFromSchema = z.infer<typeof StoryBlueprintSchema>;
-export type ChapterFromSchema = z.infer<typeof ChapterSchema>;

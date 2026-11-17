@@ -8,7 +8,7 @@
  * - Upstream provider failures return 502
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { POST } from "@/app/api/ai/generate-story/route";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
@@ -21,7 +21,6 @@ import {
 import { resetStoryGeneratorProviderCache } from "@/lib/ai/providers";
 import type { CampaignBlueprint, StorySummaryEntry } from "@/lib/types/campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
-import type { StoryBlueprint } from "@/lib/types/story";
 import type { PreviousStorySummary } from "@/lib/types/game";
 
 describe("API Route — POST /api/ai/generate-story", () => {

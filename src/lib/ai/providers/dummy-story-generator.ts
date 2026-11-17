@@ -80,6 +80,3 @@ export const dummyStoryGeneratorProvider: IStoryGeneratorProvider = {
     return { healthy: true, detail: "dummy provider always available" };
   },
 };
-
-/** Type-only export for consumers that need the provider type. */
-export type DummyStoryGeneratorProvider = typeof dummyStoryGeneratorProvider;

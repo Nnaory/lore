@@ -14,19 +14,10 @@
 
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { runFullWorkflow, generateSingleStory, resetFullWorkflowCaches } from "@/lib/ai/full-workflow";
-import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
-import {
-  dummyMaterial,
-  dummyMaterial2,
-  dummyMaterial3,
-  dummyPlannerOptions,
-} from "@/data/dummy-campaign";
-import type { CampaignBlueprint } from "@/lib/types/campaign";
+import { dummyPlannerOptions } from "@/data/dummy-campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
-import type { StoryBlueprint } from "@/lib/types/story";
 import { validateCampaign } from "@/lib/validation/campaign-validator";
-import { createInitialCampaignState, isStoryUnlocked, completeStory, isCampaignComplete, getNextStoryEntry } from "@/lib/game/campaign-manager";
-import { createInitialKnowledge, recordLearningExposure, recordPuzzleSubmission } from "@/lib/game/knowledge-manager";
+import { createInitialCampaignState, isStoryUnlocked, completeStory, isCampaignComplete } from "@/lib/game/campaign-manager";
 
 describe("Full Workflow Orchestration", () => {
   beforeEach(() => {
@@ -40,8 +31,6 @@ describe("Full Workflow Orchestration", () => {
   // ---------------------------------------------------------------------------
   // Fixtures
   // ---------------------------------------------------------------------------
-
-  const threeMaterials = [dummyMaterial, dummyMaterial2, dummyMaterial3];
 
   // Use content that the dummy provider recognizes (linear algebra keywords)
   // so all three materials produce distinct blueprints

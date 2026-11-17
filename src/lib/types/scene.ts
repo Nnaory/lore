@@ -7,15 +7,6 @@
 
 import type { LessonVisual } from "./visual";
 
-/** Possible scene types as defined in the LORE data contract. */
-export type SceneType =
-  | "narrative"
-  | "learning"
-  | "interaction"
-  | "puzzle"
-  | "consequence"
-  | "ending";
-
 // ---------------------------------------------------------------------------
 // Scene content building blocks
 // ---------------------------------------------------------------------------

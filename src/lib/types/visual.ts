@@ -65,5 +65,3 @@ export type FormulaVisual = {
 };
 
 export type LessonVisual = VectorsVisual | PlotVisual | DiagramVisual | TableVisual | FormulaVisual;
-
-export type LessonVisualKind = LessonVisual["kind"];

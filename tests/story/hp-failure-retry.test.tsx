@@ -177,7 +177,7 @@ describe("Retry — state reset", () => {
   });
 
   it("should return to the first scene after retry", () => {
-    const view = reachFailureThenRetry();
+    reachFailureThenRetry();
     const header = document.querySelector('[data-testid="story-header"]');
     expect(header).toBeTruthy();
     if (header) {
