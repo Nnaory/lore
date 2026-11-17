@@ -4,6 +4,8 @@
  * 01 Material: upload a PDF/DOCX/PPTX/TXT (read in the browser) or paste
  *    text, then choose which sections to use.
  * 02 World: pick a genre and optional preferences.
+ * Material typed or attached on the home page arrives here already chosen
+ * (lib/setup/pending-material) and is read as if it were added in step 01.
  * "Build the world" opens the staged generation screen (concepts → the
  * player's review → world → story). The finished campaign is saved to
  * the browser (IndexedDB) and opened at /play/[id]. If saving fails (e.g. storage is
@@ -14,7 +16,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useReducer, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { createProject } from "@/lib/state/project-store";
 import { ArrowLeft } from "lucide-react";
 import { extractDocument, extractPastedText, type ExtractResult } from "@/lib/ingest";
@@ -28,6 +30,7 @@ import {
 } from "@/lib/setup/create-form";
 import { useGeneration, type GenerationResult } from "@/lib/generation/use-generation";
 import type { ExtractedDocument } from "@/lib/types/document";
+import { takePendingMaterial } from "@/lib/setup/pending-material";
 import { GenerationScreen } from "@/components/setup/GenerationScreen";
 import { MaterialInput } from "@/components/setup/MaterialInput";
 import { DocumentCard } from "@/components/setup/DocumentCard";
@@ -110,6 +113,29 @@ export default function CreatePage() {
     setGenerating(false);
     setBuilt(null);
     dispatch({ type: "reset" });
+  }, [resetGeneration]);
+
+  // Material sent from the home page. Effects also re-run when this page is
+  // shown again (see above), so a second send from home is picked up too.
+  // The handoff can be taken once, which keeps the dev-mode double effect from
+  // reading it twice. A layout effect, so the form never paints empty first.
+  useLayoutEffect(() => {
+    const pending = takePendingMaterial();
+    if (!pending) return;
+    // New material means a new story: drop a run left going in the background.
+    resetGeneration();
+    // The handoff lives outside React, so an effect is the only place to learn of it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGenerating(false);
+    const requestId = ++lastRequestId.current;
+    if (pending.kind === "file") {
+      const { file } = pending;
+      dispatch({ type: "read_started", requestId, fileName: file.name });
+      void extractDocument(file).then((result) => applyResult(requestId, file.name, result));
+    } else {
+      dispatch({ type: "read_started", requestId, fileName: "Pasted text" });
+      applyResult(requestId, "Pasted text", extractPastedText(pending.text));
+    }
   }, [resetGeneration]);
 
   const materialText = selectMaterialText(state);
