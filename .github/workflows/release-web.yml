@@ -13,8 +13,14 @@ on:
       - "frontend/.nvmrc"
       - "frontend/Dockerfile"
       - "frontend/.dockerignore"
+      - "scripts/ci/ssm-deploy.sh"
       - ".github/workflows/release-web.yml"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag sha-xxxxxxx untuk rollback (melewati build)"
+        required: false
+        default: ""
 
 permissions: {}
 
@@ -27,6 +33,7 @@ env:
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -56,3 +63,22 @@ jobs:
             org.opencontainers.image.created=${{ steps.meta.outputs.created }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  deploy:
+    needs: [build]
+    if: ${{ !cancelled() && (needs.build.result == 'success' || (needs.build.result == 'skipped' && inputs.tag != '')) }}
+    runs-on: ubuntu-latest
+    environment: production-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e74495136d5c3a # v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_DEPLOY_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - name: Deploy web via SSM
+        run: scripts/ci/ssm-deploy.sh web "${{ needs.build.outputs.tag || inputs.tag }}"
+        env:
+          APP_URL: ${{ vars.APP_URL }}
