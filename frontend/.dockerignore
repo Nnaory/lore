@@ -1,15 +1,9 @@
 .git
-.github
-.kiro
 .next
+out
 node_modules
 coverage
 tests
-docs
-infra
-deploy
-backend
-scripts
 .env*
 *.md
 tsconfig.tsbuildinfo
