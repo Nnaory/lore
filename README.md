@@ -101,6 +101,12 @@ lore/
 │   └── assets/                   # Architecture & UI wireframe images
 │       ├── wireframe-preparation.png
 │       └── wireframe-main-stage.png
+├── backend/                      # FastAPI Backend AI Orchestrator
+│   ├── app/                      # FastAPI application & health endpoints
+│   ├── tests/                    # Pytest test suite
+│   ├── Dockerfile
+│   ├── pyproject.toml
+│   └── requirements*.txt
 ├── frontend/                     # Next.js Frontend & Deterministic Game Engine
 │   ├── src/
 │   │   ├── app/                  # App Router pages & legacy prototype API routes
@@ -135,6 +141,21 @@ npm run lint
 
 # Build for production
 npm run build
+```
+
+```bash
+cd backend
+
+# Create virtual environment and install dev dependencies
+python3.12 -m venv .venv
+.venv/bin/pip install -r requirements-dev.txt
+
+# Run linter and tests
+.venv/bin/ruff check . && .venv/bin/ruff format --check .
+.venv/bin/pytest -q
+
+# Start FastAPI dev server
+.venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 
 ---

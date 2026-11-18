@@ -53,3 +53,7 @@ infra/plan.json
 # python
 __pycache__/
 *.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
