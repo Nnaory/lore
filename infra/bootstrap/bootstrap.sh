@@ -303,6 +303,8 @@ ensure_managed_policy() {
   local versions_count oldest_non_default
   versions_count="$(aws iam list-policy-versions --policy-arn "$arn" --query 'length(Versions)' --output text)"
   if [[ "$versions_count" -ge 5 ]]; then
+    # JMESPath uses literal backticks inside single-quoted --query filters.
+    # shellcheck disable=SC2016
     oldest_non_default="$(aws iam list-policy-versions --policy-arn "$arn" \
       --query 'sort_by(Versions[?IsDefaultVersion==`false`], &CreateDate)[0].VersionId' \
       --output text)"

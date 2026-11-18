@@ -57,6 +57,8 @@ sg_ids="$(aws ec2 describe-security-groups \
 [[ -n "$sg_ids" ]] || fail "No security groups found with tag Project=lore"
 
 for sg_id in $sg_ids; do
+  # JMESPath uses literal backticks inside single-quoted --query filters.
+  # shellcheck disable=SC2016
   ssh_rules="$(aws ec2 describe-security-group-rules \
     --region "$REGION" \
     --filters "Name=group-id,Values=${sg_id}" \
@@ -71,6 +73,8 @@ rds_sg_id="$(aws ec2 describe-security-groups \
   --query 'SecurityGroups[0].GroupId' --output text)"
 [[ -n "$rds_sg_id" && "$rds_sg_id" != "None" ]] || fail "Missing RDS security group"
 
+# JMESPath uses literal backticks inside single-quoted --query filters.
+# shellcheck disable=SC2016
 rds_egress="$(aws ec2 describe-security-group-rules \
   --region "$REGION" \
   --filters "Name=group-id,Values=${rds_sg_id}" \
