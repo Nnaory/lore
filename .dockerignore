@@ -1,0 +1,16 @@
+.git
+.github
+.kiro
+.next
+node_modules
+coverage
+tests
+docs
+infra
+deploy
+backend
+scripts
+.env*
+*.md
+tsconfig.tsbuildinfo
+run_test.bat
