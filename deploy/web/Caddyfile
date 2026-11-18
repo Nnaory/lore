@@ -1,0 +1,21 @@
+{$SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	handle /api/v1/* {
+		reverse_proxy {$API_UPSTREAM} {
+			flush_interval -1
+			transport http {
+				response_header_timeout 330s
+			}
+		}
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			transport http {
+				keepalive off
+				response_header_timeout 330s
+			}
+		}
+	}
+}

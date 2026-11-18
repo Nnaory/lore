@@ -64,3 +64,64 @@ resource "aws_eip_association" "nat" {
   instance_id   = aws_instance.nat[0].id
   allocation_id = aws_eip.nat[0].id
 }
+
+resource "aws_instance" "web" {
+  ami                    = data.aws_ssm_parameter.al2023.value
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.public_a.id
+  vpc_security_group_ids = [aws_security_group.web.id]
+  iam_instance_profile   = aws_iam_instance_profile.instance["web"].name
+  monitoring             = false
+
+  credit_specification {
+    cpu_credits = "standard"
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  root_block_device {
+    volume_size = 12
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = templatefile("${path.module}/user_data_web.sh.tftpl", {
+    region         = var.region
+    compose_b64    = filebase64("${path.module}/../deploy/web/compose.yml")
+    caddyfile_b64  = filebase64("${path.module}/../deploy/web/Caddyfile")
+    render_env_b64 = filebase64("${path.module}/../deploy/common/render-env.sh")
+    deploy_b64     = filebase64("${path.module}/../deploy/common/deploy.sh")
+  })
+  user_data_replace_on_change = true
+
+  lifecycle {
+    ignore_changes = [ami, associate_public_ip_address]
+  }
+
+  tags = {
+    Name      = "${local.name_prefix}-web"
+    Component = "web"
+  }
+
+  volume_tags = merge(local.common_tags, {
+    Name      = "${local.name_prefix}-web-root"
+    Component = "web"
+  })
+}
+
+resource "aws_eip" "web" {
+  domain = "vpc"
+
+  tags = {
+    Name      = "${local.name_prefix}-web-eip"
+    Component = "web"
+  }
+}
+
+resource "aws_eip_association" "web" {
+  instance_id   = aws_instance.web.id
+  allocation_id = aws_eip.web.id
+}

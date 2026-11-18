@@ -47,3 +47,18 @@ output "nat_public_ip" {
   description = "Elastic IP address of the NAT instance."
   value       = var.nat_mode == "instance" ? aws_eip.nat[0].public_ip : null
 }
+
+output "web_instance_id" {
+  description = "ID of the web EC2 instance."
+  value       = aws_instance.web.id
+}
+
+output "web_public_ip" {
+  description = "Elastic IP address of the web instance."
+  value       = aws_eip.web.public_ip
+}
+
+output "web_app_url" {
+  description = "Public URL of the web application."
+  value       = var.site_address != "" ? "https://${var.site_address}" : "http://${aws_eip.web.public_ip}"
+}
