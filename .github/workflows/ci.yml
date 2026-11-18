@@ -75,6 +75,18 @@ jobs:
           tags: lore-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - name: Validate web compose config
+        run: docker compose -f deploy/web/compose.yml config >/dev/null
+        env:
+          APP_IMAGE: ghcr.io/nnaory/lore-web:ci
+          API_UPSTREAM: http://10.20.10.10:8000
+      - name: Validate Caddyfile
+        run: |
+          docker run --rm \
+            -v "$PWD/deploy/web/Caddyfile:/etc/caddy/Caddyfile:ro" \
+            -e API_UPSTREAM=http://10.20.10.10:8000 \
+            caddy:2.11.9-alpine \
+            caddy validate --config /etc/caddy/Caddyfile
 
   terraform:
     runs-on: ubuntu-latest
@@ -89,4 +101,4 @@ jobs:
       - run: terraform -chdir=infra validate
       - run: python3 -B scripts/ci/check-cost-static infra
       - run: python3 -B scripts/ci/test-checkers.py -v
-      - run: shellcheck infra/bootstrap/bootstrap.sh scripts/verify/*.sh
+      - run: shellcheck infra/bootstrap/bootstrap.sh scripts/verify/*.sh deploy/common/*.sh
