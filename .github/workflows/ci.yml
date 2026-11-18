@@ -23,6 +23,7 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npx next typegen
       - run: npx tsc --noEmit
       - run: npx vitest run --testTimeout=60000
       - run: npm run build
