@@ -28,6 +28,8 @@ read -r nat_type src_dst_check nat_eni nat_ip <<<"$nat_info"
 [[ -n "$nat_ip" && "$nat_ip" != "None" ]] || fail "NAT instance missing public Elastic IP"
 echo "[ok] NAT instance ${nat_id}: type=${nat_type}, SourceDestCheck=${src_dst_check}, ENI=${nat_eni}, EIP=${nat_ip}"
 
+# JMESPath uses literal backticks inside single-quoted --query filters.
+# shellcheck disable=SC2016
 app_rt_target="$(aws ec2 describe-route-tables \
   --region "$REGION" \
   --filters "Name=tag:Project,Values=lore" "Name=tag:Name,Values=${PREFIX}-app-rt" \
