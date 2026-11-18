@@ -62,7 +62,7 @@ LORE separates the **Presentation & Deterministic Game Engine** (Next.js) from t
 
 ## Technology Stack
 
-### Frontend & Game Client (`/src`)
+### Frontend & Game Client (`/frontend`)
 | Technology | Purpose |
 |---|---|
 | **Next.js 16 (App Router)** | Web application framework & routing |
@@ -101,13 +101,17 @@ lore/
 │   └── assets/                   # Architecture & UI wireframe images
 │       ├── wireframe-preparation.png
 │       └── wireframe-main-stage.png
-├── src/                          # Next.js Frontend & Deterministic Game Engine
-│   ├── app/                      # App Router pages & legacy prototype API routes
-│   ├── components/               # UI components (Campaign, Story, Puzzle)
-│   ├── data/                     # Sample/dummy campaign fixtures
-│   └── lib/                      # Deterministic game logic, types, and validators
-├── tests/                        # Vitest unit and integration test suites
-└── package.json
+├── frontend/                     # Next.js Frontend & Deterministic Game Engine
+│   ├── src/
+│   │   ├── app/                  # App Router pages & legacy prototype API routes
+│   │   ├── components/           # UI components (Campaign, Story, Puzzle)
+│   │   ├── data/                 # Sample/dummy campaign fixtures
+│   │   └── lib/                  # Deterministic game logic, types, and validators
+│   ├── tests/                    # Vitest unit and integration test suites
+│   ├── Dockerfile
+│   └── package.json
+├── infra/                        # Terraform AWS infrastructure & bootstrap
+└── scripts/                      # CI & verification scripts
 ```
 
 ---
@@ -115,6 +119,8 @@ lore/
 ## Development Commands
 
 ```bash
+cd frontend
+
 # Install frontend dependencies
 npm install
 
