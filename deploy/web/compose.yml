@@ -1,0 +1,44 @@
+services:
+  caddy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-:80}
+      API_UPSTREAM: ${API_UPSTREAM}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      web:
+        condition: service_healthy
+  web:
+    image: ${APP_IMAGE}
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      PORT: "3000"
+      HOSTNAME: 0.0.0.0
+    expose:
+      - "3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  caddy-data:
+  caddy-config:

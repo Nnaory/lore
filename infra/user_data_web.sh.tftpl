@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euxo pipefail
+
+export AWS_DEFAULT_REGION="${region}"
+
+# Wait for EIP association and internet egress before installing packages.
+for _ in $(seq 1 60); do
+  if curl -fsS --max-time 5 https://github.com >/dev/null; then
+    break
+  fi
+  sleep 5
+done
+curl -fsS --max-time 10 https://github.com >/dev/null
+
+fallocate -l 1G /swapfile
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap sw 0 0' >> /etc/fstab
+
+dnf install -y docker jq
+mkdir -p /etc/docker
+cat >/etc/docker/daemon.json <<'EOF'
+{
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "10m",
+    "max-file": "3"
+  }
+}
+EOF
+systemctl enable --now docker
+
+COMPOSE_VERSION="5.8.0"
+COMPOSE_SHA256="b8840f5008c447f41fce0a57ae3adeab42c89b1eb6e6012524bcabbfb4ffbaf6"
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/v$${COMPOSE_VERSION}/docker-compose-linux-x86_64" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+echo "$${COMPOSE_SHA256}  /usr/local/lib/docker/cli-plugins/docker-compose" | sha256sum -c -
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+mkdir -p /opt/lore
+echo '${compose_b64}'    | base64 -d > /opt/lore/compose.yml
+echo '${caddyfile_b64}'  | base64 -d > /opt/lore/Caddyfile
+echo '${render_env_b64}' | base64 -d > /opt/lore/render-env.sh
+echo '${deploy_b64}'     | base64 -d > /opt/lore/deploy.sh
+chmod 644 /opt/lore/compose.yml /opt/lore/Caddyfile
+chmod 700 /opt/lore/render-env.sh /opt/lore/deploy.sh
+
+/opt/lore/deploy.sh web
