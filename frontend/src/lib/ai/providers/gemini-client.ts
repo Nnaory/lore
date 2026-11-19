@@ -26,7 +26,15 @@ export type GeminiConfig = {
 };
 
 const DEFAULT_MODELS = ["gemini-3.5-flash-lite"];
+const DEFAULT_TIMEOUT_MS = 300_000;
+const DEFAULT_DEADLINE_MS = 300_000;
 const ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
+
+function parsePositiveMs(raw: string | undefined, fallback: number): number {
+  if (!raw || raw.trim() === "") return fallback;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 /** Read config from env. Returns null when no key is configured. */
 export function geminiConfigFromEnv(env: NodeJS.ProcessEnv = process.env): GeminiConfig | null {
@@ -39,10 +47,10 @@ export function geminiConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Gemin
   return {
     apiKey,
     models: models.length > 0 ? models : DEFAULT_MODELS,
-    timeoutMs: Number(env.AI_TIMEOUT_MS ?? 30_000),
+    timeoutMs: parsePositiveMs(env.AI_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
     attemptsPerModel: 2,
     backoffMs: 1_000,
-    deadlineMs: Number(env.AI_DEADLINE_MS ?? 90_000),
+    deadlineMs: parsePositiveMs(env.AI_DEADLINE_MS, DEFAULT_DEADLINE_MS),
   };
 }
 
