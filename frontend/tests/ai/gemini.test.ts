@@ -2,6 +2,8 @@
  * Tests — Gemini providers (mocked fetch; no network, no cost)
  */
 
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { generateJson, geminiConfigFromEnv, type GeminiConfig } from "@/lib/ai/providers/gemini-client";
 import { GeminiMaterialProvider, normalizeMaterialBlueprint } from "@/lib/ai/providers/gemini-material-provider";
@@ -135,15 +137,72 @@ describe("generateJson", () => {
     const q = queue(new TypeError("fetch failed"), geminiOk({ c: 3 }));
     expect(await generateJson({ system: "s", prompt: "p", maxOutputTokens: 10 }, config, q.fetch)).toMatchObject({ ok: true });
   });
+
+  it("aborts and returns TIMEOUT against a real slow HTTP server", async () => {
+    const pendingTimers: ReturnType<typeof setTimeout>[] = [];
+    const server = createServer((_req, res) => {
+      const timer = setTimeout(() => {
+        if (!res.destroyed) {
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"ok":true}' }] } }] }));
+        }
+      }, 250);
+      pendingTimers.push(timer);
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", () => resolve()));
+    const { port } = server.address() as AddressInfo;
+
+    const localFetch: typeof fetch = (_url, init) => fetch(`http://127.0.0.1:${port}/`, init);
+    try {
+      const result = await generateJson(
+        { system: "s", prompt: "p", maxOutputTokens: 10 },
+        { ...config, models: ["slow-model"], timeoutMs: 30, attemptsPerModel: 1, deadlineMs: 30 },
+        localFetch
+      );
+      expect(result).toMatchObject({ ok: false, code: "TIMEOUT" });
+    } finally {
+      for (const timer of pendingTimers) clearTimeout(timer);
+      server.closeAllConnections?.();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
 });
 
 describe("geminiConfigFromEnv", () => {
-  it("reads the key and an ordered, comma-separated model list", () => {
+  it("reads the key and an ordered, comma-separated model list with 5-minute defaults", () => {
     expect(geminiConfigFromEnv({ GOOGLE_API_KEY: "k", AI_MODEL: " m1 , m2 " } as unknown as NodeJS.ProcessEnv)).toMatchObject({
       apiKey: "k",
       models: ["m1", "m2"],
+      timeoutMs: 300_000,
+      deadlineMs: 300_000,
     });
     expect(geminiConfigFromEnv({} as unknown as NodeJS.ProcessEnv)).toBeNull();
+  });
+
+  it("honors valid AI_TIMEOUT_MS/AI_DEADLINE_MS overrides and falls back cleanly on invalid input", () => {
+    expect(
+      geminiConfigFromEnv({
+        GOOGLE_API_KEY: "k",
+        AI_TIMEOUT_MS: "295000",
+        AI_DEADLINE_MS: "600000",
+      } as unknown as NodeJS.ProcessEnv)
+    ).toMatchObject({
+      timeoutMs: 295_000,
+      deadlineMs: 600_000,
+    });
+
+    for (const bad of ["", "   ", "abc", "0", "-5"]) {
+      expect(
+        geminiConfigFromEnv({
+          GOOGLE_API_KEY: "k",
+          AI_TIMEOUT_MS: bad,
+          AI_DEADLINE_MS: bad,
+        } as unknown as NodeJS.ProcessEnv)
+      ).toMatchObject({
+        timeoutMs: 300_000,
+        deadlineMs: 300_000,
+      });
+    }
   });
 });
 
