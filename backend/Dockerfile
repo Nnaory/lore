@@ -15,6 +15,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PATH="/opt/venv/bin:${PATH}"
 RUN useradd --create-home --uid 10001 app
 COPY --from=builder /opt/venv /opt/venv
+COPY --chown=app:app alembic.ini .
+COPY --chown=app:app alembic ./alembic
 COPY --chown=app:app app ./app
 USER app
 EXPOSE 8000
