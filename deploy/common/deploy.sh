@@ -25,8 +25,8 @@ fi
 
 docker compose pull
 
-if docker compose config --services | grep -qx "migrate"; then
-  docker compose run --rm migrate
+if docker compose --profile migrate config --services | grep -qx "migrate"; then
+  docker compose --profile migrate run --rm migrate
 fi
 
 docker compose up -d --remove-orphans --wait --wait-timeout 90
