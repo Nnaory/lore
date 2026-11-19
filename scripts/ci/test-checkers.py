@@ -44,6 +44,32 @@ class CheckerScriptsTest(unittest.TestCase):
         self.assertIn("db.t3.small", res.stderr)
         self.assertIn("Interface VPC endpoints", res.stderr)
 
+    def test_rds_gp3_baseline_and_excess_iops(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            ok_plan = Path(tmp) / "ok.json"
+            ok_plan.write_text(
+                '{"resource_changes":[{"address":"aws_db_instance.db","type":"aws_db_instance",'
+                '"change":{"actions":["update"],"after":{"instance_class":"db.t3.micro",'
+                '"multi_az":false,"allocated_storage":20,"storage_type":"gp3","iops":3000}}}]}',
+                encoding="utf-8",
+            )
+            self.assertEqual(self._run("check-cost", str(ok_plan)).returncode, 0)
+
+            bad_plan = Path(tmp) / "bad.json"
+            bad_plan.write_text(
+                '{"resource_changes":[{"address":"aws_db_instance.hi","type":"aws_db_instance",'
+                '"change":{"actions":["create"],"after":{"instance_class":"db.t3.micro",'
+                '"multi_az":false,"allocated_storage":20,"storage_type":"gp3","iops":4000}}},'
+                '{"address":"aws_db_instance.io","type":"aws_db_instance",'
+                '"change":{"actions":["create"],"after":{"instance_class":"db.t3.micro",'
+                '"multi_az":false,"allocated_storage":20,"storage_type":"io1","iops":1000}}}]}',
+                encoding="utf-8",
+            )
+            res = self._run("check-cost", str(bad_plan))
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn("provisioned iops (4000) is disallowed", res.stderr)
+            self.assertIn("storage_type 'io1' is disallowed", res.stderr)
+
     def test_static_scan_passes_repo_infra(self) -> None:
         res = self._run("check-cost-static", str(REPO_ROOT / "infra"))
         self.assertEqual(res.returncode, 0, msg=res.stderr)

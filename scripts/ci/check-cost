@@ -60,7 +60,8 @@ def _check_rds_instance(address: str, after: dict[str, Any]) -> list[str]:
         errors.append(f"{address}: provisioned IOPS storage_type '{storage_type}' is disallowed")
 
     iops = after.get("iops")
-    if isinstance(iops, (int, float)) and iops > 0:
+    max_free_iops = 3000 if storage_type == "gp3" else 0
+    if isinstance(iops, (int, float)) and iops > max_free_iops:
         errors.append(f"{address}: provisioned iops ({iops}) is disallowed")
 
     if after.get("performance_insights_enabled") is True:

@@ -100,7 +100,7 @@
       "Resource": "*",
       "Condition": {
         "NumericGreaterThan": {
-          "rds:Piops": "0"
+          "rds:Piops": "3000"
         }
       }
     },
