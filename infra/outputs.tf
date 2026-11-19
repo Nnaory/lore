@@ -72,3 +72,23 @@ output "api_private_ip" {
   description = "Private IP address of the API instance."
   value       = aws_instance.api.private_ip
 }
+
+output "db_endpoint" {
+  description = "RDS PostgreSQL hostname."
+  value       = aws_db_instance.db.address
+}
+
+output "db_port" {
+  description = "RDS PostgreSQL port."
+  value       = aws_db_instance.db.port
+}
+
+output "db_name" {
+  description = "RDS PostgreSQL database name."
+  value       = aws_db_instance.db.db_name
+}
+
+output "db_secret_arn" {
+  description = "ARN of the RDS-managed master user secret in Secrets Manager."
+  value       = aws_db_instance.db.master_user_secret[0].secret_arn
+}

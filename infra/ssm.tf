@@ -17,6 +17,10 @@ locals {
     AI_MODEL       = local.ai_models
     AI_TIMEOUT_MS  = "300000"
     AI_DEADLINE_MS = "300000"
+    PGHOST         = aws_db_instance.db.address
+    PGPORT         = tostring(aws_db_instance.db.port)
+    PGDATABASE     = aws_db_instance.db.db_name
+    PGSSLMODE      = "require"
   }
 }
 
@@ -46,6 +50,19 @@ resource "aws_ssm_parameter" "api_env" {
 
   tags = {
     Name      = "${local.name_prefix}-api-env-${lower(each.key)}"
+    Component = "api"
+  }
+}
+
+resource "aws_ssm_parameter" "api_db_secret_arn" {
+  name      = "/lore/${var.environment}/api/config/db_secret_arn"
+  type      = "String"
+  tier      = "Standard"
+  value     = aws_db_instance.db.master_user_secret[0].secret_arn
+  overwrite = true
+
+  tags = {
+    Name      = "${local.name_prefix}-api-config-db-secret-arn"
     Component = "api"
   }
 }
