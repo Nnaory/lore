@@ -103,3 +103,17 @@ resource "aws_iam_role_policy" "api_ssm" {
   role   = aws_iam_role.instance["api"].id
   policy = data.aws_iam_policy_document.api_ssm.json
 }
+
+data "aws_iam_policy_document" "api_db_secret" {
+  statement {
+    sid       = "ReadRdsMasterSecret"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_db_instance.db.master_user_secret[0].secret_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "api_db_secret" {
+  name   = "${local.name_prefix}-api-db-secret"
+  role   = aws_iam_role.instance["api"].id
+  policy = data.aws_iam_policy_document.api_db_secret.json
+}
