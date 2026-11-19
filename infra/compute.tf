@@ -125,3 +125,50 @@ resource "aws_eip_association" "web" {
   instance_id   = aws_instance.web.id
   allocation_id = aws_eip.web.id
 }
+
+resource "aws_instance" "api" {
+  ami                    = data.aws_ssm_parameter.al2023.value
+  instance_type          = var.instance_type
+  subnet_id              = aws_subnet.app_a.id
+  private_ip             = "10.20.10.10"
+  vpc_security_group_ids = [aws_security_group.api.id]
+  iam_instance_profile   = aws_iam_instance_profile.instance["api"].name
+  monitoring             = false
+
+  credit_specification {
+    cpu_credits = "standard"
+  }
+
+  metadata_options {
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 1
+  }
+
+  root_block_device {
+    volume_size = 12
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = templatefile("${path.module}/user_data_api.sh.tftpl", {
+    region         = var.region
+    compose_b64    = filebase64("${path.module}/../deploy/api/compose.yml")
+    render_env_b64 = filebase64("${path.module}/../deploy/common/render-env.sh")
+    deploy_b64     = filebase64("${path.module}/../deploy/common/deploy.sh")
+  })
+  user_data_replace_on_change = true
+
+  lifecycle {
+    ignore_changes = [ami]
+  }
+
+  tags = {
+    Name      = "${local.name_prefix}-api"
+    Component = "api"
+  }
+
+  volume_tags = merge(local.common_tags, {
+    Name      = "${local.name_prefix}-api-root"
+    Component = "api"
+  })
+}
