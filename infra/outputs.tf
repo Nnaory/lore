@@ -62,3 +62,13 @@ output "web_app_url" {
   description = "Public URL of the web application."
   value       = var.site_address != "" ? "https://${var.site_address}" : "http://${aws_eip.web.public_ip}"
 }
+
+output "api_instance_id" {
+  description = "ID of the private API EC2 instance."
+  value       = aws_instance.api.id
+}
+
+output "api_private_ip" {
+  description = "Private IP address of the API instance."
+  value       = aws_instance.api.private_ip
+}
