@@ -30,3 +30,11 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  migrate:
+    image: ${APP_IMAGE}
+    profiles: ["migrate"]
+    env_file:
+      - path: .env
+        required: false
+    command: ["alembic", "upgrade", "head"]

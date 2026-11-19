@@ -36,6 +36,20 @@ jobs:
 
   api:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: lore
+          POSTGRES_USER: lore_test
+          POSTGRES_PASSWORD: lore_test_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U lore_test -d lore"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - id: detect
@@ -48,9 +62,17 @@ jobs:
           cache-dependency-path: backend/requirements*.txt
       - if: steps.detect.outputs.present == 'true'
         working-directory: backend
+        env:
+          PGHOST: 127.0.0.1
+          PGPORT: "5432"
+          PGDATABASE: lore
+          PGUSER: lore_test
+          PGPASSWORD: lore_test_password
+          PGSSLMODE: disable
         run: |
           pip install -r requirements-dev.txt
           ruff check . && ruff format --check .
+          alembic upgrade head
           pytest -q
 
   docker:
@@ -81,7 +103,9 @@ jobs:
           APP_IMAGE: ghcr.io/nnaory/lore-web:ci
           API_UPSTREAM: http://10.20.10.10:8000
       - name: Validate api compose config
-        run: docker compose -f deploy/api/compose.yml config >/dev/null
+        run: |
+          docker compose -f deploy/api/compose.yml config >/dev/null
+          docker compose -f deploy/api/compose.yml --profile migrate config --services | grep -qx "migrate"
         env:
           APP_IMAGE: ghcr.io/nnaory/lore-api:ci
       - name: Validate Caddyfile
