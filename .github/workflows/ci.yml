@@ -80,6 +80,10 @@ jobs:
         env:
           APP_IMAGE: ghcr.io/nnaory/lore-web:ci
           API_UPSTREAM: http://10.20.10.10:8000
+      - name: Validate api compose config
+        run: docker compose -f deploy/api/compose.yml config >/dev/null
+        env:
+          APP_IMAGE: ghcr.io/nnaory/lore-api:ci
       - name: Validate Caddyfile
         run: |
           docker run --rm \
