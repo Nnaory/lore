@@ -43,7 +43,7 @@ resource "aws_db_instance" "db" {
   publicly_accessible    = false
   multi_az               = false
 
-  backup_retention_period    = 7
+  backup_retention_period    = 1
   backup_window              = "18:30-19:30"
   maintenance_window         = "sun:20:00-sun:21:00"
   copy_tags_to_snapshot      = true
