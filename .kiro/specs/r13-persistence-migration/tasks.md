@@ -89,7 +89,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - `campaign`, `stories`, `campaign_state`, and `materials` round-trip as equal dicts, so nothing is truncated or reordered.
   - **Commits:** `feat(api): project envelope models`, then `test(api): project envelope models`.
 
-- [ ] **T4 — Rate limiter** `[CI]` **tests first**
+- [x] **T4 — Rate limiter** `[CI]` **tests first**
   - **Satisfies:** FR-7.2; design "Rate limiting".
   - **Files:** `backend/tests/test_ratelimit.py`, then `backend/app/ratelimit.py`.
   - **Test** (injected monotonic and wall clocks):
