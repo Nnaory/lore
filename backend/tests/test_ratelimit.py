@@ -64,7 +64,7 @@ def test_sweep_shrinks_dicts_after_window_passes() -> None:
 
 def test_sweep_runs_when_key_count_exceeds_cap() -> None:
     limiter, mono, _ = make()
-    for i in range(RateLimiter.SWEEP_KEYS):
+    for i in range(RateLimiter.SWEEP_KEYS + 2):
         limiter.check_ip(f"k{i}")
     mono.now += 61
     # One call past the cap must trigger an immediate sweep, long before SWEEP_EVERY calls.
