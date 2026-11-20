@@ -102,7 +102,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - Several threads calling at once never admit more than the limit.
   - **Commits:** `test(api): rate limiter behaviour`, then `feat(api): in-memory rate limiter`.
 
-- [ ] **T5 — Router skeleton and wiring** `[CI]`
+- [x] **T5 — Router skeleton and wiring** `[CI]`
   - **Satisfies:** FR-2 (routing, owner dependency), FR-7.2 (limit order); design "FastAPI router".
   - **Files:** `backend/app/projects.py` (router, engine dependency, limiter dependencies), `backend/app/main.py` (register the middleware, include the router, keep one `RateLimiter` on `app.state` so tests can inject clocks), `backend/tests/test_projects_wiring.py`.
   - **Behavior:** the client address is `request.client.host`. Do not parse `X-Forwarded-For` in application code. Limit order is per-IP, then per-owner (or import), then the daily quota. A refused limit returns `429` with `Retry-After: 60`.
