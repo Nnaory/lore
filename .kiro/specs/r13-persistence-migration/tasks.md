@@ -65,7 +65,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - `test_live_postgres_alembic_upgrade_and_downgrade` in `tests/test_db.py` currently asserts that the head revision equals `4ee36ac0a0f8`. It must be updated to the new head (read it from Alembic's `ScriptDirectory` rather than hard-coding it).
   - **Commits:** `feat(db): add projects, project_stories and project_state tables`, then `test(db): cover the r13 migration and update the expected head`. The first commit leaves `test_db.py` red until the second.
 
-- [ ] **T2 — Device-token middleware** `[CI]` **tests first**
+- [x] **T2 — Device-token middleware** `[CI]` **tests first**
   - **Satisfies:** FR-2 "Owner filtering" and "Device token cookie", OQ-1; design "Device token middleware".
   - **Files:** `backend/tests/test_owner.py`, then `backend/app/owner.py` (middleware plus `get_owner_id` dependency).
   - **Test:** build a small app in the test with the middleware and a throwaway route under `/api/v1/projects/` that can raise `HTTPException`.
