@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
+from alembic.script import ScriptDirectory
 from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.pool import NullPool, QueuePool
@@ -16,7 +17,16 @@ from app.db import create_db_engine, load_db_config_from_env
 from app.main import create_app
 
 BACKEND_DIR = Path(__file__).resolve().parent.parent
-INITIAL_REVISION = "4ee36ac0a0f8"
+
+
+def _head_revision() -> str:
+    """Read the current head from the Alembic scripts instead of hard-coding it."""
+    head = ScriptDirectory.from_config(Config(str(BACKEND_DIR / "alembic.ini"))).get_current_head()
+    assert head is not None
+    return head
+
+
+HEAD_REVISION = _head_revision()
 
 
 def test_load_db_config_returns_none_without_pghost(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -112,7 +122,7 @@ def test_live_postgres_alembic_upgrade_and_downgrade() -> None:
     try:
         with engine.connect() as conn:
             rev = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        assert rev == INITIAL_REVISION
+        assert rev == HEAD_REVISION
 
         command.downgrade(cfg, "base")
         with engine.connect() as conn:
@@ -122,6 +132,6 @@ def test_live_postgres_alembic_upgrade_and_downgrade() -> None:
         command.upgrade(cfg, "head")
         with engine.connect() as conn:
             rev_after = conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one()
-        assert rev_after == INITIAL_REVISION
+        assert rev_after == HEAD_REVISION
     finally:
         engine.dispose()
