@@ -1,0 +1,111 @@
+{
+  "id": "p_lk2j_ab12cd",
+  "created_at": 1763600000000,
+  "updated_at": 1763600500000,
+  "source": { "file_name": "vektor-dasar.pdf", "file_type": "pdf" },
+  "campaign": {
+    "campaign_id": "campaign_01",
+    "title": "The Fading Light — Cahaya yang Memudar",
+    "genre": "fantasy",
+    "tone": "mysterious",
+    "premise": "A failing beacon threatens the Veiled City.",
+    "main_conflict": "Restore the beacon before dusk.",
+    "setting": "The Veiled City",
+    "characters": [
+      {
+        "character_id": "eldric",
+        "name": "Eldric",
+        "role": "mentor",
+        "description": "An old keeper of the beacon.",
+        "expressions": { "worried": "(>_<)", "thinking": "(-_-)" }
+      }
+    ],
+    "world_rules": ["Crystals resonate by vector."],
+    "story_sequence": [
+      {
+        "story_id": "story_01",
+        "material_id": "material_01",
+        "title": "The Fading Light",
+        "purpose": "Teach vector addition.",
+        "main_conflict": "The beacon is failing.",
+        "required_knowledge": [],
+        "outcomes": [
+          {
+            "outcome_id": "outcome_01",
+            "description": "The beacon is restored.",
+            "world_state_changes": { "stability": 1 }
+          }
+        ]
+      },
+      {
+        "story_id": "story_02",
+        "material_id": "material_01",
+        "title": "The Second Light",
+        "purpose": "Teach scalar multiplication.",
+        "main_conflict": "A second beacon flickers.",
+        "required_knowledge": ["vector_addition"],
+        "outcomes": []
+      }
+    ]
+  },
+  "stories": {
+    "story_01": {
+      "story_id": "story_01",
+      "material_id": "material_01",
+      "title": "The Fading Light",
+      "summary": "The player restores the beacon.",
+      "character_ids": ["eldric"],
+      "chapters": [
+        {
+          "chapter_id": "chapter_01",
+          "title": "The Fading Light",
+          "scenes": [
+            {
+              "scene_id": "scene_01_intro",
+              "type": "narrative",
+              "location": "The Beacon Antechamber",
+              "characters_present": ["eldric"],
+              "content": [
+                { "type": "narration", "text": "A faint amber glow pulses." },
+                {
+                  "type": "dialogue",
+                  "character_id": "eldric",
+                  "expression": "worried",
+                  "text": "You arrived just in time."
+                }
+              ],
+              "next_scene_id": "scene_02_ending"
+            },
+            { "scene_id": "scene_02_ending", "type": "ending", "ending_id": "ending_good" }
+          ]
+        }
+      ]
+    },
+    "story_02": {
+      "story_id": "story_02",
+      "material_id": "material_01",
+      "title": "The Second Light",
+      "summary": "A second beacon flickers.",
+      "character_ids": ["eldric"],
+      "chapters": []
+    }
+  },
+  "campaign_state": {
+    "campaign_id": "campaign_01",
+    "current_story_id": "story_02",
+    "completed_stories": ["story_01"],
+    "world_state": { "stability": 1 },
+    "relationships": { "eldric": 2 },
+    "major_decisions": [],
+    "player_knowledge": {},
+    "previous_story_summaries": []
+  },
+  "materials": [
+    {
+      "material_id": "material_01",
+      "title": "Vektor Dasar",
+      "concepts": [],
+      "scope_limitations": []
+    }
+  ]
+}
