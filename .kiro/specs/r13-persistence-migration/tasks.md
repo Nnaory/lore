@@ -78,7 +78,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - An unhandled exception is **not** asserted to carry a cookie. Starlette builds that 500 outside user middleware (see the note in design.md).
   - **Commits:** `test(api): device token middleware`, then `feat(api): device token middleware`.
 
-- [ ] **T3 — Envelope models and validators** `[CI]`
+- [x] **T3 — Envelope models and validators** `[CI]`
   - **Satisfies:** FR-1.6, NFR-3.3; design "Pydantic envelope models + NOT NULL validation".
   - **Files:** `backend/app/models.py`, `backend/tests/test_models.py`, `backend/tests/fixtures/project.json` (one shared fixture, generated once from the frontend's `linear-story` fixture and committed; the provenance goes in a one-line comment in the test).
   - **Test:**
