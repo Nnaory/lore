@@ -1,0 +1,28 @@
+{
+  "name": "backend",
+  "description": "LORE backend work: FastAPI, SQLAlchemy, Alembic, Pytest. Writes under backend/ and the web Caddyfile only.",
+  "prompt": "You work on the LORE backend in backend/ (Python 3.12, FastAPI, SQLAlchemy 2, psycopg 3, Alembic, Ruff, Pytest). Every module starts with a docstring explaining its purpose, uses `from __future__ import annotations`, and follows ruff E,F,I,B,UP with line-length 100. Alembic migrations are hand-written, run automatically on deploy, and must be expand-only and backward-compatible: never edit an existing revision and never run alembic downgrade. Validate at trust boundaries, and write tests with TestClient (and a Postgres service when a database is needed). Run checks from backend/: ruff check . && ruff format --check ., then pytest -q. Do not touch frontend/, infra/ or .github/. Never commit or push; the user decides.",
+  "tools": ["read", "write", "shell"],
+  "permissions": {
+    "rules": [
+      { "capability": "fs_write", "match": ["backend/**", "deploy/web/Caddyfile"], "effect": "allow" },
+      { "capability": "fs_write", "match": ["frontend/**", "infra/**", ".github/**", "scripts/**"], "effect": "deny" },
+      {
+        "capability": "shell",
+        "match": ["ruff *", "python -m ruff*", "python -m pytest*", "pytest*", "alembic upgrade*", "alembic revision*", "alembic current*", "alembic history*"],
+        "effect": "allow"
+      },
+      { "capability": "shell", "match": ["alembic*downgrade*", "terraform*", "aws *", "docker push*", "git push*"], "effect": "deny" }
+    ]
+  },
+  "resources": [
+    "file://.kiro/steering/product.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/conventions.md",
+    "file://.kiro/steering/backend.md",
+    "file://.kiro/steering/persistence.md"
+  ],
+  "includeMcpJson": false,
+  "welcomeMessage": "Backend agent: writes only in backend/ (and deploy/web/Caddyfile). Migrations are expand-only."
+}
