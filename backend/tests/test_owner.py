@@ -10,9 +10,10 @@ import uuid
 from typing import Annotated
 
 import pytest
-from app.owner import COOKIE_NAME, device_token_middleware, get_owner_id
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.testclient import TestClient
+
+from app.owner import COOKIE_NAME, device_token_middleware, get_owner_id
 
 
 def _build_app() -> FastAPI:
