@@ -22,6 +22,7 @@
  */
 
 import type { CampaignState } from "@/lib/types/game";
+import { API_BASE, projectUrl } from "./api-paths";
 import { IndexedDbRepository } from "./indexed-db-repository";
 import {
   newId,
@@ -34,7 +35,7 @@ import {
 } from "./project-model";
 import type { ProjectRepository } from "./repository";
 
-export const API_BASE = "/api/v1/projects";
+export { API_BASE } from "./api-paths";
 export const DEBOUNCE_MS = 1500;
 export const INITIAL_RETRY_MS = 5_000;
 export const MAX_RETRY_MS = 60_000;
@@ -54,8 +55,6 @@ type LocalStore = Pick<
   ProjectRepository,
   "listProjects" | "loadProject" | "createProject" | "saveCampaignState" | "deleteProject"
 >;
-
-const projectUrl = (id: string) => `${API_BASE}/${encodeURIComponent(id)}`;
 
 /** Server JSON → Project: drop null optionals, then the usual validation. */
 export function projectFromServer(raw: unknown): Project | null {
@@ -91,9 +90,23 @@ export class HttpRepository implements ProjectRepository {
   private inFlight = false;
   private nextRetryDelay = INITIAL_RETRY_MS;
   private onError: ((message: string | null) => void) | null = null;
+  private readonly sync: ((local: LocalStore) => Promise<unknown>) | null;
+  private syncStarted = false;
 
-  constructor(options: { local?: LocalStore } = {}) {
+  /**
+   * `sync` runs once, in the background, on the first listProjects or
+   * loadProject call, i.e. once per page load for the app's single instance
+   * (project-store.ts passes syncCheck). Without it nothing is synced.
+   */
+  constructor(options: { local?: LocalStore; sync?: (local: LocalStore) => Promise<unknown> } = {}) {
     this.local = options.local ?? new IndexedDbRepository();
+    this.sync = options.sync ?? null;
+  }
+
+  private startSync(): void {
+    if (this.syncStarted || !this.sync) return;
+    this.syncStarted = true;
+    void this.sync(this.local).catch(() => undefined);
   }
 
   /** Report server save problems (a message) and recoveries (null). Returns an unsubscribe. */
@@ -107,6 +120,7 @@ export class HttpRepository implements ProjectRepository {
   // ---- reads --------------------------------------------------------------
 
   async listProjects(): Promise<ProjectSummary[]> {
+    this.startSync();
     const [server, local] = await Promise.all([this.fetchServerList(), this.local.listProjects()]);
     const serverIds = new Set(server.map((s) => s.id));
     const localOnly = local.filter((s) => !serverIds.has(s.id));
@@ -129,6 +143,7 @@ export class HttpRepository implements ProjectRepository {
   }
 
   async loadProject(id: string): Promise<Project | null> {
+    this.startSync();
     try {
       const res = await fetch(projectUrl(id));
       if (res.ok) {

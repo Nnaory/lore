@@ -23,7 +23,7 @@
 
 import { z } from "zod";
 import type { CampaignState } from "@/lib/types/game";
-import { API_BASE } from "./http-repository";
+import { API_BASE } from "./api-paths";
 import { IndexedDbRepository } from "./indexed-db-repository";
 import { SummarySchema, type Project } from "./project-model";
 import type { ProjectRepository } from "./repository";
