@@ -1,7 +1,7 @@
-"""Router for /api/v1/projects: routing, DB engine and rate-limit wiring.
+"""Router for /api/v1/projects: endpoints, DB engine, rate limits, body limits, storage caps.
 
-Why: keeps HTTP concerns (limits, owner, 503 without a database) in one place so the endpoint
-bodies added in later tasks only contain data access. The client address is request.client.host;
+Why: keeps HTTP concerns (limits, owner, 503 without a database) in one place next to the data
+access they guard. The client address is request.client.host;
 uvicorn (--proxy-headers) already resolves X-Forwarded-For from the trusted proxy, and the
 application must not parse that header itself (the left-most entry is client-controlled).
 """
@@ -12,11 +12,14 @@ import enum
 import json
 import time
 import uuid
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from sqlalchemy import Connection, Engine, text
 from sqlalchemy.exc import DataError
 
@@ -35,6 +38,81 @@ from app.ratelimit import RateLimiter
 
 RETRY_AFTER_SECONDS = 60
 
+
+@dataclass(frozen=True)
+class Limits:
+    """Body size limits and storage caps (FR-7.1, FR-7.3). Tests replace app.state.limits.
+
+    Sizes are decimal bytes, matching Caddy's `max_size 5MB` (5,000,000 bytes). The body limits
+    rest on the ~170 KB per-project estimate in design.md, which T0 has not measured yet.
+    """
+
+    create_body_bytes: int = 2_000_000  # TODO(T0): sesuaikan setelah pengukuran
+    import_body_bytes: int = 5_000_000  # TODO(T0): sesuaikan setelah pengukuran
+    state_body_bytes: int = 500_000  # TODO(T0): sesuaikan setelah pengukuran
+    owner_max_projects: int = 100  # TODO(T0): sesuaikan setelah pengukuran
+    owner_max_bytes: int = 50_000_000  # TODO(T0): sesuaikan setelah pengukuran
+    global_max_projects: int = 10_000  # TODO(T0): sesuaikan setelah pengukuran
+
+
+DEFAULT_LIMITS = Limits()
+
+
+def get_limits(request: Request) -> Limits:
+    return getattr(request.app.state, "limits", DEFAULT_LIMITS)
+
+
+def _payload_too_large() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_413_CONTENT_TOO_LARGE, detail="request body too large"
+    )
+
+
+def _body_reader(field: str) -> Callable[[Request], Awaitable[bytes]]:
+    """Dependency that reads the raw body and stops as soon as it passes the limit.
+
+    The endpoint must not declare a body model: FastAPI reads a declared body before it runs
+    any dependency, which would defeat the limit. Content-Length is checked first; a chunked
+    body without it is counted while streaming, so a missing header cannot bypass the cap.
+    """
+
+    async def read(request: Request) -> bytes:
+        limit = getattr(get_limits(request), field)
+        declared = request.headers.get("content-length")
+        if declared is not None:
+            try:
+                declared_size = int(declared)
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="invalid Content-Length"
+                ) from None
+            if declared_size > limit:
+                raise _payload_too_large()
+        body = bytearray()
+        async for chunk in request.stream():
+            body += chunk
+            if len(body) > limit:
+                raise _payload_too_large()
+        return bytes(body)
+
+    return read
+
+
+def _parse[M: BaseModel](model: type[M], raw: bytes) -> M:
+    """Validate a raw JSON body; errors keep FastAPI's 422 shape (loc starts with "body")."""
+    try:
+        return model.model_validate_json(raw)
+    except ValidationError as exc:
+        errors = exc.errors(include_url=False, include_context=False)
+        raise RequestValidationError(
+            [{**err, "loc": ("body", *err["loc"])} for err in errors]
+        ) from None
+
+
+CreateBody = Annotated[bytes, Depends(_body_reader("create_body_bytes"))]
+ImportBody = Annotated[bytes, Depends(_body_reader("import_body_bytes"))]
+StateBody = Annotated[bytes, Depends(_body_reader("state_body_bytes"))]
+LimitsDep = Annotated[Limits, Depends(get_limits)]
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
 
 
@@ -179,6 +257,48 @@ _TOUCH_PROJECT_SQL = text(
     "UPDATE projects SET stories_completed = :stories_completed, updated_at = :updated_at "
     "WHERE id = :id AND owner_id = :owner_id"
 )
+_OWNER_COUNT_SQL = text("SELECT count(*) FROM projects WHERE owner_id = :owner_id")
+_GLOBAL_COUNT_SQL = text("SELECT count(*) FROM projects")
+# Per-owner stored size, as in design.md "Storage caps".
+_OWNER_BYTES_SQL = text(
+    """
+    SELECT coalesce(sum(octet_length(campaign::text)
+                        + coalesce(octet_length(materials::text), 0)), 0)
+         + (SELECT coalesce(sum(octet_length(blueprint::text)), 0) FROM project_stories
+            WHERE project_id IN (SELECT id FROM projects WHERE owner_id = :owner_id))
+    FROM projects WHERE owner_id = :owner_id
+    """
+)
+
+
+def _cap_error(
+    conn: Connection, body: ProjectCreate, owner_id: uuid.UUID, limits: Limits
+) -> str | None:
+    """Return why a new project would exceed a storage cap, or None (FR-7.3).
+
+    Only a new id is counted. An existing id is either the caller's own (replaced in place) or
+    another owner's (409 / skipped), and neither adds a row.
+    """
+    if body.id and conn.execute(_OWNER_OF_SQL, {"id": body.id}).first() is not None:
+        return None
+    if conn.execute(_OWNER_COUNT_SQL, {"owner_id": owner_id}).scalar_one() >= (
+        limits.owner_max_projects
+    ):
+        return f"project limit reached ({limits.owner_max_projects} per device)"
+    incoming = sum(
+        len((_dump(part) or "").encode("utf-8"))
+        for part in (body.campaign, body.materials, *body.stories.values())
+    )
+    stored = conn.execute(_OWNER_BYTES_SQL, {"owner_id": owner_id}).scalar_one()
+    if stored + incoming > limits.owner_max_bytes:
+        return "storage limit reached for this device"
+    if conn.execute(_GLOBAL_COUNT_SQL).scalar_one() >= limits.global_max_projects:
+        return "server project limit reached"
+    return None
+
+
+def _cap_exceeded(message: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail=message)
 
 
 class UpsertOutcome(enum.Enum):
@@ -269,10 +389,18 @@ def list_projects(engine: EngineDep, owner_id: OwnerDep) -> list[ProjectSummaryR
 
 @router.post("", dependencies=_CREATE, status_code=status.HTTP_201_CREATED)
 def create_project(
-    body: ProjectCreate, response: Response, engine: EngineDep, owner_id: OwnerDep
+    raw: CreateBody,
+    response: Response,
+    engine: EngineDep,
+    owner_id: OwnerDep,
+    limits: LimitsDep,
 ) -> ProjectResponse:
     """201 for a new row; 200 with the stored project when the caller already owns the id."""
+    body = _parse(ProjectCreate, raw)
     with engine.begin() as conn:
+        cap = _cap_error(conn, body, owner_id, limits)
+        if cap is not None:
+            raise _cap_exceeded(cap)
         outcome = upsert_project(conn, body, owner_id)
         if outcome is UpsertOutcome.FOREIGN:
             # Raised inside the block, so the transaction rolls back. Nothing about the
@@ -289,25 +417,32 @@ def create_project(
 
 
 @router.post("/import", dependencies=_IMPORT)
-def import_projects(body: ImportRequest, engine: EngineDep, owner_id: OwnerDep) -> ImportResponse:
+def import_projects(
+    raw: ImportBody, engine: EngineDep, owner_id: OwnerDep, limits: LimitsDep
+) -> ImportResponse:
     """Per-item validation and one transaction per project, so one bad item blocks nothing.
 
     imported: rows written (new, or the caller's own row replaced by a newer or equal copy).
     skipped: rows not written (stored copy is newer, or the id belongs to another owner).
     rejected: items that failed validation or that the database refused as invalid data.
+    A storage cap stops the run with 422; projects written before it stay written.
     """
+    body = _parse(ImportRequest, raw)
     imported = skipped = 0
     rejected: list[ImportRejection] = []
-    for index, raw in enumerate(body.projects):
-        raw_id = raw.get("id") if isinstance(raw, dict) else None
+    for index, item in enumerate(body.projects):
+        raw_id = item.get("id") if isinstance(item, dict) else None
         item_id = raw_id if isinstance(raw_id, str) else None
         try:
-            project = ProjectCreate.model_validate(raw)
+            project = ProjectCreate.model_validate(item)
         except ValidationError as exc:
             rejected.append(ImportRejection(index=index, id=item_id, error=_errors(exc)))
             continue
         try:
             with engine.begin() as conn:
+                cap = _cap_error(conn, project, owner_id, limits)
+                if cap is not None:
+                    raise _cap_exceeded(cap)
                 outcome = upsert_project(conn, project, owner_id)
         except DataError:
             rejected.append(ImportRejection(index=index, id=item_id, error="invalid data"))
@@ -347,9 +482,10 @@ def delete_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> Re
 
 @router.put("/{project_id}/state", dependencies=_WRITE, response_model=None)
 def put_state(
-    project_id: str, body: CampaignStateUpdate, engine: EngineDep, owner_id: OwnerDep
+    project_id: str, raw: StateBody, engine: EngineDep, owner_id: OwnerDep
 ) -> dict[str, int] | JSONResponse:
     """Ownership first (404), then one atomic upsert whose WHERE rejects stale writes (409)."""
+    body = _parse(CampaignStateUpdate, raw)
     with engine.begin() as conn:
         owned = conn.execute(_OWNED_SQL, {"id": project_id, "owner_id": owner_id}).first()
         if owned is None:
