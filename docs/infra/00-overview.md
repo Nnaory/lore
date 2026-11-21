@@ -122,7 +122,7 @@ Semua dokumen memakai nilai di tabel ini.
 | Tipe | EC2 semua `t3.micro`. RDS `db.t3.micro`. Root EBS gp3 terenkripsi (kunci AWS-managed): web 12 GB, api 12 GB, nat 8 GB |
 | Security group | `lore-prod-web`, `lore-prod-api`, `lore-prod-nat`, `lore-prod-rds` |
 | Port | Caddy 80 dan 443 (web). Next.js 3000 (hanya di jaringan docker web). FastAPI 8000. PostgreSQL 5432 |
-| Prefix API publik | `/api/v1/*` diteruskan Caddy ke api. Selain itu ke Next.js. Route lama Next `/api/ai/*` tetap di web sampai dipindah |
+| Prefix API publik | `/api/v1/*` diteruskan Caddy ke api (termasuk pipeline AI `/api/v1/ai/*`). Selain itu ke Next.js |
 | Image | `ghcr.io/nnaory/lore-web`, `ghcr.io/nnaory/lore-api` (huruf kecil wajib). Tag `sha-<7 char>` saja. Label OCI `org.opencontainers.image.source=https://github.com/Nnaory/lore` |
 | Terraform | `>= 1.10` (pin CI 1.10.x), provider AWS `~> 5.80`, `.terraform.lock.hcl` di-commit. File datar per concern di `infra/`, tanpa modul: `backend.tf`, `variables.tf`, `network.tf`, `security.tf`, `iam.tf`, `compute.tf`, `database.tf`, `ssm.tf`, `outputs.tf` |
 | State | Bucket `lore-tfstate-<ACCOUNT_ID>`, key `lore/prod/terraform.tfstate`, `use_lockfile = true`, versioning, SSE-S3, block public access, lifecycle noncurrent version 90 hari |
@@ -130,7 +130,7 @@ Semua dokumen memakai nilai di tabel ini.
 | Role GitHub (OIDC) | `lore-gh-plan`, `lore-gh-apply`, `lore-gh-deploy` |
 | Role instance | `lore-prod-web-instance`, `lore-prod-api-instance`, `lore-prod-nat-instance` (instance profile bernama sama) |
 | Parameter SSM | Env per komponen: `/lore/prod/web/env/*`, `/lore/prod/api/env/*` (nama variabel = segmen terakhir path). Secret = SecureString dibuat manual. Non-secret dikelola Terraform. Tag rilis: `/lore/prod/web/release/image_tag`, `/lore/prod/api/release/image_tag` (dikelola job deploy, bukan Terraform). Konfigurasi non-env: `/lore/prod/api/config/db_secret_arn` |
-| Env AI | `AI_PROVIDER=google`, `AI_MODEL`, `AI_TIMEOUT_MS=300000`, `AI_DEADLINE_MS=300000`, `GOOGLE_API_KEY` (SecureString) |
+| Env AI (api saja) | `AI_PROVIDER=google`, `AI_MODEL`, `AI_TIMEOUT_MS=300000`, `AI_DEADLINE_MS=300000`, `GOOGLE_API_KEY` (SecureString) |
 | Env DB (api) | `PGHOST`, `PGPORT=5432`, `PGDATABASE=lore`, `PGSSLMODE=require` (non-secret, Terraform). `PGUSER`, `PGPASSWORD` dari Secrets Manager (RDS-managed), dirender oleh `render-env.sh` |
 | Workflow | `.github/workflows/{ci.yml,infra.yml,release-web.yml,release-api.yml}` (tanpa Dependabot). GitHub Environment `production` (job `apply` infra, reviewer wajib, hanya branch `main`) dan `production-release` (job `deploy` aplikasi, tanpa reviewer, hanya branch `main`). Dua Environment dipakai karena satu Environment hanya punya satu konfigurasi proteksi |
 | `vars` GitHub | `AWS_REGION`, `AWS_ROLE_PLAN_ARN`, `AWS_ROLE_APPLY_ARN`, `AWS_ROLE_DEPLOY_ARN`, `APP_URL`. Tidak ada secret GitHub untuk infra |

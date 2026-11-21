@@ -1,0 +1,101 @@
+{
+  "materials": [
+    {
+      "material_id": "material_2abcdef",
+      "title": "Dot product",
+      "summary": "Introduces the dot product of two vectors.",
+      "learning_objectives": [
+        "Compute the dot product of two 2D vectors"
+      ],
+      "concepts": [
+        {
+          "concept_id": "concept_2abcdef_01",
+          "name": "Dot product",
+          "definition": "The dot product of (a, b) and (c, d) is a*c + b*d.",
+          "principles": [
+            "The dot product is a single number"
+          ],
+          "methods": [
+            "Multiply matching components",
+            "Add the products"
+          ],
+          "prerequisites": [
+            "concept_1xfqqww_01"
+          ],
+          "misconceptions": [
+            "The dot product is a vector"
+          ],
+          "source_evidence": [
+            "Multiply matching components, then add."
+          ]
+        }
+      ],
+      "scope_limitations": []
+    },
+    {
+      "material_id": "material_1xfqqww",
+      "title": "Vectors",
+      "summary": "Introduces vectors as quantities with magnitude and direction, and shows how to measure and add them.",
+      "learning_objectives": [
+        "Explain what a vector is",
+        "Compute the length of a two-dimensional vector",
+        "Add two vectors component by component"
+      ],
+      "concepts": [
+        {
+          "concept_id": "concept_1xfqqww_01",
+          "name": "Vector and magnitude",
+          "definition": "A vector is a quantity with a magnitude and a direction; its magnitude is written ‖v‖.",
+          "principles": [
+            "The magnitude of v = (a, b) is sqrt(a^2 + b^2)"
+          ],
+          "methods": [
+            "Square each component",
+            "Add the squares",
+            "Take the square root"
+          ],
+          "prerequisites": [],
+          "misconceptions": [
+            "A vector is just a number",
+            "The length of (3, 4) is 7"
+          ],
+          "source_evidence": [
+            "A vector has a magnitude and a direction."
+          ],
+          "notation": [
+            "‖v‖ = length of vector v"
+          ],
+          "examples": [
+            "v = (3, 4) gives ‖v‖ = 5"
+          ]
+        },
+        {
+          "concept_id": "concept_1xfqqww_02",
+          "name": "Vector addition",
+          "definition": "Adding vectors means adding their components one by one.",
+          "principles": [
+            "(a, b) + (c, d) = (a + c, b + d)"
+          ],
+          "methods": [
+            "Line up the components",
+            "Add each pair"
+          ],
+          "prerequisites": [
+            "concept_1xfqqww_01"
+          ],
+          "misconceptions": [
+            "Adding vectors adds their lengths"
+          ],
+          "source_evidence": []
+        }
+      ],
+      "scope_limitations": [
+        "Does not cover three-dimensional vectors or the dot product"
+      ]
+    }
+  ],
+  "options": {
+    "genre": "science_fiction",
+    "tone": "wondrous"
+  }
+}

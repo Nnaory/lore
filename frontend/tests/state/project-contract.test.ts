@@ -10,7 +10,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { CampaignStateSchema } from "@/lib/ai/schemas/game.schema";
+import { CampaignStateSchema } from "@/lib/contracts/schemas/game.schema";
 import { ProjectSchema, readProject } from "@/lib/state/project-model";
 import { projectFromServer } from "@/lib/state/http-repository";
 

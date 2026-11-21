@@ -10,8 +10,6 @@ RUN npm ci --no-audit --no-fund
 FROM node:${NODE_VERSION}-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-ARG AI_PROVIDER=dummy
-ENV AI_PROVIDER=${AI_PROVIDER}
 # Project store, inlined into the client bundle by `next build` (r13 spec):
 #   idb  — browser IndexedDB only (default)
 #   http — the LORE API, with IndexedDB as a local cache

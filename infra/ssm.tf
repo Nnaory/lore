@@ -1,13 +1,11 @@
 locals {
   ai_models = "gemini-3.5-flash-lite,gemini-3.7-flash,gemini-3.8-flash"
 
+  # The web container no longer calls Gemini (the AI pipeline lives in the API), so it gets
+  # no AI_* settings and no key.
   web_ssm_params = merge(
     {
-      AI_PROVIDER    = "google"
-      AI_MODEL       = local.ai_models
-      AI_TIMEOUT_MS  = "300000"
-      AI_DEADLINE_MS = "300000"
-      API_UPSTREAM   = "http://10.20.10.10:8000"
+      API_UPSTREAM = "http://10.20.10.10:8000"
     },
     var.site_address != "" ? { SITE_ADDRESS = var.site_address } : {}
   )
@@ -50,6 +48,30 @@ resource "aws_ssm_parameter" "api_env" {
 
   tags = {
     Name      = "${local.name_prefix}-api-env-${lower(each.key)}"
+    Component = "api"
+  }
+}
+
+# Gemini key for the API. Terraform only creates the parameter with a placeholder
+# and never manages the value (ignore_changes), so the real key is not in tfstate.
+# Set it once by hand after the first apply (docs/infra/09-runbook.md):
+#   aws ssm put-parameter --name /lore/<env>/api/env/GOOGLE_API_KEY \
+#     --type SecureString --overwrite --value '<key>'
+# The default AWS-managed key (alias/aws/ssm) is used, so no KMS resource or policy
+# is needed and there is no extra cost. render-env.sh already reads with decryption.
+resource "aws_ssm_parameter" "api_google_api_key" {
+  name      = "/lore/${var.environment}/api/env/GOOGLE_API_KEY"
+  type      = "SecureString"
+  tier      = "Standard"
+  value     = "__SET_ME__"
+  overwrite = true
+
+  lifecycle {
+    ignore_changes = [value]
+  }
+
+  tags = {
+    Name      = "${local.name_prefix}-api-env-google_api_key"
     Component = "api"
   }
 }

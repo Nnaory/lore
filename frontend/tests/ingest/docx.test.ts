@@ -12,7 +12,7 @@ import { describe, it, expect } from "vitest";
 import mammoth from "mammoth";
 import { docxHtmlToBlocks, extractDocx, type DocxToHtml } from "@/lib/ingest/docx";
 import { IngestError } from "@/lib/ingest/errors";
-import { ExtractedDocumentSchema } from "@/lib/ai/schemas/document.schema";
+import { ExtractedDocumentSchema } from "@/lib/contracts/schemas/document.schema";
 import { makeDocx, makeOleHeader, toArrayBuffer } from "../fixtures/make-files";
 
 const nodeDocxToHtml: DocxToHtml = async (data) =>

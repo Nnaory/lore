@@ -14,7 +14,7 @@ import {
 import { extractText, textToBlocks } from "@/lib/ingest/text";
 import { buildMaterialText } from "@/lib/ingest/material-text";
 import { IngestError } from "@/lib/ingest/errors";
-import { ExtractedDocumentSchema } from "@/lib/ai/schemas/document.schema";
+import { ExtractedDocumentSchema } from "@/lib/contracts/schemas/document.schema";
 
 describe("normalizeText", () => {
   it("collapses spaces, trims lines, and keeps at most one blank line", () => {

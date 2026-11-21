@@ -10,7 +10,7 @@
 "use client";
 
 import type { Genre } from "@/lib/types/campaign";
-import { stableHash } from "@/lib/ai/hash";
+import { stableHash } from "@/lib/contracts/hash";
 import type { Emotion } from "./emotion";
 
 const PALETTES = [

@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "CONCEPT_COVERAGE",
+    "message": "Material \"material_1xfqqww\" defines no concepts, so no story can be generated."
+  }
+}

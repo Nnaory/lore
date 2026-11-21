@@ -18,7 +18,7 @@ import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { CampaignState } from "@/lib/types/game";
 import type { StoryState } from "@/lib/types/game";
-import type { CampaignPlannerOptions } from "@/lib/ai/campaign-planner-types";
+import type { CampaignPlannerOptions } from "@/lib/contracts/ai-requests";
 
 // ---------------------------------------------------------------------------
 // Material Blueprint

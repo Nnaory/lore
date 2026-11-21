@@ -48,6 +48,19 @@ aws ssm start-session --target <INSTANCE_ID>
 
 Merge ke `main`. `release-web.yml` atau `release-api.yml` membangun image, mengirim ke GHCR, dan men-deploy lewat SSM, lalu menjalankan smoke test dan rollback otomatis bila gagal.
 
+### 3.2a Mengisi atau merotasi `GOOGLE_API_KEY` (API)
+
+Terraform hanya membuat parameter `SecureString` `/lore/prod/api/env/GOOGLE_API_KEY` dengan nilai placeholder `__SET_ME__` dan tidak pernah mengelola nilainya (`ignore_changes = [value]`), jadi key asli tidak masuk tfstate. Selama nilainya masih placeholder, backend menganggap AI belum diatur (`/health/ai` mengembalikan `configured: false`, endpoint AI menjawab `PROVIDER_NOT_CONFIGURED`).
+
+Urutan: `terraform apply` lewat CI harus selesai dulu (parameter terbentuk), baru isi nilainya. Mengisi sebelum apply akan tertimpa placeholder karena `overwrite = true`.
+
+```bash
+aws ssm put-parameter --name /lore/prod/api/env/GOOGLE_API_KEY \
+  --type SecureString --overwrite --value '<KEY_DARI_AI_STUDIO>'
+```
+
+Lalu render ulang env dan restart container api (rilis ulang api, atau `/opt/lore/deploy.sh api` lewat SSM), dan cek dari instance api: `curl -fsS http://127.0.0.1:8000/health/ai` harus mengembalikan `{"configured":true}`. Key bawaan `alias/aws/ssm` dipakai, jadi tidak ada resource KMS atau biaya tambahan. Jangan menaruh key di shell history bersama (pakai `read -s` atau `--cli-input-json` dari file sementara).
+
 ### 3.3 Rollback
 
 Tiga cara, dari yang paling disarankan:

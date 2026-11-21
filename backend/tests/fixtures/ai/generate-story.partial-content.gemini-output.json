@@ -1,0 +1,44 @@
+{
+  "intro": {
+    "guide_line": "We start here."
+  },
+  "concepts": [
+    {
+      "concept_id": "concept_1xfqqww_01",
+      "lesson_steps": [
+        {
+          "title": "Idea",
+          "body": "A short but valid lesson body."
+        },
+        "not a step",
+        {
+          "title": "",
+          "body": "x"
+        }
+      ],
+      "puzzle": {
+        "narrative_context": "ctx",
+        "question": "Q?",
+        "correct_answer": "Yes",
+        "wrong_answers": [
+          "No",
+          " yes "
+        ],
+        "explanation": "e",
+        "correct_feedback": "ok",
+        "incorrect_feedback": "hint"
+      }
+    },
+    {
+      "concept_id": "unknown_concept",
+      "lesson_body": "ignored"
+    },
+    {
+      "concept_id": "concept_1xfqqww_02",
+      "companion_line": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    }
+  ],
+  "ending": {
+    "title": "  The End  "
+  }
+}

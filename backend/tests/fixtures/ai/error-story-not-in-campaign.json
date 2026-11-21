@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "STORY_NOT_IN_CAMPAIGN",
+    "message": "Story \"story_99\" is not part of campaign \"campaign_001\"."
+  }
+}

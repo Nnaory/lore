@@ -1,0 +1,13 @@
+{
+  "ok": false,
+  "error": {
+    "code": "TIMEOUT",
+    "message": "No configured AI model is available right now. Try again in a moment.",
+    "detail": [
+      {
+        "model": "test-model",
+        "reason": "timeout"
+      }
+    ]
+  }
+}

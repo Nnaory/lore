@@ -31,8 +31,6 @@ jobs:
       - run: npx tsc --noEmit
       - run: npx vitest run --testTimeout=60000
       - run: npm run build
-        env:
-          AI_PROVIDER: dummy
 
   api:
     runs-on: ubuntu-latest

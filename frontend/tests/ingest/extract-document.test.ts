@@ -1,10 +1,10 @@
 /**
- * Tests — extractDocument / extractPastedText (Layer 0 entry point)
+ * Tests — extractDocument (Layer 0 entry point)
  */
 
 import { describe, it, expect } from "vitest";
-import { detectFileKind, extractDocument, extractPastedText } from "@/lib/ingest";
-import { AnalyzeMaterialRequestSchema } from "@/lib/ai/types";
+import { detectFileKind, extractDocument } from "@/lib/ingest";
+import { AnalyzeMaterialRequestSchema } from "@/lib/contracts/ai-requests";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
 
 function file(name: string, content: string, type = ""): File {
@@ -57,18 +57,6 @@ describe("extractDocument", () => {
     const result = await extractDocument(file("empty.txt", "   "));
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("NO_TEXT");
-  });
-});
-
-describe("extractPastedText", () => {
-  it("names the document 'Pasted text'", () => {
-    const result = extractPastedText("A vector has direction and size.");
-    expect(result.ok).toBe(true);
-    if (result.ok) expect(result.document.file_name).toBe("Pasted text");
-  });
-
-  it("returns an error result instead of throwing", () => {
-    expect(extractPastedText("")).toMatchObject({ ok: false, error: { code: "NO_TEXT" } });
   });
 });
 
