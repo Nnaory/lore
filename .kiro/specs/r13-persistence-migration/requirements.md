@@ -166,9 +166,9 @@ The API is public, the RDS is 20 GB on a free plan, the api instance is a t3.mic
 
 1. **Body size limits.** Enforced at two layers: Caddy (coarse, catches chunked uploads) and FastAPI (per-endpoint, defense in depth).
    - Caddy: `request_body { max_size 5MB }` on `/api/v1/*` in the Caddyfile. Requests exceeding this are rejected with `413` before reaching FastAPI.
-   - `POST /api/v1/projects`: max 2 MB body. A typical full project (5 stories, materials, campaign state) is ~170 KB; 2 MB gives generous headroom.
+   - `POST /api/v1/projects`: max 2 MB body. A full project measured 25–42 KB (T0, 20 Nov 2026: 3–5 chapters, materials, campaign state; the earlier estimate was ~170 KB); 2 MB gives generous headroom.
    - `POST /api/v1/projects/import`: max 5 MB body. Client batches by byte size (max 4 MB per request, leaving 1 MB headroom under Caddy's 5 MB limit). No hard count cap — size is the binding constraint.
-   - `PUT /api/v1/projects/{id}/state`: max 500 KB body. `CampaignState` is ~10 KB; 500 KB gives ample headroom.
+   - `PUT /api/v1/projects/{id}/state`: max 500 KB body. `CampaignState` measured 1.3–1.9 KB after one finished story (T0); 500 KB gives ample headroom.
    - `GET` and `DELETE` have no request body; no limit needed.
 2. **Rate limiting.** Per-IP (the client address as resolved by uvicorn from the proxy headers set by Caddy, `request.client.host`), applied at the API layer. Per-owner (cookie) limiting is secondary because cookies are client-controlled and trivially reset.
    - Per-IP: 120 requests/minute for all `/api/v1/projects/*` endpoints combined. This is the primary abuse prevention — an attacker clearing cookies still hits the same IP limit.

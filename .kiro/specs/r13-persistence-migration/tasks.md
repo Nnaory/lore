@@ -45,7 +45,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 0 — Numbers the design depends on
 
-- [ ] **T0 — Measure a real project's JSON size** `[LOCAL]`
+- [x] **T0 — Measure a real project's JSON size** `[LOCAL]`
   - **Satisfies:** FR-7.1, design "Body size limits". The "~170 KB per project" figure is an estimate from schema shapes. It has not been measured, and the 2 MB, 4 MB, 500 KB, and 50 MB limits all rest on it.
   - **How:** run the dev server with a real `GOOGLE_API_KEY` (never committed). Generate one `short` (3 chapter) and one `medium` (5 chapter) project from a real document, and one `medium` project from the largest allowed input (80,000 characters). Finish at least one story in each. In browser devtools, read the `lore` database, store `projects`, and record `new Blob([JSON.stringify(record)]).size` for the whole record, `campaign`, each story, `materials`, and `campaign_state`.
   - **Files:** `design.md` (replace the "~170 KB" estimate with the measured table), `requirements.md` FR-7 if a limit changes.

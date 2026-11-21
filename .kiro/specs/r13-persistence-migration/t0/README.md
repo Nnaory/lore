@@ -14,4 +14,4 @@ Remove-Item tests\_t0\measure-project-size.test.ts; Remove-Item tests\_t0
 
 Then replace the lower-bound table under "Body size limits" in `design.md`, and the `# TODO(T0)` constants in `backend/app/projects.py` if a limit changes.
 
-Last run (20 Nov 2026): Gemini answered HTTP 402 "prepayment credits are depleted", so only the dummy-provider lower bound was recorded.
+Last run (20 Nov 2026): succeeded with Gemini in about one minute for all three projects; results are in `design.md`. An earlier attempt the same day failed with HTTP 402 (prepay credits depleted) until the credits were topped up.

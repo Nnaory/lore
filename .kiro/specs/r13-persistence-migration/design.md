@@ -529,20 +529,26 @@ handle /api/v1/* {
 
 | Endpoint | Limit | Rationale |
 |---|---|---|
-| `POST /projects` | 2 MB | Typical full project ~170 KB (estimated from schema field sizes and typical content lengths; should be verified during implementation by logging `JSON.stringify(project).length` in a test). 2 MB is ~12× headroom. |
-| `POST /import` | 5 MB | Client batches by byte size, not count: max 4 MB per request (1 MB headroom under Caddy's 5 MB). At ~170 KB per project, that is ~23 projects per batch. No hard count cap — size is the binding constraint. |
-| `PUT /state` | 500 KB | CampaignState ~10 KB; 500 KB is ~50× headroom. |
+| `POST /projects` | 2 MB | Measured largest project 41.7 KB (T0 below); 2 MB is ~48× headroom. |
+| `POST /import` | 5 MB | Client batches by byte size, not count: max 4 MB per request (1 MB headroom under Caddy's 5 MB). At the measured 25–42 KB per project, that is ~95–155 projects per batch. No hard count cap — size is the binding constraint. |
+| `PUT /state` | 500 KB | Measured CampaignState after one finished story: 1.3–1.9 KB (body ≤ 2 KB); 500 KB is ~250× headroom and leaves room for state that grows over many stories. |
 
-**T0 measurement (20 Nov 2026): lower bound only, the ~170 KB estimate is still unverified.**
-The real measurement could not run: the Gemini key in the root `.env.local` is rejected with HTTP 402 "prepayment credits are depleted". Following T0's fallback, the same pipeline ran with the dummy provider. The script is `t0/measure-project-size.test.ts` in this spec folder: staged analyze → plan → stories with `previousSummaries` through the real route handlers, story 1 played with the `StoryViewer` recipe, sizes from `new Blob([JSON.stringify(x)]).size`.
+**T0 measurement (20 Nov 2026, Gemini, models `gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash`).**
+Script: `t0/measure-project-size.test.ts` in this spec folder. It runs the staged pipeline of `/create` (analyze → plan → stories with `previousSummaries`) through the real route handlers, builds the record like `createProject` + `saveCampaignState`, plays story 1 with the `StoryViewer` recipe (puzzles correct, good ending), and measures with `new Blob([JSON.stringify(x)]).size`. It reproduces the IndexedDB record in-process instead of reading it in browser devtools; IndexedDB stores the same object.
 
-| Input (all real repo documents) | Input chars | Concepts / stories / chapters | Record | campaign | stories | materials | campaign_state | PUT state body |
+| Input (real repo documents) | Input chars | Concepts / stories / chapters | Record | campaign | stories | materials | campaign_state | PUT state body |
 |---|---|---|---|---|---|---|---|---|
-| short, `docs/DOCS.md` | 22,197 | 1 / 1 / 1 | 8,119 B | 1,822 B | 4,429 B | 911 B | 754 B | 800 B |
-| medium, `docs/DESIGN.md` | 12,542 | 1 / 1 / 1 | 8,118 B | 1,822 B | 4,428 B | 909 B | 754 B | 800 B |
-| medium, `docs/infra/*.md` cut at 80,000 | 80,000 | 1 / 1 / 1 | 8,125 B | 1,822 B | 4,429 B | 911 B | 754 B | 800 B |
+| short, `docs/DOCS.md` | 22,197 | 3 / 1 / 3 | 27,325 B | 2,379 B | 17,663 B | 5,742 B | 1,338 B | 1,384 B |
+| medium, `docs/DESIGN.md` | 12,542 | 5 / 1 / 5 | 41,681 B | 2,200 B | 29,960 B | 7,407 B | 1,909 B | 1,955 B |
+| medium, `docs/infra/*.md` cut at 80,000 (largest input) | 80,000 | 3 / 1 / 3 | 25,261 B | 2,497 B | 16,497 B | 4,733 B | 1,325 B | 1,371 B |
 
-The dummy provider ignores `story_length` and the input size (always 1 concept, 1 story, 1 chapter), so these numbers are a floor, not typical sizes, and they say nothing about the upper end. The limits above stay as estimated (`# TODO(T0)` in `backend/app/projects.py`) until T0 runs with a working Gemini key.
+Findings:
+- A project is about 25–42 KB, a quarter of the ~170 KB estimate. Size follows the number of concepts (one chapter per concept), not the input length: the 80,000-char input produced the smallest record because the model returned 3 concepts for `medium`.
+- Every campaign had one story, so finishing story 1 completes the campaign; `campaign_state` is its final size for these projects.
+- T0's thresholds (medium > 1 MB, largest > 2 MB) are far from reached, so **all limits stay as they are**. Per owner, 100 projects × 42 KB ≈ 4.2 MB, well under the 50 MB cap.
+- One sample per case and one provider; a model that writes longer scenes would grow the stories part, which is ~70% of the record.
+
+A dummy-provider run gave ~8.1 KB for every input (1 concept, 1 story, 1 chapter); it is not representative.
 Oversized → `413 Payload Too Large`.
 
 ## Frontend design
@@ -844,7 +850,7 @@ async function sendImportBatch(projects: Project[]): Promise<void> {
 
 If the user clears cookies, they get a new owner_id. The server list is empty (new owner). All IndexedDB projects are "not on server" → imported. No flag to interfere.
 
-**Batching:** imports are batched by byte size (max 4 MB per request) to stay under Caddy's 5 MB limit. At ~170 KB per project, each batch holds ~23 projects. State syncs are sent individually (PUT per project) — they are small and infrequent.
+**Batching:** imports are batched by byte size (max 4 MB per request) to stay under Caddy's 5 MB limit. At the measured 25–42 KB per project (T0), each batch holds ~95–155 projects. State syncs are sent individually (PUT per project) — they are small and infrequent.
 
 ### project-store.ts delegation
 
