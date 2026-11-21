@@ -4,7 +4,7 @@
 
 import { describe, it, expect } from "vitest";
 import { detectFileKind, extractDocument } from "@/lib/ingest";
-import { AnalyzeMaterialRequestSchema } from "@/lib/ai/types";
+import { AnalyzeMaterialRequestSchema } from "@/lib/contracts/ai-requests";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
 
 function file(name: string, content: string, type = ""): File {
