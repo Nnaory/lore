@@ -34,9 +34,9 @@ import type { Puzzle } from "@/lib/types/puzzle";
 import type { ValidationError } from "@/lib/validation/story-validator";
 import { buildStoryBlueprint } from "@/lib/ai/story-generator-engine";
 import { validateGeneratedStory } from "@/lib/validation/generator-validator";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
-import { LessonVisualSchema } from "@/lib/ai/schemas/visual.schema";
-import { seededShuffle } from "@/lib/ai/hash";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
+import { LessonVisualSchema } from "@/lib/contracts/schemas/visual.schema";
+import { seededShuffle } from "@/lib/contracts/hash";
 import { generateJson, type GeminiConfig } from "./gemini-client";
 
 const line = z.string().trim().min(1).max(400);

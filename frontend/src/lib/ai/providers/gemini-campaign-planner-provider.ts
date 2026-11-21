@@ -20,7 +20,7 @@ import type {
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { ValidationError } from "@/lib/validation/story-validator";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
+import { CampaignBlueprintSchema } from "@/lib/contracts/schemas/campaign.schema";
 import { generateJson, type GeminiConfig } from "./gemini-client";
 
 const text = z.string().trim().min(1).max(600);

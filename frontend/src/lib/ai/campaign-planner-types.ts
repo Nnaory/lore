@@ -13,9 +13,8 @@
  *   - All types are serializable and server-side only.
  */
 
-import { z } from "zod";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
-import { GenreSchema } from "@/lib/ai/schemas/campaign.schema";
+import type { z } from "zod";
+import { CampaignPlannerOptionsSchema, PlanCampaignRequestSchema } from "@/lib/contracts/ai-requests";
 import type { AIProviderId } from "@/lib/ai/types";
 import type { CampaignBlueprint, Genre } from "@/lib/types/campaign";
 import type { ValidationError } from "@/lib/validation/story-validator";
@@ -24,33 +23,7 @@ import type { ValidationError } from "@/lib/validation/story-validator";
 // Request
 // ---------------------------------------------------------------------------
 
-/** Campaign-level creative options supplied by the caller. */
-export const CampaignPlannerOptionsSchema = z.object({
-  genre: GenreSchema,
-  /** Narrative tone. Providers may override this when omitted. */
-  tone: z.string().optional(),
-  /** World setting. Providers may override this when omitted. */
-  setting: z.string().optional(),
-  /** Extra instructions from the player, passed to the storyteller. */
-  customInstructions: z.string().optional(),
-  /** Optional explicit campaign identifier. Defaults to a deterministic value. */
-  campaignId: z.string().optional(),
-  /** Optional language hint for the storyteller. */
-  language: z.string().optional(),
-});
-
-/**
- * Campaign Planner request.
- *
- * `materials` MUST contain at least one valid MaterialBlueprint. Materials are
- * validated against MaterialBlueprintSchema at the request boundary.
- */
-export const PlanCampaignRequestSchema = z.object({
-  materials: z
-    .array(MaterialBlueprintSchema)
-    .min(1, "at least one material is required"),
-  options: CampaignPlannerOptionsSchema,
-});
+export { CampaignPlannerOptionsSchema, PlanCampaignRequestSchema };
 
 export type CampaignPlannerOptions = z.infer<typeof CampaignPlannerOptionsSchema>;
 export type PlanCampaignRequest = z.infer<typeof PlanCampaignRequestSchema>;

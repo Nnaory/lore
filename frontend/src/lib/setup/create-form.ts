@@ -9,7 +9,7 @@
 import type { Genre } from "@/lib/types/campaign";
 import type { ExtractedDocument } from "@/lib/types/document";
 import type { IngestFailure } from "@/lib/ingest/errors";
-import type { FullWorkflowRequestBody } from "@/lib/ai/full-workflow-schema";
+import type { GenerationRequest } from "@/lib/contracts/generation-request";
 import { buildMaterialText } from "@/lib/ingest/material-text";
 import { MAX_MATERIAL_CHARS, MIN_MATERIAL_CHARS } from "@/lib/ingest/limits";
 
@@ -156,8 +156,8 @@ export function selectSubmitBlocker(
   return null;
 }
 
-/** The /api/ai/full-workflow request for this form, or null if it is not ready. */
-export function buildWorkflowRequest(state: CreateFormState): FullWorkflowRequestBody | null {
+/** The generation request for this form, or null if it is not ready. */
+export function buildWorkflowRequest(state: CreateFormState): GenerationRequest | null {
   const material = selectMaterialText(state);
   if (selectSubmitBlocker(state, material) !== null) return null;
   if (state.doc.status !== "ready" || state.genre === null) return null;
