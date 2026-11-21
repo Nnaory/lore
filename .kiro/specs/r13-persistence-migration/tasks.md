@@ -142,7 +142,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - **Atomicity:** force the story insert to fail and assert the project row was rolled back.
   - **Commits:** `feat(api): create project`, then `test(api): create project`.
 
-- [ ] **T9 — Save state** `[PG]`
+- [x] **T9 — Save state** `[PG]`
   - **Satisfies:** FR-2 endpoint 5, FR-4.2, review items on ownership-first and atomic conflict detection; design "Put state".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
   - **Behavior:** check ownership first (404). Then run a single `INSERT ... ON CONFLICT (project_id) DO UPDATE ... WHERE project_state.updated_at <= EXCLUDED.updated_at` and read the row count. A row count of 1 updates `projects.stories_completed` and `updated_at` in the same transaction. A row count of 0 returns 409 with `stored_updated_at` and leaves `projects` untouched.
