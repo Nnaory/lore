@@ -43,16 +43,17 @@ RETRY_AFTER_SECONDS = 60
 class Limits:
     """Body size limits and storage caps (FR-7.1, FR-7.3). Tests replace app.state.limits.
 
-    Sizes are decimal bytes, matching Caddy's `max_size 5MB` (5,000,000 bytes). The body limits
-    rest on the ~170 KB per-project estimate in design.md, which T0 has not measured yet.
+    Sizes are decimal bytes, matching Caddy's `max_size 5MB` (5,000,000 bytes). T0 measured a
+    real project at 25-42 KB and its campaign state at under 2 KB (design.md, "Body size
+    limits"), so these limits keep large headroom and were left unchanged after the measurement.
     """
 
-    create_body_bytes: int = 2_000_000  # TODO(T0): sesuaikan setelah pengukuran
-    import_body_bytes: int = 5_000_000  # TODO(T0): sesuaikan setelah pengukuran
-    state_body_bytes: int = 500_000  # TODO(T0): sesuaikan setelah pengukuran
-    owner_max_projects: int = 100  # TODO(T0): sesuaikan setelah pengukuran
-    owner_max_bytes: int = 50_000_000  # TODO(T0): sesuaikan setelah pengukuran
-    global_max_projects: int = 10_000  # TODO(T0): sesuaikan setelah pengukuran
+    create_body_bytes: int = 2_000_000  # ~48x the largest measured project
+    import_body_bytes: int = 5_000_000  # equals Caddy's max_size; client batches at 4 MB
+    state_body_bytes: int = 500_000  # measured PUT state body is under 2 KB
+    owner_max_projects: int = 100
+    owner_max_bytes: int = 50_000_000  # 100 projects x 42 KB is about 4.2 MB
+    global_max_projects: int = 10_000
 
 
 DEFAULT_LIMITS = Limits()
