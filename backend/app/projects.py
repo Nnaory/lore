@@ -16,10 +16,15 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 from sqlalchemy import Connection, Engine, text
+from sqlalchemy.exc import DataError
 
 from app.models import (
     CampaignStateUpdate,
+    ImportRejection,
+    ImportRequest,
+    ImportResponse,
     ProjectCreate,
     ProjectResponse,
     ProjectSummaryResponse,
@@ -106,10 +111,6 @@ _CREATE = [
     Depends(get_engine),
 ]
 _IMPORT = [Depends(limit_ip), Depends(limit_import), Depends(get_engine)]
-
-
-def _not_implemented() -> HTTPException:
-    return HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="not implemented")
 
 
 def _not_found() -> HTTPException:
@@ -288,8 +289,40 @@ def create_project(
 
 
 @router.post("/import", dependencies=_IMPORT)
-def import_projects(engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+def import_projects(body: ImportRequest, engine: EngineDep, owner_id: OwnerDep) -> ImportResponse:
+    """Per-item validation and one transaction per project, so one bad item blocks nothing.
+
+    imported: rows written (new, or the caller's own row replaced by a newer or equal copy).
+    skipped: rows not written (stored copy is newer, or the id belongs to another owner).
+    rejected: items that failed validation or that the database refused as invalid data.
+    """
+    imported = skipped = 0
+    rejected: list[ImportRejection] = []
+    for index, raw in enumerate(body.projects):
+        raw_id = raw.get("id") if isinstance(raw, dict) else None
+        item_id = raw_id if isinstance(raw_id, str) else None
+        try:
+            project = ProjectCreate.model_validate(raw)
+        except ValidationError as exc:
+            rejected.append(ImportRejection(index=index, id=item_id, error=_errors(exc)))
+            continue
+        try:
+            with engine.begin() as conn:
+                outcome = upsert_project(conn, project, owner_id)
+        except DataError:
+            rejected.append(ImportRejection(index=index, id=item_id, error="invalid data"))
+            continue
+        if outcome in (UpsertOutcome.INSERTED, UpsertOutcome.UPDATED):
+            imported += 1
+        else:
+            skipped += 1
+    return ImportResponse(imported=imported, skipped=skipped, rejected=rejected)
+
+
+def _errors(exc: ValidationError) -> str:
+    return "; ".join(
+        f"{'.'.join(str(p) for p in err['loc']) or 'project'}: {err['msg']}" for err in exc.errors()
+    )
 
 
 @router.get("/{project_id}", dependencies=_READ)

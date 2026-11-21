@@ -97,12 +97,21 @@ class CampaignStateUpdate(BaseModel):
 
 
 class ImportRequest(BaseModel):
-    projects: list[ProjectCreate]
+    # Items stay raw here and are validated one by one in the endpoint, so a single invalid
+    # project is reported in `rejected` instead of failing the whole batch with a 422.
+    projects: list[Any]
+
+
+class ImportRejection(BaseModel):
+    index: int
+    id: str | None = None
+    error: str
 
 
 class ImportResponse(BaseModel):
     imported: int
     skipped: int
+    rejected: list[ImportRejection] = []
 
 
 class StateConflictResponse(BaseModel):

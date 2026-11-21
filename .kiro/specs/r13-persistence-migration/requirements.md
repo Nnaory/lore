@@ -109,7 +109,7 @@ All endpoints under `/api/v1/projects`, routed publicly by Caddy (Q21 prefix). N
 | 3 | `GET` | `/api/v1/projects/{id}` | Load a full project | `loadProject()` | `200` → `Project` | `404` not found or not owned by caller |
 | 4 | `DELETE` | `/api/v1/projects/{id}` | Delete a project and its stories/state | `deleteProject()` | `204` (empty) | `404` not found or not owned by caller |
 | 5 | `PUT` | `/api/v1/projects/{id}/state` | Save campaign state | `saveCampaignState()` | `200` → `{ updated_at: number }` | `404` not found; `409` stale write (see below) |
-| 6 | `POST` | `/api/v1/projects/import` | Bulk import from IndexedDB | One-time migration | `200` → `{ imported: number, skipped: number }` | `413` body too large |
+| 6 | `POST` | `/api/v1/projects/import` | Bulk import from IndexedDB | One-time migration | `200` → `{ imported: number, skipped: number, rejected: { index, id?, error }[] }` | `413` body too large |
 
 Requirements per endpoint:
 
@@ -125,7 +125,7 @@ Requirements per endpoint:
   - If the client's `updated_at` is **older** (stale write), the server rejects with `409 Conflict` and returns the stored `updated_at` in the body. The client uses the returned `updated_at` to reconcile (reload the project or discard its local state).
   
   This is a strict last-write-wins on `updated_at`: the newer timestamp always wins, and stale writes are rejected, not silently overwritten.
-- **Endpoint 6 (import).** Accepts an array of full `Project` objects. Sets `owner_id` from the cookie token on every imported project. Idempotent per `id`: if a project with the same `id` already exists and is owned by the caller, the one with the newer `updated_at` wins (mirrors `migrateFromLocalStorage`). If the `id` belongs to a different owner, the project is skipped (counted in `skipped`, not `imported`) — no cross-owner write. Returns a count of imported and skipped projects. Does not delete or modify data that was not in the request.
+- **Endpoint 6 (import).** Accepts an array of full `Project` objects. Sets `owner_id` from the cookie token on every imported project. Idempotent per `id`: if a project with the same `id` already exists and is owned by the caller, the one with the newer `updated_at` wins (mirrors `migrateFromLocalStorage`). If the `id` belongs to a different owner, the project is skipped (counted in `skipped`, not `imported`) — no cross-owner write. Each item is validated on its own: an invalid item (same rules as endpoint 2) is not written and is listed in `rejected` with its index, its id when it has a string id, and the error; the other items in the batch are still processed, so one bad project cannot block the batch on every load. Each project is written in its own transaction. Returns `imported` (rows written: new, or the caller's own row replaced by a copy with a newer or equal `updated_at`), `skipped` (not written: the stored copy is newer, or the id belongs to another owner), and `rejected`. Re-importing an identical copy rewrites the same data, so it changes nothing but counts as `imported`. Does not delete or modify data that was not in the request.
 
 ### FR-3: Repository abstraction and feature flag
 

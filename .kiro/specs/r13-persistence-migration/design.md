@@ -254,11 +254,19 @@ class CampaignStateUpdate(BaseModel):
         return state
 
 class ImportRequest(BaseModel):
-    projects: list[ProjectCreate]
+    # Items are validated one by one in the endpoint (decision on "Open details" item 2):
+    # one invalid project is reported in `rejected` instead of failing the batch with 422.
+    projects: list[Any]
+
+class ImportRejection(BaseModel):
+    index: int             # position in the request's `projects` array
+    id: str | None = None  # the item's id, when it had a string id
+    error: str             # validation messages, or "invalid data" if the database refused it
 
 class ImportResponse(BaseModel):
-    imported: int
-    skipped: int
+    imported: int   # rows written: new, or the caller's own row replaced by a newer or equal copy
+    skipped: int    # rows not written: stored copy is newer, or the id belongs to another owner
+    rejected: list[ImportRejection] = []
 
 class StateConflictResponse(BaseModel):
     detail: str
