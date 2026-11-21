@@ -1,10 +1,11 @@
 /**
  * /create — Preparation page
  *
- * 01 Material: upload a PDF/DOCX/PPTX/TXT (read in the browser) or paste
- *    text, then choose which sections to use.
+ * 01 Material: upload a PDF/DOCX/PPTX/TXT/MD (read in the browser), then
+ *    choose which sections to use. A file is required; typed text is only
+ *    extra instructions (step 02), never material.
  * 02 World: pick a genre and optional preferences.
- * Material typed or attached on the home page arrives here already chosen
+ * A file attached on the home page (with any instructions typed there) arrives here already chosen
  * (lib/setup/pending-material) and is read as if it were added in step 01.
  * "Build the world" opens the staged generation screen (concepts → the
  * player's review → world → story). The finished campaign is saved to
@@ -19,7 +20,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { createProject } from "@/lib/state/project-store";
 import { ArrowLeft } from "lucide-react";
-import { extractDocument, extractPastedText, type ExtractResult } from "@/lib/ingest";
+import { extractDocument, type ExtractResult } from "@/lib/ingest";
 import {
   buildWorkflowRequest,
   createFormReducer,
@@ -39,7 +40,7 @@ import { AdvancedOptions } from "@/components/setup/AdvancedOptions";
 import { CampaignPlayer } from "@/components/campaign/CampaignPlayer";
 
 const BLOCKER_HINT: Record<SubmitBlocker, string> = {
-  no_document: "Add your material to begin.",
+  no_document: "Upload a material file to begin.",
   reading: "Reading your document…",
   no_sections: "Select at least one section.",
   too_short: "The selected text is too short to build a story from.",
@@ -114,6 +115,11 @@ export default function CreatePage() {
     dispatch({ type: "reset" });
   }, [resetGeneration]);
 
+  function applyResult(requestId: number, fileName: string, result: ExtractResult) {
+    if (result.ok) dispatch({ type: "read_succeeded", requestId, document: result.document });
+    else dispatch({ type: "read_failed", requestId, fileName, error: result.error });
+  }
+
   // Material sent from the home page. Effects also re-run when this page is
   // shown again (see above), so a second send from home is picked up too.
   // The handoff can be taken once, which keeps the dev-mode double effect from
@@ -127,34 +133,19 @@ export default function CreatePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setGenerating(false);
     const requestId = ++lastRequestId.current;
-    if (pending.kind === "file") {
-      const { file } = pending;
-      dispatch({ type: "read_started", requestId, fileName: file.name });
-      void extractDocument(file).then((result) => applyResult(requestId, file.name, result));
-    } else {
-      dispatch({ type: "read_started", requestId, fileName: "Pasted text" });
-      applyResult(requestId, "Pasted text", extractPastedText(pending.text));
-    }
+    const { file, instructions } = pending;
+    dispatch({ type: "instructions_set", text: instructions });
+    dispatch({ type: "read_started", requestId, fileName: file.name });
+    void extractDocument(file).then((result) => applyResult(requestId, file.name, result));
   }, [resetGeneration]);
 
   const materialText = selectMaterialText(state);
   const blocker = selectSubmitBlocker(state, materialText);
 
-  function applyResult(requestId: number, fileName: string, result: ExtractResult) {
-    if (result.ok) dispatch({ type: "read_succeeded", requestId, document: result.document });
-    else dispatch({ type: "read_failed", requestId, fileName, error: result.error });
-  }
-
   async function handleFile(file: File) {
     const requestId = ++lastRequestId.current;
     dispatch({ type: "read_started", requestId, fileName: file.name });
     applyResult(requestId, file.name, await extractDocument(file));
-  }
-
-  function handlePaste(text: string) {
-    const requestId = ++lastRequestId.current;
-    dispatch({ type: "read_started", requestId, fileName: "Pasted text" });
-    applyResult(requestId, "Pasted text", extractPastedText(text));
   }
 
   function handleSubmit() {
@@ -224,7 +215,7 @@ export default function CreatePage() {
               Turn your material into a story
             </h1>
             <p className="text-sm mt-2 leading-6" style={{ color: "var(--foreground-muted)" }}>
-              Bring lecture notes, a chapter, or a slide deck. LORE builds a world around it where every
+              Upload lecture notes, a chapter, or a slide deck. LORE builds a world around it where every
               challenge is solved with what you learn.
             </p>
           </div>
@@ -232,7 +223,7 @@ export default function CreatePage() {
           <section aria-labelledby="step-material">
             <StepHeading id="step-material" index="01" title="Material" />
             {state.doc.status === "empty" ? (
-              <MaterialInput onFile={handleFile} onPaste={handlePaste} />
+              <MaterialInput onFile={handleFile} />
             ) : (
               <DocumentCard
                 doc={state.doc}

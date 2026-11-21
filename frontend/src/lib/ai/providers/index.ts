@@ -1,65 +1,111 @@
 /**
  * AI Provider Registry
  *
- * Resolves the active provider from environment configuration.
+ * Resolves the active provider for each layer from environment configuration.
  * Server-side only — never imported by client components.
+ *
+ * There is no offline/demo provider. When no LLM can be reached (AI_PROVIDER
+ * is not "google", or no GOOGLE_API_KEY / GEMINI_API_KEY is set) every layer
+ * gets an "unavailable" provider that returns PROVIDER_NOT_CONFIGURED, so the
+ * player sees a clear warning instead of made-up concepts or a made-up story.
+ * Tests inject deterministic doubles with setProvidersForTest.
  */
 
-import { IMaterialIntelligenceProvider, AIProviderId } from "@/lib/ai/types";
-import { DummyProvider } from "@/lib/ai/providers/dummy-provider";
-import type { ICampaignPlannerProvider } from "@/lib/ai/campaign-planner-types";
-import { DummyCampaignPlannerProvider } from "@/lib/ai/providers/dummy-campaign-planner-provider";
-import type { IStoryGeneratorProvider } from "@/lib/ai/story-generator-types";
-import { dummyStoryGeneratorProvider } from "@/lib/ai/providers/dummy-story-generator";
+import type { IMaterialIntelligenceProvider, AnalyzeMaterialResult } from "@/lib/ai/types";
+import type { ICampaignPlannerProvider, PlanCampaignResult } from "@/lib/ai/campaign-planner-types";
+import type { IStoryGeneratorProvider, GenerateStoryResult } from "@/lib/ai/story-generator-types";
 import { geminiConfigFromEnv, type GeminiConfig } from "@/lib/ai/providers/gemini-client";
 import { GeminiMaterialProvider } from "@/lib/ai/providers/gemini-material-provider";
 import { GeminiCampaignPlannerProvider } from "@/lib/ai/providers/gemini-campaign-planner-provider";
 import { GeminiStoryGeneratorProvider } from "@/lib/ai/providers/gemini-story-generator";
 
+// ---------------------------------------------------------------------------
+// "Unavailable" providers (no LLM configured)
+// ---------------------------------------------------------------------------
+
+const NOT_CONFIGURED_MESSAGE =
+  "No AI model is configured on this server (set AI_PROVIDER=google and GOOGLE_API_KEY).";
+
+const notConfigured = { code: "PROVIDER_NOT_CONFIGURED" as const, message: NOT_CONFIGURED_MESSAGE };
+
+class UnavailableMaterialProvider implements IMaterialIntelligenceProvider {
+  readonly id = "none" as const;
+  readonly model = "none";
+  async analyzeMaterial(): Promise<AnalyzeMaterialResult> {
+    return { ok: false, error: { ...notConfigured } };
+  }
+}
+
+class UnavailableCampaignPlannerProvider implements ICampaignPlannerProvider {
+  readonly id = "none" as const;
+  readonly model = "none";
+  async planCampaign(): Promise<PlanCampaignResult> {
+    return { ok: false, error: { ...notConfigured } };
+  }
+}
+
+class UnavailableStoryGeneratorProvider implements IStoryGeneratorProvider {
+  readonly id = "none" as const;
+  readonly model = "none";
+  async generateStory(): Promise<GenerateStoryResult> {
+    return { ok: false, error: { ...notConfigured } };
+  }
+}
+
 /**
- * Gemini config for AI_PROVIDER=google, or null (with a warning) when no
- * GOOGLE_API_KEY / GEMINI_API_KEY is set — callers then fall back to dummy.
+ * Gemini config when AI_PROVIDER=google and a key is set, otherwise null
+ * (with a server-side warning saying why).
  */
 function googleConfig(layer: string): GeminiConfig | null {
+  const providerId = process.env.AI_PROVIDER;
+  if (providerId !== "google") {
+    console.warn(`[AI] AI_PROVIDER is "${providerId ?? ""}" (expected "google"); ${layer} is unavailable`);
+    return null;
+  }
   const config = geminiConfigFromEnv();
   if (!config) {
-    console.warn(`[AI] AI_PROVIDER=google but no GOOGLE_API_KEY is set; ${layer} falls back to dummy`);
+    console.warn(`[AI] AI_PROVIDER=google but no GOOGLE_API_KEY is set; ${layer} is unavailable`);
   }
   return config;
 }
 
-/**
- * Returns the configured provider instance.
- * Defaults to DummyProvider if AI_PROVIDER is unset or unknown.
- * Fail-closed: never crashes, always returns a working provider.
- */
-export function getProvider(): IMaterialIntelligenceProvider {
-  const providerId = (process.env.AI_PROVIDER ?? "dummy") as AIProviderId;
+// ---------------------------------------------------------------------------
+// Test doubles (NODE_ENV === "test" only)
+// ---------------------------------------------------------------------------
 
-  switch (providerId) {
-    case "dummy":
-      return new DummyProvider();
-    case "google": {
-      const config = googleConfig("material intelligence");
-      return config ? new GeminiMaterialProvider(config) : new DummyProvider();
-    }
-    // Future providers — NOT implemented in M7:
-    // case "openai":
-    //   return new OpenAIProvider({
-    //     apiKey: process.env.AI_API_KEY!,
-    //     model: process.env.AI_MODEL ?? "gpt-4o-mini",
-    //     maxTokens: Number(process.env.AI_MAX_TOKENS ?? 4000),
-    //   });
-    // case "anthropic":
-    //   return new AnthropicProvider({ ... });
-    // case "google":
-    //   return new GoogleProvider({ ... });
-    default:
-      console.warn(
-        `[AI] Unknown provider "${providerId}", falling back to dummy`
-      );
-      return new DummyProvider();
-  }
+type TestProviders = {
+  material?: IMaterialIntelligenceProvider;
+  planner?: ICampaignPlannerProvider;
+  story?: IStoryGeneratorProvider;
+};
+
+let testProviders: TestProviders = {};
+
+/** Replace providers with test doubles. Ignored outside NODE_ENV=test. */
+export function setProvidersForTest(providers: TestProviders): void {
+  if (process.env.NODE_ENV !== "test") return;
+  testProviders = { ...testProviders, ...providers };
+}
+
+/** Remove every test double so the real (env-driven) registry is used. */
+export function clearProvidersForTest(): void {
+  testProviders = {};
+}
+
+function testDouble<K extends keyof TestProviders>(key: K): TestProviders[K] | undefined {
+  return process.env.NODE_ENV === "test" ? testProviders[key] : undefined;
+}
+
+// ---------------------------------------------------------------------------
+// Material Intelligence provider registry (Layer 1)
+// ---------------------------------------------------------------------------
+
+/** The configured provider, or an unavailable one. Never throws. */
+export function getProvider(): IMaterialIntelligenceProvider {
+  const double = testDouble("material");
+  if (double) return double;
+  const config = googleConfig("material intelligence");
+  return config ? new GeminiMaterialProvider(config) : new UnavailableMaterialProvider();
 }
 
 /**
@@ -72,62 +118,36 @@ function cacheProviders(): boolean {
   return process.env.NODE_ENV !== "development";
 }
 
-/** Reset provider cache (for testing). */
 let _cachedProvider: IMaterialIntelligenceProvider | null = null;
 
 export function getProviderCached(): IMaterialIntelligenceProvider {
-  if (!cacheProviders()) return getProvider();
+  if (!cacheProviders() || testDouble("material")) return getProvider();
   if (!_cachedProvider) {
     _cachedProvider = getProvider();
   }
   return _cachedProvider;
 }
 
+/** Reset provider cache (for testing). */
 export function resetProviderCache(): void {
   _cachedProvider = null;
 }
 
 // ---------------------------------------------------------------------------
 // Campaign Planner provider registry (Layer 2)
-//
-// Kept separate from the Material Intelligence registry so each service owns
-// its own selection responsibilities. Both read the same AI_PROVIDER variable.
 // ---------------------------------------------------------------------------
 
-/**
- * Returns the configured Campaign Planner provider.
- * Defaults to DummyCampaignPlannerProvider if AI_PROVIDER is unset or unknown.
- * Fail-closed: never crashes, always returns a working provider.
- */
 export function getCampaignPlannerProvider(): ICampaignPlannerProvider {
-  const providerId = (process.env.AI_PROVIDER ?? "dummy") as AIProviderId;
-
-  switch (providerId) {
-    case "dummy":
-      return new DummyCampaignPlannerProvider();
-    case "google": {
-      const config = googleConfig("campaign planner");
-      return config ? new GeminiCampaignPlannerProvider(config) : new DummyCampaignPlannerProvider();
-    }
-    // Future providers — NOT implemented in M8:
-    // case "openai":
-    //   return new OpenAICampaignPlannerProvider({ ... });
-    // case "anthropic":
-    //   return new AnthropicCampaignPlannerProvider({ ... });
-    // case "google":
-    //   return new GoogleCampaignPlannerProvider({ ... });
-    default:
-      console.warn(
-        `[AI] Unknown campaign planner provider "${providerId}", falling back to dummy`
-      );
-      return new DummyCampaignPlannerProvider();
-  }
+  const double = testDouble("planner");
+  if (double) return double;
+  const config = googleConfig("campaign planner");
+  return config ? new GeminiCampaignPlannerProvider(config) : new UnavailableCampaignPlannerProvider();
 }
 
 let _cachedCampaignPlannerProvider: ICampaignPlannerProvider | null = null;
 
 export function getCampaignPlannerProviderCached(): ICampaignPlannerProvider {
-  if (!cacheProviders()) return getCampaignPlannerProvider();
+  if (!cacheProviders() || testDouble("planner")) return getCampaignPlannerProvider();
   if (!_cachedCampaignPlannerProvider) {
     _cachedCampaignPlannerProvider = getCampaignPlannerProvider();
   }
@@ -140,45 +160,19 @@ export function resetCampaignPlannerProviderCache(): void {
 
 // ---------------------------------------------------------------------------
 // Story Generator provider registry (Layer 3)
-//
-// Third independent registry — each service owns its selection. All read
-// AI_PROVIDER and fall back to dummy independently.
 // ---------------------------------------------------------------------------
 
-/**
- * Returns the configured Story Generator provider.
- * Defaults to dummyStoryGeneratorProvider if AI_PROVIDER is unset or unknown.
- * Fail-closed: never crashes, always returns a working provider.
- */
 export function getStoryGeneratorProvider(): IStoryGeneratorProvider {
-  const providerId = (process.env.AI_PROVIDER ?? "dummy") as AIProviderId;
-
-  switch (providerId) {
-    case "dummy":
-      return dummyStoryGeneratorProvider;
-    case "google": {
-      const config = googleConfig("story generator");
-      return config ? new GeminiStoryGeneratorProvider(config) : dummyStoryGeneratorProvider;
-    }
-    // Future providers — NOT implemented in M9:
-    // case "openai":
-    //   return new OpenAIStoryGeneratorProvider({ ... });
-    // case "anthropic":
-    //   return new AnthropicStoryGeneratorProvider({ ... });
-    // case "google":
-    //   return new GoogleStoryGeneratorProvider({ ... });
-    default:
-      console.warn(
-        `[AI] Unknown story generator provider "${providerId}", falling back to dummy`
-      );
-      return dummyStoryGeneratorProvider;
-  }
+  const double = testDouble("story");
+  if (double) return double;
+  const config = googleConfig("story generator");
+  return config ? new GeminiStoryGeneratorProvider(config) : new UnavailableStoryGeneratorProvider();
 }
 
 let _cachedStoryGeneratorProvider: IStoryGeneratorProvider | null = null;
 
 export function getStoryGeneratorProviderCached(): IStoryGeneratorProvider {
-  if (!cacheProviders()) return getStoryGeneratorProvider();
+  if (!cacheProviders() || testDouble("story")) return getStoryGeneratorProvider();
   if (!_cachedStoryGeneratorProvider) {
     _cachedStoryGeneratorProvider = getStoryGeneratorProvider();
   }

@@ -7,8 +7,9 @@
  *   - The planner consumes validated MaterialBlueprints and campaign options.
  *   - The planner produces a CampaignBlueprint only. It does NOT produce story
  *     content, scenes, dialogue, or puzzles (that is Layer 3 and later).
- *   - Real AI providers are deferred. The dummy provider is the only active
- *     implementation; future providers MUST implement ICampaignPlannerProvider.
+ *   - The Gemini provider is the only real implementation; future providers
+ *     MUST implement ICampaignPlannerProvider. With no LLM configured the
+ *     registry returns an unavailable provider (PROVIDER_NOT_CONFIGURED).
  *   - All types are serializable and server-side only.
  */
 
@@ -30,11 +31,11 @@ export const CampaignPlannerOptionsSchema = z.object({
   tone: z.string().optional(),
   /** World setting. Providers may override this when omitted. */
   setting: z.string().optional(),
-  /** Reserved for future real providers. Ignored by the dummy provider. */
+  /** Extra instructions from the player, passed to the storyteller. */
   customInstructions: z.string().optional(),
   /** Optional explicit campaign identifier. Defaults to a deterministic value. */
   campaignId: z.string().optional(),
-  /** Optional language hint for future providers. Ignored by the dummy provider. */
+  /** Optional language hint for the storyteller. */
   language: z.string().optional(),
 });
 
@@ -82,7 +83,8 @@ export interface PlanCampaignResponse {
  * INVALID_PREREQUISITE_REF — a concept prerequisite points to an unknown concept.
  * PREREQUISITE_CYCLE     — cross-material prerequisites form a cycle.
  * REQUIRED_KNOWLEDGE_ORDER — required_knowledge is not satisfiable by earlier stories.
- * PROVIDER_UNAVAILABLE   — provider could not be reached / is not configured.
+ * PROVIDER_UNAVAILABLE   — provider could not be reached.
+ * PROVIDER_NOT_CONFIGURED — no AI provider/API key is set up on this server.
  * OUTPUT_PARSE_FAILED    — provider output was not valid JSON / schema.
  * VALIDATION_FAILED      — provider output failed schema or semantic validation.
  * UNKNOWN                — unexpected internal error.
@@ -95,6 +97,7 @@ export type CampaignPlannerErrorCode =
   | "PREREQUISITE_CYCLE"
   | "REQUIRED_KNOWLEDGE_ORDER"
   | "PROVIDER_UNAVAILABLE"
+  | "PROVIDER_NOT_CONFIGURED"
   | "OUTPUT_PARSE_FAILED"
   | "VALIDATION_FAILED"
   | "UNKNOWN";
@@ -132,7 +135,6 @@ export interface ICampaignPlannerProvider {
   /**
    * Plan a campaign from materials and options.
    * MUST NOT throw — return PlanCampaignResult.
-   * MUST be deterministic when provider = "dummy".
    */
   planCampaign(request: PlanCampaignRequest): Promise<PlanCampaignResult>;
 

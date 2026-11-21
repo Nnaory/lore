@@ -3,9 +3,10 @@
  *
  * @vitest-environment jsdom
  *
- * Drives the page the way a user would: paste or upload material, pick a
+ * Drives the page the way a user would: upload a material file, pick a
  * world, build, review the concepts, and land on the saved story. Server
- * calls go to the real AI route handlers in-process (dummy provider).
+ * calls go to the real AI route handlers in-process, with the deterministic
+ * test-double providers (tests/helpers/dummy-providers).
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -42,10 +43,11 @@ afterEach(() => {
 // Mentions "linear combination", so the dummy provider returns two concepts.
 const NOTES = "## Vectors\nA vector has direction and size.\n\n## Span\nThe span is every linear combination.";
 
-function pasteMaterial(text: string) {
-  fireEvent.click(screen.getByTestId("paste-mode-button"));
-  fireEvent.change(screen.getByTestId("paste-textarea"), { target: { value: text } });
-  fireEvent.click(screen.getByTestId("paste-submit"));
+/** Upload a text file as material and wait until it has been read. */
+async function uploadMaterial(text: string, name = "notes.txt") {
+  const file = new File([text], name, { type: "text/plain" });
+  fireEvent.change(screen.getByTestId("material-file-input"), { target: { files: [file] } });
+  await screen.findByTestId("document-stats", {}, { timeout: 10_000 });
 }
 
 function chooseGenre(genre: string) {
@@ -53,35 +55,41 @@ function chooseGenre(genre: string) {
 }
 
 describe("/create — material sent from the home page", () => {
-  it("reads sent text as pasted material", () => {
-    setPendingMaterial({ kind: "text", text: NOTES });
-    render(<CreatePage />);
-
-    expect(screen.getByTestId("document-card").dataset.status).toBe("ready");
-    expect(screen.getByTestId("document-name").textContent).toBe("Pasted text");
-    expect(screen.queryByTestId("material-dropzone")).toBeNull();
-  });
-
   it("reads a sent file", async () => {
-    setPendingMaterial({ kind: "file", file: new File([NOTES], "week3.txt", { type: "text/plain" }) });
+    setPendingMaterial({ file: new File([NOTES], "week3.txt", { type: "text/plain" }), instructions: "" });
     render(<CreatePage />);
 
     // Reading is async; give a loaded machine more than the 1 s default.
     expect((await screen.findByTestId("document-stats", {}, { timeout: 10_000 })).textContent).toContain("2 sections");
     expect(screen.getByTestId("document-name").textContent).toBe("week3.txt");
+    expect(screen.queryByTestId("material-dropzone")).toBeNull();
+  });
+
+  it("fills the storyteller instructions with the text typed on the home page", async () => {
+    setPendingMaterial({
+      file: new File([NOTES], "week3.txt", { type: "text/plain" }),
+      instructions: "belajar vector, fokus ke dot product",
+    });
+    render(<CreatePage />);
+    await screen.findByTestId("document-stats", {}, { timeout: 10_000 });
+
+    expect((screen.getByLabelText("Instructions for the storyteller") as HTMLTextAreaElement).value).toBe(
+      "belajar vector, fokus ke dot product"
+    );
   });
 
   it("shows why a sent file cannot be read", async () => {
-    setPendingMaterial({ kind: "file", file: new File(["x"], "old.doc", { type: "application/msword" }) });
+    setPendingMaterial({ file: new File(["x"], "old.doc", { type: "application/msword" }), instructions: "" });
     render(<CreatePage />);
 
     expect((await screen.findByTestId("document-error", {}, { timeout: 10_000 })).textContent).toMatch(/\S/);
     expect(screen.getByTestId("document-card").dataset.status).toBe("error");
   });
 
-  it("uses the material once, then starts empty", () => {
-    setPendingMaterial({ kind: "text", text: NOTES });
+  it("uses the material once, then starts empty", async () => {
+    setPendingMaterial({ file: new File([NOTES], "week3.txt", { type: "text/plain" }), instructions: "" });
     const first = render(<CreatePage />);
+    await screen.findByTestId("document-stats", {}, { timeout: 10_000 });
     first.unmount();
 
     render(<CreatePage />);
@@ -89,8 +97,9 @@ describe("/create — material sent from the home page", () => {
   });
 
   it("still lets the player choose a world and build", async () => {
-    setPendingMaterial({ kind: "text", text: NOTES });
+    setPendingMaterial({ file: new File([NOTES], "week3.txt", { type: "text/plain" }), instructions: "" });
     render(<CreatePage />);
+    await screen.findByTestId("document-stats", {}, { timeout: 10_000 });
     chooseGenre("fantasy");
 
     expect(screen.getByTestId("build-button")).toBeEnabled();
@@ -101,16 +110,18 @@ describe("/create — material step", () => {
   it("starts with an upload area and a disabled build button", () => {
     render(<CreatePage />);
     expect(screen.getByTestId("material-dropzone")).toBeTruthy();
+    expect(screen.queryByTestId("paste-mode-button")).toBeNull(); // text is never material
+    expect(screen.queryByTestId("paste-textarea")).toBeNull();
     expect(screen.getByTestId("build-button")).toBeDisabled();
-    expect(screen.getByTestId("submit-hint").textContent).toBe("Add your material to begin.");
+    expect(screen.getByTestId("submit-hint").textContent).toBe("Upload a material file to begin.");
   });
 
-  it("turns pasted text into selectable sections", () => {
+  it("turns an uploaded file into selectable sections", async () => {
     render(<CreatePage />);
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
 
     expect(screen.getByTestId("document-card").dataset.status).toBe("ready");
-    expect(screen.getByTestId("document-name").textContent).toBe("Pasted text");
+    expect(screen.getByTestId("document-name").textContent).toBe("notes.txt");
     expect(screen.getByTestId("section-checkbox-sec_001")).toBeChecked();
     expect(screen.getByTestId("section-checkbox-sec_002")).toBeChecked();
   });
@@ -137,17 +148,17 @@ describe("/create — material step", () => {
     expect(screen.getByTestId("material-dropzone")).toBeTruthy();
   });
 
-  it("updates the character count when sections are deselected", () => {
+  it("updates the character count when sections are deselected", async () => {
     render(<CreatePage />);
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
     const before = screen.getByTestId("material-budget-count").textContent;
     fireEvent.click(screen.getByTestId("section-checkbox-sec_002"));
     expect(screen.getByTestId("material-budget-count").textContent).not.toBe(before);
   });
 
-  it("blocks building when the selected text is over the limit", () => {
+  it("blocks building when the selected text is over the limit", async () => {
     render(<CreatePage />);
-    pasteMaterial("x".repeat(MAX_MATERIAL_CHARS + 100));
+    await uploadMaterial("x".repeat(MAX_MATERIAL_CHARS + 100));
     chooseGenre("fantasy");
     expect(screen.getByTestId("build-button")).toBeDisabled();
     expect(screen.getByTestId("submit-hint").textContent).toContain("over the limit");
@@ -159,7 +170,7 @@ describe("/create — build", () => {
     const route = routeFetch(override);
     vi.stubGlobal("fetch", route.fetchImpl);
     render(<CreatePage />);
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
     chooseGenre("fantasy");
     await act(async () => {
       fireEvent.click(screen.getByTestId("build-button"));
@@ -167,9 +178,9 @@ describe("/create — build", () => {
     return route;
   }
 
-  it("enables building once material and a world are chosen", () => {
+  it("enables building once material and a world are chosen", async () => {
     render(<CreatePage />);
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
     expect(screen.getByTestId("submit-hint").textContent).toBe("Choose a world for your story.");
     chooseGenre("science_fiction");
     expect(screen.getByTestId("build-button")).toBeEnabled();
@@ -203,7 +214,7 @@ describe("/create — build", () => {
     ]);
     const id = (push.mock.calls[0][0] as string).replace("/play/", "");
     const saved = await loadProject(id);
-    expect(saved?.source).toEqual({ file_name: "Pasted text", file_type: "text" });
+    expect(saved?.source).toEqual({ file_name: "notes.txt", file_type: "text" });
     const story = Object.values(saved!.stories)[0];
     expect(story.knowledge_mapping).toHaveLength(1);
   });
@@ -213,6 +224,35 @@ describe("/create — build", () => {
     await screen.findByTestId("concept-review");
     for (const box of screen.getAllByRole("checkbox")) fireEvent.click(box);
     expect(screen.getByTestId("confirm-concepts")).toBeDisabled();
+  });
+
+  it("tells the player when no AI is set up, instead of building a story", async () => {
+    await startBuild((call) =>
+      call.path === "/api/ai/analyze-material"
+        ? new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_NOT_CONFIGURED", message: "x" } }), {
+            status: 503,
+          })
+        : undefined
+    );
+
+    const alert = await screen.findByTestId("generation-error");
+    expect(alert.textContent).toContain(BUILD_MESSAGES.notConfigured);
+    expect(screen.getByTestId("step-analyzing").dataset.status).toBe("failed");
+    expect(screen.getByTestId("generation-retry")).toBeTruthy();
+    expect(screen.queryByTestId("concept-review")).toBeNull();
+  });
+
+  it("tells the player when no concepts were found in the material", async () => {
+    await startBuild((call) =>
+      call.path === "/api/ai/analyze-material"
+        ? new Response(JSON.stringify({ ok: false, error: { code: "MATERIAL_ANALYSIS_FAILED", message: "x" } }), {
+            status: 422,
+          })
+        : undefined
+    );
+
+    expect((await screen.findByTestId("generation-error")).textContent).toContain(BUILD_MESSAGES.noConcepts);
+    expect(screen.queryByTestId("concept-review")).toBeNull();
   });
 
   it("shows a busy message and retries just the failed stage", async () => {
@@ -245,7 +285,7 @@ describe("/create — build", () => {
     await screen.findByTestId("concept-review");
     fireEvent.click(screen.getByText("Back to edit"));
     expect(screen.getByTestId("create-page")).toBeTruthy();
-    expect(screen.getByTestId("document-name").textContent).toBe("Pasted text");
+    expect(screen.getByTestId("document-name").textContent).toBe("notes.txt");
   });
 
   it("still plays the story, with a warning, when it cannot be saved", async () => {
@@ -275,7 +315,7 @@ describe("/create — returning after a story was built", () => {
       </Activity>
     );
     const view = render(page("visible"));
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
     chooseGenre("fantasy");
     await act(async () => {
       fireEvent.click(screen.getByTestId("build-button"));
@@ -296,16 +336,16 @@ describe("/create — returning after a story was built", () => {
     expect(screen.getByTestId("genre-fantasy").querySelector("input")).not.toBeChecked();
   });
 
-  it("keeps an unfinished form when the player leaves before building", () => {
+  it("keeps an unfinished form when the player leaves before building", async () => {
     const page = (mode: "visible" | "hidden") => (
       <Activity mode={mode}>
         <CreatePage />
       </Activity>
     );
     const view = render(page("visible"));
-    pasteMaterial(NOTES);
+    await uploadMaterial(NOTES);
     view.rerender(page("hidden"));
     view.rerender(page("visible"));
-    expect(screen.getByTestId("document-name").textContent).toBe("Pasted text");
+    expect(screen.getByTestId("document-name").textContent).toBe("notes.txt");
   });
 });

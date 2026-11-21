@@ -61,10 +61,24 @@ describe("Output Parser — parseAndValidateMaterialOutput", () => {
     }
   });
 
-  it("warns about missing source_evidence", () => {
+  it("rejects a blueprint where no concept is grounded in the material", () => {
+    for (const source_evidence of [[], ["", "   "]]) {
+      const result = parseAndValidateMaterialOutput({
+        blueprint: { ...dummyMaterial, concepts: [{ ...dummyMaterial.concepts[0], source_evidence }] },
+        meta: validMeta,
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) expect(result.code).toBe("MATERIAL_ANALYSIS_FAILED");
+    }
+  });
+
+  it("warns about a concept without source_evidence when others are grounded", () => {
     const badBlueprint = {
       ...dummyMaterial,
-      concepts: [{ ...dummyMaterial.concepts[0], source_evidence: [] }],
+      concepts: [
+        { ...dummyMaterial.concepts[0], source_evidence: ["quoted from the material"] },
+        { ...dummyMaterial.concepts[1], source_evidence: [] },
+      ],
     };
     const result = parseAndValidateMaterialOutput({
       blueprint: badBlueprint,

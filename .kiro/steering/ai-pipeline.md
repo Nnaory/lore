@@ -8,8 +8,8 @@ fileMatchPattern: ["frontend/src/lib/ai/**", "frontend/src/app/api/**", "fronten
 ## Route
 | Route | Lokasi | Isi |
 |---|---|---|
-| `/` | `frontend/src/app/page.tsx` | Judul LORE di atas satu field chat (`HomeComposer`: teks tempel, atau satu file lewat ikon klip di kanan; kirim membuka `/create`), link demo `/game`, dan `SavedStories` (daftar dari IndexedDB). |
-| `/create` | `frontend/src/app/create/page.tsx` | Form materi, lalu GenerationScreen bertahap, simpan, buka `/play/[id]`. Materi dari home masuk lewat `lib/setup/pending-material.ts`. |
+| `/` | `frontend/src/app/page.tsx` | Judul LORE di atas satu field chat (`HomeComposer`: satu file materi wajib lewat ikon klip di kanan, teks yang diketik menjadi instruksi tambahan (maks 500 karakter) dan tanpa file muncul peringatan; kirim membuka `/create`), link demo `/game`, dan `SavedStories` (daftar dari IndexedDB). |
+| `/create` | `frontend/src/app/create/page.tsx` | Form materi (hanya file, tidak ada tempel teks), lalu GenerationScreen bertahap, simpan, buka `/play/[id]`. File + instruksi dari home masuk lewat `lib/setup/pending-material.ts` (`{file, instructions}`). |
 | `/game` | `frontend/src/app/game/page.tsx` | Demo "The Last Beacon" dari `frontend/src/data/dummy-campaign.ts` |
 | `/play/[projectId]` | `frontend/src/components/play/PlayProject.tsx` | Load project dari IndexedDB, simpan `campaign_state` tiap berubah. |
 | `GET /api/health` | `frontend/src/app/api/health/route.ts` | Liveness runtime Next.js (`200 {"status":"ok"}`, `Cache-Control: no-store`). |
@@ -71,3 +71,8 @@ Catatan client:
 - Client memvalidasi ulang respons dengan Zod. Pesan untuk pengguna berasal dari `messageForCode` (`src/lib/setup/request-campaign.ts`).
 
 **Belum dibaca detail:** `campaign-planner-engine.ts`, `story-generator-engine.ts`, `story-generator-service.ts`, `providers/gemini-*.ts`, `prompts/material-analysis.ts`, dan `src/lib/validation/*`. Menurut git log, tiap konsep diajarkan dalam 2 sampai 4 lesson step yang dibatasi ke cakupan materi. Gemini juga diminta membuat satu ilustrasi per konsep, dan ilustrasi yang tidak valid dibuang.
+
+## Tanpa provider offline (sejak 21 Nov 2026)
+- Tidak ada provider dummy di runtime. Registry (`providers/index.ts`) memberi provider Gemini bila `AI_PROVIDER=google` dan ada key. Selain itu ia memberi provider `none` yang mengembalikan `PROVIDER_NOT_CONFIGURED` (HTTP 503). `messageForCode` memetakannya ke pesan "AI belum diatur", terpisah dari pesan "sibuk".
+- Analisis tanpa konsep (model mengembalikan `concepts: []`) atau tanpa satu pun `source_evidence` ditolak dengan `MATERIAL_ANALYSIS_FAILED` (HTTP 422), dengan pesan "tidak menemukan konsep".
+- Tes memakai double deterministik di `frontend/tests/helpers/dummy-providers/`. `tests/setup.ts` memasangnya secara global lewat `setProvidersForTest` (hanya aktif bila NODE_ENV=test). Tes registry atau Gemini memanggil `clearProvidersForTest()` lebih dulu.

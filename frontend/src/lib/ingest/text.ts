@@ -1,5 +1,5 @@
 /**
- * Ingest — plain text (pasted text, .txt, .md)
+ * Ingest — plain text (.txt, .md)
  *
  * Markdown-style headings ("# Title", "## Part") split the text into
  * sections; otherwise paragraphs (separated by blank lines) are grouped.

@@ -205,7 +205,7 @@ export async function extractPptx(data: ArrayBuffer, fileName: string): Promise<
   if (doc.sections.length === 0) {
     throw new IngestError(
       "NO_TEXT",
-      "These slides have no text beyond titles. Pictures and diagrams cannot be read yet — paste the text instead."
+      "These slides have no text beyond titles. Pictures and diagrams cannot be read yet. Use slides that contain text."
     );
   }
   return doc;

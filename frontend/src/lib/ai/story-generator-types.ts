@@ -8,9 +8,9 @@
  *     blueprint it belongs to and the material that entry references.
  *   - It produces exactly one StoryBlueprint that the existing, unmodified
  *     game engine can play.
- *   - Real AI providers are deferred. DummyStoryGeneratorProvider is the only
- *     active implementation; future providers MUST implement
- *     IStoryGeneratorProvider.
+ *   - The Gemini provider is the only real implementation; future providers
+ *     MUST implement IStoryGeneratorProvider. With no LLM configured the
+ *     registry returns an unavailable provider (PROVIDER_NOT_CONFIGURED).
  *   - Providers supply CONTENT. Deterministic structure (IDs, scene chain,
  *     knowledge mappings) and all validation remain application-owned.
  *   - All types are serializable and server-side only.
@@ -43,9 +43,9 @@ export const PreviousStorySummarySchema = z.object({
 export const StoryGeneratorOptionsSchema = z.object({
   /** Number of concepts to teach per chapter. Defaults to all concepts in one chapter. */
   conceptsPerChapter: z.number().int().min(1).optional(),
-  /** Reserved for future real providers. Ignored by the dummy provider. */
+  /** Extra instructions from the player, passed to the storyteller. */
   customInstructions: z.string().optional(),
-  /** Optional language hint for future providers. Ignored by the dummy provider. */
+  /** Optional language hint for the storyteller. */
   language: z.string().optional(),
 });
 
@@ -98,7 +98,8 @@ export interface GenerateStoryResponse {
  * CONCEPT_COVERAGE       — a concept in the material has no learning+test pairing,
  *                          or a required_knowledge concept is untestable.
  * INVALID_CONCEPT_REF    — a concept reference does not resolve to the material.
- * PROVIDER_UNAVAILABLE   — provider could not be reached / is not configured.
+ * PROVIDER_UNAVAILABLE   — provider could not be reached.
+ * PROVIDER_NOT_CONFIGURED — no AI provider/API key is set up on this server.
  * OUTPUT_PARSE_FAILED    — provider output was not valid JSON / schema.
  * VALIDATION_FAILED      — provider output failed schema or semantic validation.
  * UNKNOWN                — unexpected internal error.
@@ -110,6 +111,7 @@ export type StoryGeneratorErrorCode =
   | "CONCEPT_COVERAGE"
   | "INVALID_CONCEPT_REF"
   | "PROVIDER_UNAVAILABLE"
+  | "PROVIDER_NOT_CONFIGURED"
   | "OUTPUT_PARSE_FAILED"
   | "VALIDATION_FAILED"
   | "UNKNOWN";
@@ -149,7 +151,6 @@ export interface IStoryGeneratorProvider {
   /**
    * Generate a story for a single campaign entry.
    * MUST NOT throw — return GenerateStoryResult.
-   * MUST be deterministic when provider = "dummy".
    */
   generateStory(request: GenerateStoryRequest): Promise<GenerateStoryResult>;
 

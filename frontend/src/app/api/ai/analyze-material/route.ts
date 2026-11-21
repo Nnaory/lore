@@ -72,9 +72,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<ApiRespon
       const status =
         serviceResult.code === "VALIDATION_FAILED" || serviceResult.code === "OUTPUT_PARSE_FAILED"
           ? 502
-          : ["PROVIDER_UNAVAILABLE", "RATE_LIMITED", "TIMEOUT"].includes(serviceResult.code)
+          : ["PROVIDER_UNAVAILABLE", "PROVIDER_NOT_CONFIGURED", "RATE_LIMITED", "TIMEOUT"].includes(serviceResult.code)
             ? 503
-            : 500;
+            : serviceResult.code === "MATERIAL_ANALYSIS_FAILED"
+              ? 422
+              : 500;
       return NextResponse.json<ErrorResponse>(
         {
           ok: false,

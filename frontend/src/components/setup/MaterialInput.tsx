@@ -2,7 +2,8 @@
  * MaterialInput
  *
  * Step 01 before a document is chosen: a drop zone / file picker for
- * PDF, DOCX, PPTX or TXT, with a switch to paste text instead.
+ * PDF, DOCX, PPTX, TXT or MD. A file is required; text cannot be pasted as
+ * material (typed text only guides the story, in the options below).
  */
 
 "use client";
@@ -14,15 +15,12 @@ import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 
 type MaterialInputProps = {
   onFile: (file: File) => void;
-  onPaste: (text: string) => void;
 };
 
 const MAX_MB = Math.round(MAX_FILE_BYTES / (1024 * 1024));
 
-export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
-  const [mode, setMode] = useState<"file" | "paste">("file");
+export function MaterialInput({ onFile }: MaterialInputProps) {
   const [dragActive, setDragActive] = useState(false);
-  const [pasted, setPasted] = useState("");
 
   function handleDrag(e: DragEvent, active: boolean) {
     e.preventDefault();
@@ -34,44 +32,6 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
     handleDrag(e, false);
     const file = e.dataTransfer.files?.[0];
     if (file) onFile(file);
-  }
-
-  if (mode === "paste") {
-    return (
-      <div className="flex flex-col gap-3" data-testid="paste-panel">
-        <label htmlFor="paste-material" className="text-xs tracking-widest uppercase" style={{ color: "var(--foreground-faint)" }}>
-          Paste your material
-        </label>
-        <textarea
-          id="paste-material"
-          data-testid="paste-textarea"
-          rows={10}
-          value={pasted}
-          onChange={(e) => setPasted(e.target.value)}
-          placeholder="Lecture notes, a textbook chapter, an article…"
-          className="lore-well rounded-tip w-full p-4 text-sm leading-6 resize-y"
-          style={{ color: "var(--foreground)" }}
-        />
-        <div className="flex gap-3">
-          <button
-            type="button"
-            data-testid="paste-submit"
-            disabled={pasted.trim() === ""}
-            onClick={() => onPaste(pasted)}
-            className="lore-pill lore-pill-primary"
-          >
-            Use this text
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("file")}
-            className="lore-pill"
-          >
-            Upload a file instead
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -106,21 +66,12 @@ export function MaterialInput({ onFile, onPaste }: MaterialInputProps) {
           Drop your document here
         </span>
         <span className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-          PDF · DOCX · PPTX · TXT — up to {MAX_MB} MB
+          PDF · DOCX · PPTX · TXT · MD — up to {MAX_MB} MB
         </span>
         <span className="lore-pill lore-pill-sm lore-pill-accent mt-1">Choose a file</span>
       </label>
       <p className="text-xs text-center" style={{ color: "var(--foreground-faint)" }}>
-        Your file is read on this device; only the text you select is sent.{" "}
-        <button
-          type="button"
-          data-testid="paste-mode-button"
-          onClick={() => setMode("paste")}
-          className="underline underline-offset-2"
-          style={{ color: "var(--foreground-muted)" }}
-        >
-          Paste text instead
-        </button>
+        Your file is read on this device; only the text you select is sent.
       </p>
     </div>
   );

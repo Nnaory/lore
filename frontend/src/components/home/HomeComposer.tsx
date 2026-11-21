@@ -1,14 +1,13 @@
 /**
  * HomeComposer
  *
- * The home page's one control: a chat-style field where the player pastes
- * material or, with the clip on its right, attaches a document. Sending hands
- * the material to /create (see lib/setup/pending-material), which reads it and
- * asks for the rest (world, length, language).
- *
- * The pipeline takes a single piece of material, so the field holds either
- * typed text or one file, never both: attaching is off while there is text,
- * and typing is off while a file is attached.
+ * The home page's one control: a chat-style field. The material is always a
+ * file, attached with the clip on the right. Text typed in the field is never
+ * material: it is extra instructions for the storyteller (tone, setting,
+ * focus), sent along with the file. Sending is off until a file is attached,
+ * and typing without one shows a warning. The file and the instructions go to
+ * /create (see lib/setup/pending-material), which reads the file and asks for
+ * the rest (world, length, language).
  */
 
 "use client";
@@ -18,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
+import { MAX_INSTRUCTIONS_CHARS } from "@/lib/setup/create-form";
 import { setPendingMaterial } from "@/lib/setup/pending-material";
 
 /** Tallest the field grows before it scrolls. */
@@ -34,11 +34,14 @@ export function HomeComposer() {
   const router = useRouter();
   const [text, setText] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  /** The player tried to send text without a file: make the warning stronger. */
+  const [triedWithoutFile, setTriedWithoutFile] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasText = text.trim() !== "";
-  const canSend = file !== null || hasText;
+  /** Without a file there is no material, whatever was typed. */
+  const missingFile = hasText && file === null;
 
   function growToFit(el: HTMLTextAreaElement) {
     el.style.height = "auto";
@@ -46,13 +49,17 @@ export function HomeComposer() {
   }
 
   function send() {
-    if (!canSend) return;
-    setPendingMaterial(file ? { kind: "file", file } : { kind: "text", text });
+    if (file === null) {
+      if (hasText) setTriedWithoutFile(true);
+      return;
+    }
+    setPendingMaterial({ file, instructions: text.trim() });
     router.push("/create");
     // The home page stays mounted (hidden) while /create is open, so leave it
     // empty for when the player comes back.
     setText("");
     setFile(null);
+    setTriedWithoutFile(false);
     if (inputRef.current) inputRef.current.style.height = "";
   }
 
@@ -104,16 +111,18 @@ export function HomeComposer() {
           <textarea
             ref={inputRef}
             data-testid="home-input"
-            aria-label="Your material"
+            aria-label="Instructions for the storyteller"
             rows={1}
             value={text}
-            disabled={file !== null}
+            maxLength={MAX_INSTRUCTIONS_CHARS}
             onChange={(e) => {
               setText(e.target.value);
               growToFit(e.target);
             }}
             onKeyDown={handleKeyDown}
-            placeholder={file ? "File attached. Press send." : "Paste text or attach a file…"}
+            placeholder={
+              file ? "Add instructions (optional), then press send." : "Add instructions (optional), then attach a file…"
+            }
             className="lore-composer-input flex-1 min-w-0 resize-none bg-transparent px-3 py-2 text-[15px] leading-6"
             style={{ color: "var(--foreground)" }}
           />
@@ -135,18 +144,17 @@ export function HomeComposer() {
             type="button"
             data-testid="home-attach"
             onClick={() => fileInputRef.current?.click()}
-            disabled={hasText}
-            aria-label="Attach a file"
-            title={hasText ? "Clear the text to attach a file instead" : "Attach a file"}
-            className="lore-pill lore-pill-icon flex-none"
+            aria-label="Attach a material file"
+            title="Attach a material file"
+            className={`lore-pill lore-pill-icon flex-none ${missingFile ? "lore-pill-accent" : ""}`}
           >
             <Paperclip size={18} aria-hidden="true" />
           </button>
           <button
             type="submit"
             data-testid="home-send"
-            disabled={!canSend}
-            aria-label="Build a story from this material"
+            disabled={file === null}
+            aria-label="Build a story from the attached file"
             className="lore-pill lore-pill-icon lore-pill-primary flex-none"
           >
             <ArrowUp size={18} aria-hidden="true" />
@@ -154,8 +162,28 @@ export function HomeComposer() {
         </div>
       </form>
 
+      {missingFile && (
+        <p
+          role="alert"
+          data-testid="home-file-required"
+          className="text-center text-xs"
+          style={{ color: triedWithoutFile ? "var(--danger)" : "var(--foreground-muted)" }}
+        >
+          Attach a material file first. What you type here is used as extra instructions, not as material.
+        </p>
+      )}
+      {hasText && (
+        <p
+          className="text-right text-xs px-2"
+          style={{ color: "var(--foreground-faint)" }}
+          data-testid="home-instructions-count"
+        >
+          {text.length} / {MAX_INSTRUCTIONS_CHARS}
+        </p>
+      )}
+
       <p className="lore-halo text-center text-xs" style={{ color: "var(--foreground-faint)" }}>
-        PDF · DOCX · PPTX · TXT · MD, up to {MAX_MB} MB. Your file is read on this device.
+        PDF · DOCX · PPTX · TXT · MD, up to {MAX_MB} MB. A file is required. Your file is read on this device.
       </p>
     </div>
   );

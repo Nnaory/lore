@@ -63,7 +63,7 @@ const UPSTREAM_ERROR_CODES = new Set(["OUTPUT_PARSE_FAILED", "VALIDATION_FAILED"
 
 function statusForErrorCode(code: string): number {
   if (code === "INVALID_REQUEST") return 400;
-  if (code === "PROVIDER_UNAVAILABLE" || code === "RATE_LIMITED" || code === "TIMEOUT") return 503;
+  if (code === "PROVIDER_UNAVAILABLE" || code === "PROVIDER_NOT_CONFIGURED" || code === "RATE_LIMITED" || code === "TIMEOUT") return 503;
   if (SEMANTIC_ERROR_CODES.has(code)) return 422;
   if (UPSTREAM_ERROR_CODES.has(code)) return 502;
   return 500;

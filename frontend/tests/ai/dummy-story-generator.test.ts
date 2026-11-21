@@ -5,13 +5,8 @@
  * output, never throws for expected failures, and health-checks.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { dummyStoryGeneratorProvider } from "@/lib/ai/providers/dummy-story-generator";
-import {
-  getStoryGeneratorProvider,
-  getStoryGeneratorProviderCached,
-  resetStoryGeneratorProviderCache,
-} from "@/lib/ai/providers";
+import { describe, it, expect } from "vitest";
+import { dummyStoryGeneratorProvider } from "../helpers/dummy-providers/dummy-story-generator";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
 import {
   dummyMaterial,
@@ -141,39 +136,6 @@ describe("dummyStoryGeneratorProvider — error handling", () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error.code).toBe("CONCEPT_COVERAGE");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Registry functions
-// ---------------------------------------------------------------------------
-
-describe("story generator provider registry", () => {
-  beforeEach(() => {
-    resetStoryGeneratorProviderCache();
-  });
-
-  afterEach(() => {
-    resetStoryGeneratorProviderCache();
-  });
-
-  it("getStoryGeneratorProvider returns the dummy provider", () => {
-    const p = getStoryGeneratorProvider();
-    expect(p.id).toBe("dummy");
-  });
-
-  it("getStoryGeneratorProviderCached returns the same instance", () => {
-    const a = getStoryGeneratorProviderCached();
-    const b = getStoryGeneratorProviderCached();
-    expect(a).toBe(b);
-  });
-
-  it("resetStoryGeneratorProviderCache clears the cache", () => {
-    const a = getStoryGeneratorProviderCached();
-    resetStoryGeneratorProviderCache();
-    const b = getStoryGeneratorProviderCached();
-    // Both are the same singleton provider instance; reset only clears the internal cache flag.
-    expect(a).toBe(b);
   });
 });
 
