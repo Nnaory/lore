@@ -62,10 +62,21 @@ export function getProvider(): IMaterialIntelligenceProvider {
   }
 }
 
+/**
+ * Whether the *Cached getters may reuse a provider. Under `next dev`
+ * (NODE_ENV=development) they build a fresh one per call, so edits to
+ * .env.local or provider code apply without restarting the dev server.
+ * Read at call time, not at module load.
+ */
+function cacheProviders(): boolean {
+  return process.env.NODE_ENV !== "development";
+}
+
 /** Reset provider cache (for testing). */
 let _cachedProvider: IMaterialIntelligenceProvider | null = null;
 
 export function getProviderCached(): IMaterialIntelligenceProvider {
+  if (!cacheProviders()) return getProvider();
   if (!_cachedProvider) {
     _cachedProvider = getProvider();
   }
@@ -116,6 +127,7 @@ export function getCampaignPlannerProvider(): ICampaignPlannerProvider {
 let _cachedCampaignPlannerProvider: ICampaignPlannerProvider | null = null;
 
 export function getCampaignPlannerProviderCached(): ICampaignPlannerProvider {
+  if (!cacheProviders()) return getCampaignPlannerProvider();
   if (!_cachedCampaignPlannerProvider) {
     _cachedCampaignPlannerProvider = getCampaignPlannerProvider();
   }
@@ -166,6 +178,7 @@ export function getStoryGeneratorProvider(): IStoryGeneratorProvider {
 let _cachedStoryGeneratorProvider: IStoryGeneratorProvider | null = null;
 
 export function getStoryGeneratorProviderCached(): IStoryGeneratorProvider {
+  if (!cacheProviders()) return getStoryGeneratorProvider();
   if (!_cachedStoryGeneratorProvider) {
     _cachedStoryGeneratorProvider = getStoryGeneratorProvider();
   }
