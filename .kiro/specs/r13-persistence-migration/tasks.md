@@ -227,7 +227,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** the existing `project-store.test.ts` is untouched. The new file uses `vi.stubEnv("NEXT_PUBLIC_PROJECT_STORE", "http")`, `vi.resetModules()`, then a dynamic `import()`, and asserts the five functions reach `fetch`. A second case asserts `idb` is chosen when the variable is unset or has any other value.
   - **Commits:** `feat(state): select the project repository by build flag`, then `test(state): project store in http mode`.
 
-- [ ] **F6 — `PlayProject` save-error wiring** `[CI]`
+- [x] **F6 — `PlayProject` save-error wiring** `[CI]`
   - **Satisfies:** FR-6.1, AC 6; design "PlayProject.tsx (minimal change)".
   - **Files:** `frontend/src/components/play/PlayProject.tsx` (import `setupSaveErrorHandler`, one `useEffect` that registers `setSaveError` and unregisters on cleanup so a late error cannot update an unmounted component), `frontend/tests/state/play-save-error.test.tsx` (`@vitest-environment jsdom`).
   - **Test:** in http mode a server save error shows the existing `play-save-error` banner, and a later success clears it. `create/page.tsx` and `SavedStories.tsx` are not modified. `tests/state/play-and-home.test.tsx` stays green.
