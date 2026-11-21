@@ -184,19 +184,19 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 3 — Frontend (PR 3; flag stays `idb`)
 
-- [ ] **F1 — Repository interface and shared model module** `[CI]`
+- [x] **F1 — Repository interface and shared model module** `[CI]`
   - **Satisfies:** FR-3.1, FR-3.4; design "ProjectRepository interface".
   - **Files:** `frontend/src/lib/state/repository.ts` (interface), `frontend/src/lib/state/project-model.ts` (move `Project`, `ProjectSummary`, `StoreResult`, `ProjectSchema`, `SummarySchema`, `readProject`, `summarize`, `newId` here so `HttpRepository` can reuse them without a circular import). `project-store.ts` re-exports them so no importer changes. `createProject` takes an optional `id`. `saveCampaignState` takes an optional `updatedAt`, so the local and server copies carry the same timestamp (the design's snippet calls `Date.now()` twice, which makes the local copy a few milliseconds newer than the server's).
   - **Test:** `npx tsc --noEmit` and the full existing suite, unchanged.
   - **Commit:** `refactor(state): extract the project model and repository interface`.
 
-- [ ] **F2 — Extract `IndexedDbRepository`** `[CI]`
+- [x] **F2 — Extract `IndexedDbRepository`** `[CI]`
   - **Satisfies:** FR-3.2, AC 2; design "IndexedDbRepository".
   - **Files:** `frontend/src/lib/state/indexed-db-repository.ts` (existing IndexedDB logic, localStorage migration, `storeReady`), `frontend/src/lib/state/project-store.ts` (the five functions delegate to it; `projectStories` and `resetProjectStoreForTests` stay exported).
   - **Test:** a pure refactor. Run the full frontend suite before and after: all 854 tests pass, and `git diff --stat -- frontend/tests` is empty for this commit, so no existing test was edited. New tests go in a separate commit, `frontend/tests/state/indexed-db-repository.test.ts`: an explicit `id` is honored, an explicit `updatedAt` is stored.
   - **Commits:** `refactor(state): move IndexedDB persistence into IndexedDbRepository`, then `test(state): IndexedDbRepository id and timestamp options`.
 
-- [ ] **F3 — `HttpRepository`** `[CI]`
+- [x] **F3 — `HttpRepository`** `[CI]`
   - **Satisfies:** FR-3.2, FR-3.5, FR-4, FR-6; design "HttpRepository".
   - **Files:** `frontend/src/lib/state/http-repository.ts`, `frontend/tests/state/http-repository.test.ts`.
   - **Behavior:** nothing runs at construction (no `fetch`, no IndexedDB), because the module is evaluated during server rendering too. Every response is validated with the Zod schemas from F1.
@@ -213,33 +213,33 @@ The Kiroween deadline date used in planning has not been checked against the off
     - Delete removes the local copy first.
   - **Commits:** `feat(state): HttpRepository`, then `test(state): HttpRepository`.
 
-- [ ] **F4 — `syncCheck`** `[CI]`
+- [x] **F4 — `syncCheck`** `[CI]`
   - **Satisfies:** FR-5; design "Sync check".
   - **Files:** `frontend/src/lib/state/sync.ts`, `frontend/tests/state/sync.test.ts`.
   - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. Items in the import response's `rejected` list (invalid, or over a storage cap) are not retried within the run.
   - **Test:** a project missing on the server is imported with its `campaign_state` in the body. Several small projects go in one request, and projects totalling more than 4 MB split into several. A newer local copy triggers one PUT. A newer or equal server copy triggers nothing. An empty IndexedDB makes no request. Offline does nothing and does not throw. **Cleared cookies:** an empty server list re-imports everything. Concurrent calls share one run.
   - **Commits:** `feat(state): sync local projects to the server`, then `test(state): sync local projects to the server`.
 
-- [ ] **F5 — Repository selection behind `NEXT_PUBLIC_PROJECT_STORE`** `[CI]`
+- [x] **F5 — Repository selection behind `NEXT_PUBLIC_PROJECT_STORE`** `[CI]`
   - **Satisfies:** FR-3.3, FR-3.4; design "project-store.ts delegation".
   - **Files:** `frontend/src/lib/state/project-store.ts` (`selectRepository`, delegates, `setupSaveErrorHandler`), `frontend/src/lib/state/http-repository.ts` (triggers `syncCheck` once per page load from the first `listProjects` or `loadProject`, so no component has to), `frontend/tests/state/project-store-http.test.ts`.
   - **Behavior:** read the variable as the literal `process.env.NEXT_PUBLIC_PROJECT_STORE` so Next can inline it at build time. The default is `idb`. `setupSaveErrorHandler` is a no-op in `idb` mode.
   - **Test:** the existing `project-store.test.ts` is untouched. The new file uses `vi.stubEnv("NEXT_PUBLIC_PROJECT_STORE", "http")`, `vi.resetModules()`, then a dynamic `import()`, and asserts the five functions reach `fetch`. A second case asserts `idb` is chosen when the variable is unset or has any other value.
   - **Commits:** `feat(state): select the project repository by build flag`, then `test(state): project store in http mode`.
 
-- [ ] **F6 — `PlayProject` save-error wiring** `[CI]`
+- [x] **F6 — `PlayProject` save-error wiring** `[CI]`
   - **Satisfies:** FR-6.1, AC 6; design "PlayProject.tsx (minimal change)".
   - **Files:** `frontend/src/components/play/PlayProject.tsx` (import `setupSaveErrorHandler`, one `useEffect` that registers `setSaveError` and unregisters on cleanup so a late error cannot update an unmounted component), `frontend/tests/state/play-save-error.test.tsx` (`@vitest-environment jsdom`).
   - **Test:** in http mode a server save error shows the existing `play-save-error` banner, and a later success clears it. `create/page.tsx` and `SavedStories.tsx` are not modified. `tests/state/play-and-home.test.tsx` stays green.
   - **Commits:** `feat(state): show server save errors on the play page`, then `test(state): server save errors on the play page`.
 
-- [ ] **F7 — Build flag plumbing, default `idb`** `[CI]`
+- [x] **F7 — Build flag plumbing, default `idb`** `[CI]`
   - **Satisfies:** NFR-1.2; design "Deployment sequence".
   - **Files:** `frontend/Dockerfile` (`ARG NEXT_PUBLIC_PROJECT_STORE=idb` and `ENV` in the build stage, before `npm run build`, next to the existing `AI_PROVIDER` pattern), `frontend/.env.example`.
   - **Test:** the `docker` job in `ci.yml` builds the default image. Confirm the build still succeeds and the default stays `idb`. `release-web.yml` is **not** changed here (that is D5).
   - **Commit:** `feat(web): add the project store build argument, default idb`.
 
-- [ ] **F8 — Contract test against the shared fixture** `[CI]`
+- [x] **F8 — Contract test against the shared fixture** `[CI]`
   - **Satisfies:** NFR-3.7, AC 4.
   - **Files:** `frontend/tests/state/project-contract.test.ts`.
   - **Test:** read `backend/tests/fixtures/project.json` and assert that `ProjectSchema` and `CampaignStateSchema` accept it. The backend's T3 test already asserts the same file passes the envelope models, so a change on either side that breaks the shared shape fails a test.

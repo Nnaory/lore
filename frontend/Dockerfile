@@ -12,6 +12,11 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 ARG AI_PROVIDER=dummy
 ENV AI_PROVIDER=${AI_PROVIDER}
+# Project store, inlined into the client bundle by `next build` (r13 spec):
+#   idb  — browser IndexedDB only (default)
+#   http — the LORE API, with IndexedDB as a local cache
+ARG NEXT_PUBLIC_PROJECT_STORE=idb
+ENV NEXT_PUBLIC_PROJECT_STORE=${NEXT_PUBLIC_PROJECT_STORE}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

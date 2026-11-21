@@ -1,10 +1,13 @@
 /**
  * PlayProject — client side of /play/[projectId]
  *
- * Loads the project from IndexedDB (in the browser only, after mount, so
- * server and client render the same loading state) and saves campaign
- * progress back whenever it changes. A returning player starts at the
- * campaign lobby; a new campaign starts straight in its first story.
+ * Loads the project (from IndexedDB, or from the API in http mode; in the
+ * browser only, after mount, so server and client render the same loading
+ * state) and saves campaign progress back whenever it changes. A local save
+ * failure comes back from saveCampaignState; in http mode a later server
+ * save failure arrives through setupSaveErrorHandler. Both feed the same
+ * banner. A returning player starts at the campaign lobby; a new campaign
+ * starts straight in its first story.
  */
 
 "use client";
@@ -13,7 +16,13 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CampaignPlayer } from "@/components/campaign/CampaignPlayer";
-import { loadProject, projectStories, saveCampaignState, type Project } from "@/lib/state/project-store";
+import {
+  loadProject,
+  projectStories,
+  saveCampaignState,
+  setupSaveErrorHandler,
+  type Project,
+} from "@/lib/state/project-store";
 import type { StoryBlueprint } from "@/lib/types/story";
 
 type Loaded =
@@ -39,6 +48,11 @@ export function PlayProject() {
   const projectId = params.projectId;
   const [loaded, setLoaded] = useState<Loaded>({ status: "loading" });
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Server save problems arrive later than the local save (http mode only).
+    return setupSaveErrorHandler(setSaveError);
+  }, []);
 
   useEffect(() => {
     // Browser storage is only readable after mount.
