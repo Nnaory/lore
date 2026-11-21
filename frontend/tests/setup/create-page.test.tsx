@@ -4,9 +4,9 @@
  * @vitest-environment jsdom
  *
  * Drives the page the way a user would: upload a material file, pick a
- * world, build, review the concepts, and land on the saved story. Server
- * calls go to the real AI route handlers in-process, with the deterministic
- * test-double providers (tests/helpers/dummy-providers).
+ * world, build, review the concepts, and land on the saved story. Backend
+ * calls go to a fake fetch that serves the backend's fixtures
+ * (tests/fixtures/backend-fetch.ts).
  */
 
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
@@ -16,7 +16,7 @@ import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
 import { BUILD_MESSAGES } from "@/lib/contracts/error-messages";
 import { loadProject } from "@/lib/state/project-store";
 import { setPendingMaterial, takePendingMaterial } from "@/lib/setup/pending-material";
-import { routeFetch } from "../fixtures/route-fetch";
+import { backendFetch, errorResponse, fixtureErrorResponse, stepPath } from "../fixtures/backend-fetch";
 import { freshStore } from "../fixtures/fresh-store";
 import { Activity } from "react";
 
@@ -40,7 +40,7 @@ afterEach(() => {
   push.mockReset();
 });
 
-// Mentions "linear combination", so the dummy provider returns two concepts.
+// The fake backend ignores the text and always answers with its fixtures.
 const NOTES = "## Vectors\nA vector has direction and size.\n\n## Span\nThe span is every linear combination.";
 
 /** Upload a text file as material and wait until it has been read. */
@@ -166,8 +166,8 @@ describe("/create — material step", () => {
 });
 
 describe("/create — build", () => {
-  async function startBuild(override?: Parameters<typeof routeFetch>[0]) {
-    const route = routeFetch(override);
+  async function startBuild(override?: Parameters<typeof backendFetch>[0]) {
+    const route = backendFetch(override);
     vi.stubGlobal("fetch", route.fetchImpl);
     render(<CreatePage />);
     await uploadMaterial(NOTES);
@@ -191,7 +191,7 @@ describe("/create — build", () => {
     expect(await screen.findByTestId("concept-review")).toBeTruthy();
     expect(screen.getByTestId("step-analyzing").dataset.status).toBe("done");
     expect(screen.getByTestId("step-reviewing").dataset.status).toBe("active");
-    expect(route.calls.map((c) => c.path)).toEqual(["/api/ai/analyze-material"]);
+    expect(route.calls.map((c) => c.path)).toEqual([stepPath("analyze-material")]);
     expect((route.calls[0].body as { material: string }).material).toBe(
       "[Part 1] Vectors\nA vector has direction and size.\n\n[Part 2] Span\nThe span is every linear combination."
     );
@@ -208,15 +208,18 @@ describe("/create — build", () => {
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(1));
     expect(route.calls.map((c) => c.path)).toEqual([
-      "/api/ai/analyze-material",
-      "/api/ai/plan-campaign",
-      "/api/ai/generate-story",
+      stepPath("analyze-material"),
+      stepPath("plan-campaign"),
+      stepPath("generate-story"),
     ]);
     const id = (push.mock.calls[0][0] as string).replace("/play/", "");
     const saved = await loadProject(id);
     expect(saved?.source).toEqual({ file_name: "notes.txt", file_type: "text" });
     const story = Object.values(saved!.stories)[0];
-    expect(story.knowledge_mapping).toHaveLength(1);
+    expect(story.story_id).toBe("story_01");
+    // the backend was only shown the concept the player kept
+    const keptConcepts = (route.calls[2].body as { material: { concepts: unknown[] } }).material.concepts;
+    expect(keptConcepts).toHaveLength(1);
   });
 
   it("does not let the player continue with no concepts", async () => {
@@ -228,10 +231,8 @@ describe("/create — build", () => {
 
   it("tells the player when no AI is set up, instead of building a story", async () => {
     await startBuild((call) =>
-      call.path === "/api/ai/analyze-material"
-        ? new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_NOT_CONFIGURED", message: "x" } }), {
-            status: 503,
-          })
+      call.path === stepPath("analyze-material")
+        ? errorResponse("PROVIDER_NOT_CONFIGURED", 503)
         : undefined
     );
 
@@ -244,10 +245,8 @@ describe("/create — build", () => {
 
   it("tells the player when no concepts were found in the material", async () => {
     await startBuild((call) =>
-      call.path === "/api/ai/analyze-material"
-        ? new Response(JSON.stringify({ ok: false, error: { code: "MATERIAL_ANALYSIS_FAILED", message: "x" } }), {
-            status: 422,
-          })
+      call.path === stepPath("analyze-material")
+        ? fixtureErrorResponse("error-material-analysis-failed.json", 422)
         : undefined
     );
 
@@ -258,9 +257,9 @@ describe("/create — build", () => {
   it("shows a busy message and retries just the failed stage", async () => {
     let failOnce = true;
     const route = await startBuild((call) => {
-      if (call.path === "/api/ai/generate-story" && failOnce) {
+      if (call.path === stepPath("generate-story") && failOnce) {
         failOnce = false;
-        return new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_UNAVAILABLE", message: "x" } }), { status: 503 });
+        return errorResponse("PROVIDER_UNAVAILABLE", 503);
       }
       return undefined;
     });
@@ -277,7 +276,7 @@ describe("/create — build", () => {
       fireEvent.click(screen.getByTestId("generation-retry"));
     });
     await vi.waitFor(() => expect(push).toHaveBeenCalledTimes(1));
-    expect(route.calls.filter((c) => c.path === "/api/ai/plan-campaign")).toHaveLength(1);
+    expect(route.calls.filter((c) => c.path === stepPath("plan-campaign"))).toHaveLength(1);
   });
 
   it("goes back to the filled-in form", async () => {
@@ -308,7 +307,7 @@ describe("/create — returning after a story was built", () => {
   // Next.js (cacheComponents) keeps a page we leave mounted inside a hidden
   // React <Activity> and shows it again on return, state included.
   it("shows a fresh form, not the finished build screen", async () => {
-    vi.stubGlobal("fetch", routeFetch().fetchImpl);
+    vi.stubGlobal("fetch", backendFetch().fetchImpl);
     const page = (mode: "visible" | "hidden") => (
       <Activity mode={mode}>
         <CreatePage />

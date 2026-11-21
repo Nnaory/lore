@@ -143,7 +143,7 @@ describe.each(STEPS)("$step fixtures", ({ step, request, blueprint }) => {
     });
 
     it(`${successFile} is accepted by postBlueprint with the same blueprint`, async () => {
-      const result = await postBlueprint(`/api/ai/${step}`, {}, blueprint, {
+      const result = await postBlueprint(`/api/v1/ai/${step}`, {}, blueprint, {
         fetchImpl: jsonResponse(fixture, 200),
       });
       expect(result.ok).toBe(true);
@@ -168,7 +168,7 @@ describe("error fixtures", () => {
     const status = STATUS_FOR_CODE[fixture.error.code];
     expect(status, `add ${fixture.error.code} to STATUS_FOR_CODE`).toBeDefined();
 
-    const result = await postBlueprint("/api/ai/analyze-material", {}, MaterialBlueprintSchema, {
+    const result = await postBlueprint("/api/v1/ai/analyze-material", {}, MaterialBlueprintSchema, {
       fetchImpl: jsonResponse(fixture, status),
     });
     expect(result).toEqual({ ok: false, message: messageForCode(fixture.error.code) });

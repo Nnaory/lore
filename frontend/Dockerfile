@@ -10,18 +10,11 @@ RUN npm ci --no-audit --no-fund
 FROM node:${NODE_VERSION}-bookworm-slim AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
-ARG AI_PROVIDER=dummy
-ENV AI_PROVIDER=${AI_PROVIDER}
 # Project store, inlined into the client bundle by `next build` (r13 spec):
 #   idb  — browser IndexedDB only (default)
 #   http — the LORE API, with IndexedDB as a local cache
 ARG NEXT_PUBLIC_PROJECT_STORE=idb
 ENV NEXT_PUBLIC_PROJECT_STORE=${NEXT_PUBLIC_PROJECT_STORE}
-# Where the browser sends AI generation requests, inlined by `next build`:
-#   next — this app's /api/ai/* route handlers (default)
-#   api  — the LORE API (/api/v1/ai/*), which holds the Gemini key
-ARG NEXT_PUBLIC_AI_BACKEND=next
-ENV NEXT_PUBLIC_AI_BACKEND=${NEXT_PUBLIC_AI_BACKEND}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

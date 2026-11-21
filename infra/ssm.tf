@@ -1,13 +1,11 @@
 locals {
   ai_models = "gemini-3.5-flash-lite,gemini-3.7-flash,gemini-3.8-flash"
 
+  # The web container no longer calls Gemini (the AI pipeline lives in the API), so it gets
+  # no AI_* settings and no key.
   web_ssm_params = merge(
     {
-      AI_PROVIDER    = "google"
-      AI_MODEL       = local.ai_models
-      AI_TIMEOUT_MS  = "300000"
-      AI_DEADLINE_MS = "300000"
-      API_UPSTREAM   = "http://10.20.10.10:8000"
+      API_UPSTREAM = "http://10.20.10.10:8000"
     },
     var.site_address != "" ? { SITE_ADDRESS = var.site_address } : {}
   )

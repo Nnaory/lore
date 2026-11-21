@@ -135,13 +135,10 @@ Jebakan dan batas:
 
 | Path | Tipe | Dikelola oleh | Contoh |
 |---|---|---|---|
-| `/lore/prod/web/env/AI_PROVIDER` | String | Terraform | `google` |
-| `/lore/prod/web/env/AI_MODEL` | String | Terraform | Daftar model dipisah koma (lihat `.env.example`) |
-| `/lore/prod/web/env/AI_TIMEOUT_MS` | String | Terraform | `300000` |
-| `/lore/prod/web/env/AI_DEADLINE_MS` | String | Terraform | `300000` |
 | `/lore/prod/web/env/API_UPSTREAM` | String | Terraform | `http://10.20.10.10:8000` |
 | `/lore/prod/web/env/SITE_ADDRESS` | String | Terraform, hanya dibuat jika `site_address` tidak kosong | `<DOMAIN>` |
-| `/lore/prod/web/env/GOOGLE_API_KEY` | SecureString | Manual | Selama route `/api/ai/*` masih di Next |
+| `/lore/prod/api/env/AI_PROVIDER`, `AI_MODEL`, `AI_TIMEOUT_MS`, `AI_DEADLINE_MS` | String | Terraform | `google`, daftar model dipisah koma, `300000`, `300000` |
+| `/lore/prod/api/env/GOOGLE_API_KEY` | SecureString | Terraform membuat placeholder `__SET_ME__`, nilai diisi manual (runbook 3.2a) | Key Gemini dari Google AI Studio |
 | `/lore/prod/api/env/PGHOST` | String | Terraform | `aws_db_instance.db.address` |
 | `/lore/prod/api/env/PGPORT` | String | Terraform | `5432` |
 | `/lore/prod/api/env/PGDATABASE` | String | Terraform | `lore` |
@@ -343,11 +340,11 @@ Jika paket harus privat:
 
 Pull dengan `GITHUB_TOKEN` dari dalam Actions gratis, tetapi pull dari EC2 tidak termasuk itu [terverifikasi: docs.github.com/en/billing/concepts/product-billing/github-packages]. Kuota paket privat di plan Free: 500 MB storage dan 1 GB transfer per bulan.
 
-## 10. Transisi route AI
+## 10. Route AI di backend
 
-- Selama route `/api/ai/*` masih di Next.js, instance web memerlukan `GOOGLE_API_KEY` dan egress langsung ke Gemini lewat IGW (SG web mengizinkan TCP 443 keluar).
-- Setelah route dipindah ke `/api/v1/ai/*` di backend, `GOOGLE_API_KEY` hanya ada di path `/lore/prod/api/env/` dan parameter web dihapus.
-- Daftar route dan pemetaannya ada di [06-app-changes.md](./06-app-changes.md).
+- Pipeline AI berjalan di api (`/api/v1/ai/*`, `backend/app/ai/`). Web tidak memanggil Gemini dan tidak punya env `AI_*` atau key; egress 443 web tetap dibutuhkan untuk GHCR, SSM, dan Let's Encrypt.
+- `GOOGLE_API_KEY` hanya ada di path `/lore/prod/api/env/`. Bila dulu pernah dibuat manual `/lore/prod/web/env/GOOGLE_API_KEY`, parameter itu tidak dikelola Terraform dan harus dihapus manual (`aws ssm delete-parameter --name /lore/prod/web/env/GOOGLE_API_KEY`), karena `render-env.sh` merender semua parameter di path web.
+- Urutan rilis dan checklist ada di [11-ai-backend-migration.md](./11-ai-backend-migration.md).
 
 ## 11. Domain dan TLS
 
