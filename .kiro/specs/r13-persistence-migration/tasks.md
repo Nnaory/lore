@@ -196,7 +196,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** a pure refactor. Run the full frontend suite before and after: all 854 tests pass, and `git diff --stat -- frontend/tests` is empty for this commit, so no existing test was edited. New tests go in a separate commit, `frontend/tests/state/indexed-db-repository.test.ts`: an explicit `id` is honored, an explicit `updatedAt` is stored.
   - **Commits:** `refactor(state): move IndexedDB persistence into IndexedDbRepository`, then `test(state): IndexedDbRepository id and timestamp options`.
 
-- [ ] **F3 — `HttpRepository`** `[CI]`
+- [x] **F3 — `HttpRepository`** `[CI]`
   - **Satisfies:** FR-3.2, FR-3.5, FR-4, FR-6; design "HttpRepository".
   - **Files:** `frontend/src/lib/state/http-repository.ts`, `frontend/tests/state/http-repository.test.ts`.
   - **Behavior:** nothing runs at construction (no `fetch`, no IndexedDB), because the module is evaluated during server rendering too. Every response is validated with the Zod schemas from F1.
