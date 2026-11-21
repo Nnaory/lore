@@ -161,7 +161,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - The behavior for an invalid item is the one chosen in "Open details", item 2.
   - **Commits:** `feat(api): import projects with campaign state`, then `test(api): import projects`.
 
-- [ ] **T11 — Size limits, storage caps, daily quota** `[PG]`
+- [x] **T11 — Size limits, storage caps, daily quota** `[PG]`
   - **Satisfies:** FR-7.1, FR-7.3, AC 10; design "Body size limits", "Storage caps".
   - **Files:** `backend/app/projects.py` (body-cap dependency, cap queries), `backend/tests/test_projects_limits.py`. Limits are constants on a small settings object, overridable in tests.
   - **Test:**
