@@ -109,7 +109,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** without a configured DB every route returns `503`. A fake limiter shows the order of checks and the `429` plus `Retry-After`. The existing `/health*` and `/api/v1/health` tests stay green.
   - **Commits:** `feat(api): projects router skeleton and rate-limit wiring`, then `test(api): projects router wiring`.
 
-- [ ] **T6 — Ownership and isolation tests** `[PG]` **tests first**
+- [x] **T6 — Ownership and isolation tests** `[PG]` **tests first**
   - **Satisfies:** FR-2 "Owner filtering", endpoints 2–6, AC 11, review items on cross-owner access and id collisions.
   - **Files:** `backend/tests/test_projects_ownership.py`. These tests are red until T7–T10.
   - **Test** (two clients with different cookies, A and B):
@@ -149,7 +149,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** the first save creates the row. Equal `updated_at` is accepted. A stale one gives 409 with the stored value and writes nothing. A missing or non-array `completed_stories` gives 422. **Race:** two requests with different `updated_at` sent from two connections end with the newer state stored, whichever arrives first.
   - **Commits:** `feat(api): save campaign state with atomic conflict check`, then `test(api): save campaign state`.
 
-- [ ] **T10 — Import** `[PG]`
+- [x] **T10 — Import** `[PG]`
   - **Satisfies:** FR-2 endpoint 6, FR-5.3, AC 5; design "Create / import".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
   - **Test:**
