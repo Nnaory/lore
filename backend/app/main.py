@@ -9,6 +9,10 @@ from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import Engine
 
+from app.ai.limits import AiLimiter
+from app.ai.routes import router as ai_router
+from app.ai.runtime import AiRuntime
+from app.ai.settings import ai_provider_ready
 from app.db import check_db_health, create_db_engine
 from app.owner import device_token_middleware
 from app.projects import router as projects_router
@@ -54,6 +58,8 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
     application = FastAPI(title="LORE API", version="0.1.0", lifespan=_lifespan)
     application.state.db_engine = db_engine
     application.state.rate_limiter = RateLimiter()
+    application.state.ai_limiter = AiLimiter()  # tests replace it to inject fake clocks
+    application.state.ai_runtime = AiRuntime()  # tests inject the Gemini HTTP client here
     application.middleware("http")(device_token_middleware)
 
     @application.get("/health", include_in_schema=False)
@@ -77,12 +83,21 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
             )
         return _no_store_json({"status": "ok"}, status.HTTP_200_OK)
 
+    @application.get("/health/ai", include_in_schema=False)
+    def health_ai() -> JSONResponse:
+        """Internal probe: is the AI provider configured? Never calls Gemini or leaks the key."""
+        return JSONResponse(
+            content={"configured": ai_provider_ready()},
+            headers={"Cache-Control": "no-store"},
+        )
+
     @application.get("/api/v1/health", tags=["health"])
     def api_health() -> JSONResponse:
         """Public liveness probe routed behind Caddy."""
         return _no_store_json({"status": "ok"}, status.HTTP_200_OK)
 
     application.include_router(projects_router)
+    application.include_router(ai_router)
 
     return application
 
