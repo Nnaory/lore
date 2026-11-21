@@ -209,8 +209,10 @@ _GET_SQL = text(
 _GET_STORIES_SQL = text("SELECT story_id, blueprint FROM project_stories WHERE project_id = :id")
 _DELETE_SQL = text("DELETE FROM projects WHERE id = :id AND owner_id = :owner_id")
 
-# Create/import upsert. The WHERE makes the update conditional on ownership and recency, so a
-# foreign or older row is left alone (no row returned). xmax = 0 marks a freshly inserted row.
+# Create/import upsert. The WHERE makes the update conditional on ownership and on a strictly
+# newer copy: an older or same-version copy (equal updated_at) and a foreign row are left alone
+# (no row returned). xmax = 0 marks a freshly inserted row. stories_completed is not taken from
+# the request; _SYNC_COMPLETED_SQL derives it from the stored state afterwards.
 _UPSERT_PROJECT_SQL = text(
     """
     INSERT INTO projects (id, owner_id, created_at, updated_at, source, campaign, materials,
@@ -218,8 +220,7 @@ _UPSERT_PROJECT_SQL = text(
                           schema_version)
     VALUES (:id, :owner_id, :created_at, :updated_at, CAST(:source AS jsonb),
             CAST(:campaign AS jsonb), CAST(:materials AS jsonb), :title, :genre, :source_name,
-            jsonb_array_length(CAST(:campaign AS jsonb) -> 'story_sequence'),
-            :stories_completed, 1)
+            jsonb_array_length(CAST(:campaign AS jsonb) -> 'story_sequence'), 0, 1)
     ON CONFLICT (id) DO UPDATE
     SET campaign = EXCLUDED.campaign,
         materials = EXCLUDED.materials,
@@ -228,11 +229,19 @@ _UPSERT_PROJECT_SQL = text(
         title = EXCLUDED.title,
         genre = EXCLUDED.genre,
         source_name = EXCLUDED.source_name,
-        stories_total = EXCLUDED.stories_total,
-        stories_completed = EXCLUDED.stories_completed
+        stories_total = EXCLUDED.stories_total
     WHERE projects.owner_id = EXCLUDED.owner_id
-      AND projects.updated_at <= EXCLUDED.updated_at
+      AND projects.updated_at < EXCLUDED.updated_at
     RETURNING (xmax = 0) AS inserted
+    """
+)
+# The list's progress count always mirrors the stored state, whichever copy of it won.
+_SYNC_COMPLETED_SQL = text(
+    """
+    UPDATE projects SET stories_completed = coalesce(
+        (SELECT jsonb_array_length(campaign_state -> 'completed_stories')
+         FROM project_state WHERE project_id = :id), 0)
+    WHERE id = :id
     """
 )
 _OWNER_OF_SQL = text("SELECT owner_id FROM projects WHERE id = :id")
@@ -253,8 +262,10 @@ _UPSERT_STATE_SQL = text(
 )
 _OWNED_SQL = text("SELECT 1 FROM projects WHERE id = :id AND owner_id = :owner_id")
 _STATE_UPDATED_AT_SQL = text("SELECT updated_at FROM project_state WHERE project_id = :id")
+# projects.updated_at only moves forward: it orders the list and feeds the client's sync check.
 _TOUCH_PROJECT_SQL = text(
-    "UPDATE projects SET stories_completed = :stories_completed, updated_at = :updated_at "
+    "UPDATE projects SET stories_completed = :stories_completed, "
+    "updated_at = GREATEST(updated_at, :updated_at) "
     "WHERE id = :id AND owner_id = :owner_id"
 )
 _OWNER_COUNT_SQL = text("SELECT count(*) FROM projects WHERE owner_id = :owner_id")
@@ -303,8 +314,8 @@ def _cap_exceeded(message: str) -> HTTPException:
 
 class UpsertOutcome(enum.Enum):
     INSERTED = "inserted"  # new row
-    UPDATED = "updated"  # caller's own row, incoming updated_at newer or equal
-    UNCHANGED = "unchanged"  # caller's own row, stored copy is newer (idempotent skip)
+    UPDATED = "updated"  # caller's own row, incoming updated_at strictly newer
+    UNCHANGED = "unchanged"  # caller's own row, stored copy is newer or the same version
     FOREIGN = "foreign"  # id belongs to another owner, or to a row without owner
 
 
@@ -327,7 +338,6 @@ def upsert_project(conn: Connection, body: ProjectCreate, owner_id: uuid.UUID) -
     updated_at = body.updated_at if body.updated_at is not None else now
     created_at = body.created_at if body.created_at is not None else updated_at
     body.id, body.created_at, body.updated_at = project_id, created_at, updated_at
-    completed = body.campaign_state["completed_stories"] if body.campaign_state else []
 
     row = conn.execute(
         _UPSERT_PROJECT_SQL,
@@ -342,7 +352,6 @@ def upsert_project(conn: Connection, body: ProjectCreate, owner_id: uuid.UUID) -
             "title": body.campaign["title"],
             "genre": body.campaign["genre"],
             "source_name": body.source.file_name,
-            "stories_completed": len(completed),
         },
     ).first()
 
@@ -365,6 +374,7 @@ def upsert_project(conn: Connection, body: ProjectCreate, owner_id: uuid.UUID) -
                 "updated_at": updated_at,
             },
         )
+    conn.execute(_SYNC_COMPLETED_SQL, {"id": project_id})
     return UpsertOutcome.INSERTED if row.inserted else UpsertOutcome.UPDATED
 
 
@@ -422,10 +432,11 @@ def import_projects(
 ) -> ImportResponse:
     """Per-item validation and one transaction per project, so one bad item blocks nothing.
 
-    imported: rows written (new, or the caller's own row replaced by a newer or equal copy).
-    skipped: rows not written (stored copy is newer, or the id belongs to another owner).
-    rejected: items that failed validation or that the database refused as invalid data.
-    A storage cap stops the run with 422; projects written before it stay written.
+    imported: rows written (new, or the caller's own row replaced by a strictly newer copy).
+    skipped: rows not written (stored copy is newer or the same version, or the id belongs to
+    another owner).
+    rejected: items that failed validation, would exceed a storage cap, or that the database
+    refused as invalid data. The remaining items are still processed.
     """
     body = _parse(ImportRequest, raw)
     imported = skipped = 0
@@ -441,13 +452,14 @@ def import_projects(
         try:
             with engine.begin() as conn:
                 cap = _cap_error(conn, project, owner_id, limits)
-                if cap is not None:
-                    raise _cap_exceeded(cap)
-                outcome = upsert_project(conn, project, owner_id)
+                if cap is None:
+                    outcome = upsert_project(conn, project, owner_id)
         except DataError:
             rejected.append(ImportRejection(index=index, id=item_id, error="invalid data"))
             continue
-        if outcome in (UpsertOutcome.INSERTED, UpsertOutcome.UPDATED):
+        if cap is not None:
+            rejected.append(ImportRejection(index=index, id=item_id, error=cap))
+        elif outcome in (UpsertOutcome.INSERTED, UpsertOutcome.UPDATED):
             imported += 1
         else:
             skipped += 1

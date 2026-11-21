@@ -261,12 +261,12 @@ class ImportRequest(BaseModel):
 class ImportRejection(BaseModel):
     index: int             # position in the request's `projects` array
     id: str | None = None  # the item's id, when it had a string id
-    error: str             # validation messages, or "invalid data" if the database refused it
+    error: str             # validation messages, the storage-cap message, or "invalid data"
 
 class ImportResponse(BaseModel):
-    imported: int   # rows written: new, or the caller's own row replaced by a newer or equal copy
-    skipped: int    # rows not written: stored copy is newer, or the id belongs to another owner
-    rejected: list[ImportRejection] = []
+    imported: int   # rows written: new, or the caller's own row replaced by a strictly newer copy
+    skipped: int    # not written: stored copy newer or same version, or id of another owner
+    rejected: list[ImportRejection] = []  # invalid, over a storage cap, or refused by the DB
 
 class StateConflictResponse(BaseModel):
     detail: str
@@ -297,7 +297,7 @@ The id is a global PK chosen by the client. `INSERT ... ON CONFLICT (id) DO UPDA
 INSERT INTO projects (id, owner_id, created_at, updated_at, source, campaign, materials,
                       title, genre, source_name, stories_total, stories_completed, schema_version)
 VALUES (:id, :owner_id, :created_at, :updated_at, :source, :campaign, :materials,
-        :title, :genre, :source_name, :stories_total, :stories_completed, 1)
+        :title, :genre, :source_name, :stories_total, 0, 1)
 ON CONFLICT (id) DO UPDATE
 SET campaign = EXCLUDED.campaign,
     materials = EXCLUDED.materials,
@@ -306,17 +306,24 @@ SET campaign = EXCLUDED.campaign,
     title = EXCLUDED.title,
     genre = EXCLUDED.genre,
     source_name = EXCLUDED.source_name,
-    stories_total = EXCLUDED.stories_total,
-    stories_completed = EXCLUDED.stories_completed
+    stories_total = EXCLUDED.stories_total
 WHERE projects.owner_id = EXCLUDED.owner_id
-  AND projects.updated_at <= EXCLUDED.updated_at
+  AND projects.updated_at < EXCLUDED.updated_at
 ```
 
-`:stories_completed` is computed in Python: `len(body.campaign_state.get("completed_stories", [])) if body.campaign_state else 0`. This preserves player progress on import — without it, `stories_completed` is always 0 and `campaign_state` is lost.
+Only a strictly newer copy replaces the row. An equal `updated_at` is the same version, so it is left alone and counted as skipped; this makes a repeated import a true no-op (revised 20 Nov 2026; the first draft used `<=`).
 
-- `rowcount = 1`: either a new INSERT or an UPDATE of the caller's own project (newer `updated_at`).
-- `rowcount = 0`: the row exists but either (a) same owner with older `updated_at` (idempotent skip) or (b) different owner (id collision). To distinguish, `SELECT owner_id FROM projects WHERE id = :id`:
-  - Same owner → skip (idempotent, older version).
+`stories_completed` is not taken from the request. After the state step below, it is derived from whatever state is stored, so the list's progress count always matches `project_state` (revised 20 Nov 2026: copying it from the request set it to 0 on a re-post without `campaign_state`, while the stored progress remained):
+```sql
+UPDATE projects SET stories_completed = coalesce(
+    (SELECT jsonb_array_length(campaign_state -> 'completed_stories')
+     FROM project_state WHERE project_id = :id), 0)
+WHERE id = :id
+```
+
+- `rowcount = 1`: either a new INSERT or an UPDATE of the caller's own project (strictly newer `updated_at`).
+- `rowcount = 0`: the row exists but either (a) same owner with an older or equal `updated_at` (idempotent skip) or (b) different owner (id collision). To distinguish, `SELECT owner_id FROM projects WHERE id = :id`:
+  - Same owner → skip (idempotent, older or same version).
   - Different owner → `409 Conflict` (create endpoint) or count as `skipped` (import endpoint).
 
 After the project row, insert stories and — if `campaign_state` is present — upsert `project_state`, all in the same transaction:
@@ -380,9 +387,12 @@ WHERE project_state.updated_at <= EXCLUDED.updated_at
 -- Step 3a (success): update denormalized fields on projects
 UPDATE projects SET
     stories_completed = jsonb_array_length(:state->'completed_stories'),
-    updated_at = :client_updated_at
+    updated_at = GREATEST(updated_at, :client_updated_at)
 WHERE id = :id AND owner_id = :owner_id
 -- Commit, return 200 with { updated_at: client_updated_at }
+-- GREATEST (revised 20 Nov 2026): projects.updated_at orders the list and feeds the client's
+-- sync check, so it must never move backwards, e.g. when a first state save carries an older
+-- timestamp than the project itself.
 
 -- Step 3b (conflict): get stored updated_at for the 409 response
 SELECT updated_at FROM project_state WHERE project_id = :id

@@ -131,7 +131,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 - [x] **T8 — Create** `[PG]`
   - **Satisfies:** FR-2 endpoint 2, FR-1.6; design "Create / import: id collision handling".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
-  - **Behavior:** one transaction runs the project upsert (`ON CONFLICT (id) DO UPDATE ... WHERE owner_id = EXCLUDED.owner_id AND updated_at <= EXCLUDED.updated_at`), the story replacement, and, when `campaign_state` is present, the `project_state` upsert. `stories_completed` comes from the state. A foreign id gives 409.
+  - **Behavior:** one transaction runs the project upsert (`ON CONFLICT (id) DO UPDATE ... WHERE owner_id = EXCLUDED.owner_id AND updated_at < EXCLUDED.updated_at`), the story replacement, and, when `campaign_state` is present, the `project_state` upsert. `stories_completed` is derived from the stored state afterwards. A foreign id gives 409. (Revised 20 Nov 2026: `<` instead of `<=`, and `stories_completed` from the stored state instead of the request.)
   - **Test:**
     - create then get round-trips every opaque field, including nested and non-ASCII values.
     - A create with `campaign_state` is returned by get, and `stories_completed` appears in the list.
@@ -216,7 +216,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 - [ ] **F4 — `syncCheck`** `[CI]`
   - **Satisfies:** FR-5; design "Sync check".
   - **Files:** `frontend/src/lib/state/sync.ts`, `frontend/tests/state/sync.test.ts`.
-  - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. A `422` (a cap) is not retried within the run.
+  - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. Items in the import response's `rejected` list (invalid, or over a storage cap) are not retried within the run.
   - **Test:** a project missing on the server is imported with its `campaign_state` in the body. Several small projects go in one request, and projects totalling more than 4 MB split into several. A newer local copy triggers one PUT. A newer or equal server copy triggers nothing. An empty IndexedDB makes no request. Offline does nothing and does not throw. **Cleared cookies:** an empty server list re-imports everything. Concurrent calls share one run.
   - **Commits:** `feat(state): sync local projects to the server`, then `test(state): sync local projects to the server`.
 
