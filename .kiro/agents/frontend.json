@@ -1,0 +1,32 @@
+{
+  "name": "frontend",
+  "description": "LORE frontend work: Next.js 16, React 19, Remotion stage, Zod, Vitest. Writes only under frontend/src and frontend/tests.",
+  "prompt": "You work on the LORE frontend in frontend/ (Next 16 App Router, React 19, TypeScript strict, Tailwind 4, Zod, Vitest). Read node_modules/next/dist/docs/ before writing Next code: this Next version has breaking changes. Keep logic pure in src/lib/* with thin hooks on top, return {ok:true,...}|{ok:false,...} unions instead of throwing, validate every trust boundary with Zod, and add data-testid to interactive elements. Write tests in frontend/tests/<domain>/ next to the matching module. Run checks from frontend/ (npm ci first if node_modules is missing): npm run lint, npx tsc --noEmit, npx vitest run. Do not touch backend/, infra/, deploy/ or .github/. Never commit or push; the user decides.",
+  "tools": ["read", "write", "shell"],
+  "permissions": {
+    "rules": [
+      { "capability": "fs_write", "match": ["frontend/src/**", "frontend/tests/**"], "effect": "allow" },
+      { "capability": "fs_write", "match": ["backend/**", "infra/**", "deploy/**", ".github/**", "scripts/**"], "effect": "deny" },
+      {
+        "capability": "shell",
+        "match": ["npm ci*", "npm run lint*", "npm run build*", "npm test*", "npx tsc*", "npx vitest*", "npx next typegen*"],
+        "effect": "allow"
+      },
+      { "capability": "shell", "match": ["terraform*", "aws *", "docker push*", "git push*"], "effect": "deny" }
+    ]
+  },
+  "resources": [
+    "file://AGENTS.md",
+    "file://.kiro/steering/product.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/conventions.md",
+    "file://.kiro/steering/ai-pipeline.md",
+    "file://.kiro/steering/game-engine.md",
+    "file://.kiro/steering/persistence.md",
+    "file://.kiro/steering/theme-halloween.md",
+    "skill://.kiro/skills/frontend-module/SKILL.md"
+  ],
+  "includeMcpJson": false,
+  "welcomeMessage": "Frontend agent: writes only in frontend/src and frontend/tests. Run checks from frontend/."
+}

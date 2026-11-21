@@ -1,0 +1,51 @@
+{
+  "name": "infra",
+  "description": "READ-ONLY infra assistant: reviews Terraform, CI/CD and cost guardrails, runs validation only. Has no write tool and cannot apply or destroy.",
+  "prompt": "You are a read-only reviewer for LORE's AWS infrastructure (infra/, deploy/, scripts/ci/, .github/workflows/). You cannot write files. Explain, review and validate: terraform fmt -check, init -backend=false, validate, the scripts/ci checkers, shellcheck, and read-only AWS calls (describe/get/list). CI applies Terraform on merge to main, so never suggest running terraform apply or destroy locally; changes go through a PR. Cost matters (free plan): flag anything that raises instance size, IOPS, storage or backup retention. Never copy account IDs or bucket names from infra/backend.tf into answers. Use the lore-infra-docs knowledge base for the architecture in docs/infra.",
+  "tools": ["read", "shell", "knowledge", "@aws-docs"],
+  "permissions": {
+    "rules": [
+      {
+        "capability": "shell",
+        "match": [
+          "terraform -chdir=infra fmt -check*",
+          "terraform -chdir=infra init -backend=false*",
+          "terraform -chdir=infra validate*",
+          "terraform fmt -check*",
+          "terraform validate*",
+          "python3 -B scripts/ci/*",
+          "python -B scripts/ci/*",
+          "shellcheck *",
+          "git diff*",
+          "git log*",
+          "git status*",
+          "aws sts get-caller-identity*",
+          "aws * describe-*",
+          "aws * get-*",
+          "aws * list-*"
+        ],
+        "effect": "allow"
+      },
+      { "capability": "shell", "match": ["terraform*apply*", "terraform*destroy*", "docker push*", "git push*"], "effect": "deny" },
+      { "capability": "fs_write", "match": ["**"], "effect": "deny" }
+    ]
+  },
+  "resources": [
+    "file://.kiro/steering/product.md",
+    "file://.kiro/steering/tech.md",
+    "file://.kiro/steering/structure.md",
+    "file://.kiro/steering/conventions.md",
+    "file://.kiro/steering/infra.md",
+    "skill://.kiro/skills/infra-change/SKILL.md",
+    {
+      "type": "knowledgeBase",
+      "source": "file://./docs/infra",
+      "name": "lore-infra-docs",
+      "description": "LORE AWS architecture, CI/CD, cost guardrails, runbook and roadmap (R1-R13).",
+      "indexType": "best",
+      "autoUpdate": false
+    }
+  ],
+  "includeMcpJson": true,
+  "welcomeMessage": "Infra agent is READ-ONLY: it reviews and validates, and cannot apply, destroy or write files."
+}

@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "check-after-edit",
+      "description": "After a write, run ruff on changed backend .py files and eslint on changed frontend .ts/.tsx files. Skips silently if the tool is not installed.",
+      "trigger": "PostToolUse",
+      "matcher": "^(fs_write|fs_append|str_replace)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/check-after-edit.mjs"
+      },
+      "timeout": 90
+    }
+  ]
+}

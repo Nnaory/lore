@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "protect-files",
+      "description": "Block hand edits to lockfiles, existing Alembic revisions, .env/tfstate/tfvars, node_modules and .next.",
+      "trigger": "PreToolUse",
+      "matcher": "^(fs_write|fs_append|str_replace|delete_file)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/protect-files.mjs"
+      },
+      "timeout": 10
+    }
+  ]
+}

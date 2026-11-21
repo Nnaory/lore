@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "guard-shell",
+      "description": "Block shell commands that change shared state or destroy data (terraform apply/destroy, mutating AWS CLI, docker push, force push, alembic downgrade, rm -rf).",
+      "trigger": "PreToolUse",
+      "matcher": "^(execute_bash|execute_pwsh)$",
+      "action": {
+        "type": "command",
+        "command": "node .kiro/hooks/guard-shell.mjs"
+      },
+      "timeout": 10
+    }
+  ]
+}
