@@ -5,14 +5,13 @@
  * progress, reviews the extracted concepts before any story is written,
  * and can retry a failed stage without redoing earlier ones:
  *
- *   analyzing  → POST /api/ai/analyze-material   (Layer 1)
- *   reviewing  → player keeps/removes concepts   (no request)
- *   planning   → POST /api/ai/plan-campaign      (Layer 2)
- *   writing    → POST /api/ai/generate-story     (Layer 3, once per story)
+ *   analyzing  → POST /api/v1/ai/analyze-material   (Layer 1)
+ *   reviewing  → player keeps/removes concepts      (no request)
+ *   planning   → POST /api/v1/ai/plan-campaign      (Layer 2)
+ *   writing    → POST /api/v1/ai/generate-story     (Layer 3, once per story)
  *   done
  *
- * URLs shown above are the default (`next`) backend; NEXT_PUBLIC_AI_BACKEND=api
- * switches them to /api/v1/ai/* (see ai-endpoints.ts).
+ * The endpoints are served by the FastAPI backend (see ai-endpoints.ts).
  *
  * Pure reducer + small async API helpers; the React hook lives in
  * use-generation.ts.
@@ -28,7 +27,7 @@ import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { PreviousStorySummary } from "@/lib/types/game";
 import { BUILD_MESSAGES, messageForCode } from "@/lib/contracts/error-messages";
-import { AI_BACKEND, aiUrl } from "./ai-endpoints";
+import { aiUrl } from "./ai-endpoints";
 
 export type GenerationStage = "analyzing" | "reviewing" | "planning" | "writing" | "done";
 
@@ -161,11 +160,11 @@ export type GenerationInput = GenerationRequest;
 
 export const api = {
   analyze: (input: GenerationInput, o?: { signal?: AbortSignal; fetchImpl?: typeof fetch }) =>
-    postBlueprint(aiUrl("analyze-material", AI_BACKEND), input.materials[0], MaterialBlueprintSchema, o),
+    postBlueprint(aiUrl("analyze-material"), input.materials[0], MaterialBlueprintSchema, o),
 
   plan: (input: GenerationInput, material: MaterialBlueprint, o?: { signal?: AbortSignal; fetchImpl?: typeof fetch }) =>
     postBlueprint(
-      aiUrl("plan-campaign", AI_BACKEND),
+      aiUrl("plan-campaign"),
       { materials: [material], options: input.campaignOptions },
       CampaignBlueprintSchema,
       o
@@ -180,7 +179,7 @@ export const api = {
     o?: { signal?: AbortSignal; fetchImpl?: typeof fetch }
   ) =>
     postBlueprint(
-      aiUrl("generate-story", AI_BACKEND),
+      aiUrl("generate-story"),
       {
         campaign,
         story: campaign.story_sequence.find((s) => s.story_id === storyId),

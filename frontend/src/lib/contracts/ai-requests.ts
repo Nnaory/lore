@@ -2,10 +2,9 @@
  * Request schemas for the three AI routes (analyze-material, plan-campaign,
  * generate-story).
  *
- * Pure Zod with no server-only imports, so the browser and the routes share
- * one definition of what a valid request looks like. The server-side types
- * in lib/ai/* re-export these schemas and derive their TypeScript types
- * from them.
+ * Pure Zod. The FastAPI backend is the only implementation of these steps, so
+ * the browser keeps one definition of what a valid request looks like (used by
+ * the contract tests and by client code that builds request options).
  */
 
 import { z } from "zod";
@@ -44,6 +43,8 @@ export const CampaignPlannerOptionsSchema = z.object({
   /** Optional language hint for the storyteller. */
   language: z.string().optional(),
 });
+
+export type CampaignPlannerOptions = z.infer<typeof CampaignPlannerOptionsSchema>;
 
 /**
  * Campaign Planner request.
