@@ -122,7 +122,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - A row with `owner_id IS NULL` is invisible to everyone, and a create with its id returns 409.
   - **Commit:** `test(api): owner isolation and ownership-first behaviour`.
 
-- [ ] **T7 — List, get, delete** `[PG]`
+- [x] **T7 — List, get, delete** `[PG]`
   - **Satisfies:** FR-2 endpoints 1, 3, 4; NFR-2.1; design "Get", "Delete".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py` (CRUD portion).
   - **Test:** list order is `updated_at` descending. The list query selects only summary columns (capture SQL with a SQLAlchemy event listener and assert `campaign` and `blueprint` are absent). `GET` assembles `stories` from `project_stories` and returns `campaign_state` as stored. `DELETE` cascades. T6 cases for these three endpoints turn green.
