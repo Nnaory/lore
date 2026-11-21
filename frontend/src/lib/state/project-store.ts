@@ -18,67 +18,27 @@
  * Every function is async, SSR-safe (no IndexedDB → empty / not saved) and
  * never throws: storage errors (quota, private mode) come back as
  * `{ ok: false }`.
+ *
+ * Types, schemas and pure helpers live in project-model.ts and are re-exported
+ * here, so existing imports keep working.
  */
 
-import { z } from "zod";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
-import { CampaignStateSchema } from "@/lib/ai/schemas/game.schema";
-import { DocumentFileTypeSchema } from "@/lib/ai/schemas/document.schema";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
-import type { MaterialBlueprint } from "@/lib/types/material";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { CampaignState } from "@/lib/types/game";
+import type { MaterialBlueprint } from "@/lib/types/material";
 import type { StoryBlueprint } from "@/lib/types/story";
-import type { DocumentFileType } from "@/lib/types/document";
 import { indexedDbAvailable, PROJECTS, resetDatabaseConnection, SUMMARIES, transact } from "./idb";
+import {
+  buildProject,
+  readProject,
+  summarize,
+  SummarySchema,
+  type Project,
+  type ProjectSummary,
+  type StoreResult,
+} from "./project-model";
 
-export type Project = {
-  id: string;
-  created_at: number;
-  updated_at: number;
-  source: { file_name: string; file_type: DocumentFileType };
-  campaign: CampaignBlueprint;
-  /** story_id → StoryBlueprint, for every story in campaign.story_sequence. */
-  stories: Record<string, StoryBlueprint>;
-  /** Player progress; absent until the player starts. */
-  campaign_state?: CampaignState;
-  /** Analysed source material (concept names/definitions for the evaluation). */
-  materials?: MaterialBlueprint[];
-};
-
-export type ProjectSummary = {
-  id: string;
-  title: string;
-  genre: string;
-  source_name: string;
-  updated_at: number;
-  stories_total: number;
-  stories_completed: number;
-};
-
-const ProjectSchema = z.object({
-  id: z.string().min(1),
-  created_at: z.number(),
-  updated_at: z.number(),
-  source: z.object({ file_name: z.string(), file_type: DocumentFileTypeSchema }),
-  campaign: CampaignBlueprintSchema,
-  stories: z.record(z.string(), StoryBlueprintSchema),
-  campaign_state: z.unknown().optional(),
-  materials: z.array(MaterialBlueprintSchema).optional(),
-});
-
-const SummarySchema = z.object({
-  id: z.string().min(1),
-  title: z.string(),
-  genre: z.string(),
-  source_name: z.string(),
-  updated_at: z.number(),
-  stories_total: z.number(),
-  stories_completed: z.number(),
-});
-
-export type StoreResult<T = void> = { ok: true; value: T } | { ok: false; message: string };
+export type { Project, ProjectSummary, StoreResult } from "./project-model";
 
 const UNAVAILABLE_MESSAGE = "Saving is not available in this browser.";
 const QUOTA_MESSAGE =
@@ -86,35 +46,9 @@ const QUOTA_MESSAGE =
 const FAILED_MESSAGE = "Your story could not be saved in this browser. Try again.";
 const MISSING_MESSAGE = "This story is no longer saved.";
 
-function newId(): string {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) return crypto.randomUUID();
-  return `p_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
-}
-
-function summarize(p: Project): ProjectSummary {
-  return {
-    id: p.id,
-    title: p.campaign.title,
-    genre: p.campaign.genre,
-    source_name: p.source.file_name,
-    updated_at: p.updated_at,
-    stories_total: p.campaign.story_sequence.length,
-    stories_completed: p.campaign_state?.completed_stories.length ?? 0,
-  };
-}
-
 function failure(err: unknown): { ok: false; message: string } {
   const name = (err as { name?: string } | null)?.name;
   return { ok: false, message: name === "QuotaExceededError" ? QUOTA_MESSAGE : FAILED_MESSAGE };
-}
-
-/** A stored value as a Project, dropping invalid progress; null if unusable. */
-function readProject(raw: unknown): Project | null {
-  const parsed = ProjectSchema.safeParse(raw);
-  if (!parsed.success) return null;
-  // Invalid progress is dropped (the player restarts) rather than losing the story.
-  const state = CampaignStateSchema.safeParse(parsed.data.campaign_state);
-  return { ...parsed.data, campaign_state: state.success ? state.data : undefined };
 }
 
 // ---------------------------------------------------------------------------
@@ -251,17 +185,7 @@ export async function createProject(input: {
   materials?: MaterialBlueprint[];
 }): Promise<StoreResult<Project>> {
   if (!(await storeReady())) return { ok: false, message: UNAVAILABLE_MESSAGE };
-  const now = Date.now();
-  const stories = input.stories instanceof Map ? Object.fromEntries(input.stories) : { ...input.stories };
-  const project: Project = {
-    id: newId(),
-    created_at: now,
-    updated_at: now,
-    source: input.source,
-    campaign: input.campaign,
-    stories,
-    ...(input.materials ? { materials: input.materials } : {}),
-  };
+  const project = buildProject(input, Date.now());
   try {
     await transact<void>([PROJECTS, SUMMARIES], "readwrite", (tx) => {
       tx.objectStore(PROJECTS).put(project);
