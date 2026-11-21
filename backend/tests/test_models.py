@@ -16,8 +16,9 @@ from pydantic import ValidationError
 
 from app.models import CampaignStateUpdate, ProjectCreate
 
-# Provenance: hand-condensed from the shapes in frontend/tests/fixtures/linear-story.ts (not
-# machine-generated). Frontend task F8 checks this same file against the Zod schemas.
+# Provenance: generated once from the frontend fixtures (dummyCampaign, dummyMaterial, linearStory,
+# linearStory2; campaign_state from createInitialCampaignState + completeStory).
+# frontend/tests/state/project-contract.test.ts checks the same file against the Zod schemas.
 FIXTURE = Path(__file__).parent / "fixtures" / "project.json"
 
 
