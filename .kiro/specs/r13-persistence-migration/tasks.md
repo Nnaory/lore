@@ -220,7 +220,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** a project missing on the server is imported with its `campaign_state` in the body. Several small projects go in one request, and projects totalling more than 4 MB split into several. A newer local copy triggers one PUT. A newer or equal server copy triggers nothing. An empty IndexedDB makes no request. Offline does nothing and does not throw. **Cleared cookies:** an empty server list re-imports everything. Concurrent calls share one run.
   - **Commits:** `feat(state): sync local projects to the server`, then `test(state): sync local projects to the server`.
 
-- [ ] **F5 — Repository selection behind `NEXT_PUBLIC_PROJECT_STORE`** `[CI]`
+- [x] **F5 — Repository selection behind `NEXT_PUBLIC_PROJECT_STORE`** `[CI]`
   - **Satisfies:** FR-3.3, FR-3.4; design "project-store.ts delegation".
   - **Files:** `frontend/src/lib/state/project-store.ts` (`selectRepository`, delegates, `setupSaveErrorHandler`), `frontend/src/lib/state/http-repository.ts` (triggers `syncCheck` once per page load from the first `listProjects` or `loadProject`, so no component has to), `frontend/tests/state/project-store-http.test.ts`.
   - **Behavior:** read the variable as the literal `process.env.NEXT_PUBLIC_PROJECT_STORE` so Next can inline it at build time. The default is `idb`. `setupSaveErrorHandler` is a no-op in `idb` mode.
