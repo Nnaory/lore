@@ -15,9 +15,16 @@ import uuid
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi.responses import JSONResponse
 from sqlalchemy import Connection, Engine, text
 
-from app.models import ProjectCreate, ProjectResponse, ProjectSummaryResponse
+from app.models import (
+    CampaignStateUpdate,
+    ProjectCreate,
+    ProjectResponse,
+    ProjectSummaryResponse,
+    StateConflictResponse,
+)
 from app.owner import get_owner_id
 from app.ratelimit import RateLimiter
 
@@ -165,6 +172,12 @@ _UPSERT_STATE_SQL = text(
     WHERE project_state.updated_at <= EXCLUDED.updated_at
     """
 )
+_OWNED_SQL = text("SELECT 1 FROM projects WHERE id = :id AND owner_id = :owner_id")
+_STATE_UPDATED_AT_SQL = text("SELECT updated_at FROM project_state WHERE project_id = :id")
+_TOUCH_PROJECT_SQL = text(
+    "UPDATE projects SET stories_completed = :stories_completed, updated_at = :updated_at "
+    "WHERE id = :id AND owner_id = :owner_id"
+)
 
 
 class UpsertOutcome(enum.Enum):
@@ -299,6 +312,35 @@ def delete_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> Re
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.put("/{project_id}/state", dependencies=_WRITE)
-def put_state(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+@router.put("/{project_id}/state", dependencies=_WRITE, response_model=None)
+def put_state(
+    project_id: str, body: CampaignStateUpdate, engine: EngineDep, owner_id: OwnerDep
+) -> dict[str, int] | JSONResponse:
+    """Ownership first (404), then one atomic upsert whose WHERE rejects stale writes (409)."""
+    with engine.begin() as conn:
+        owned = conn.execute(_OWNED_SQL, {"id": project_id, "owner_id": owner_id}).first()
+        if owned is None:
+            raise _not_found()
+        result = conn.execute(
+            _UPSERT_STATE_SQL,
+            {
+                "id": project_id,
+                "campaign_state": _dump(body.campaign_state),
+                "updated_at": body.updated_at,
+            },
+        )
+        if result.rowcount == 0:
+            # Nothing was written, so there is nothing to roll back; projects stays untouched.
+            stored = conn.execute(_STATE_UPDATED_AT_SQL, {"id": project_id}).scalar_one()
+            conflict = StateConflictResponse(detail="stale state", stored_updated_at=stored)
+            return JSONResponse(status_code=status.HTTP_409_CONFLICT, content=conflict.model_dump())
+        conn.execute(
+            _TOUCH_PROJECT_SQL,
+            {
+                "id": project_id,
+                "owner_id": owner_id,
+                "stories_completed": len(body.campaign_state["completed_stories"]),
+                "updated_at": body.updated_at,
+            },
+        )
+    return {"updated_at": body.updated_at}
