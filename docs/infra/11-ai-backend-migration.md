@@ -1,42 +1,44 @@
 # 11 Migrasi endpoint AI ke backend
 
-**Tujuan dokumen.** Urutan rilis, checklist perbandingan, dan rollback untuk memindahkan pipeline AI dari route handler Next.js (`frontend/src/app/api/ai/*`) ke FastAPI (`/api/v1/ai/*`). Dokumen ini berlaku sampai Tahap 4 (penghapusan kode lama) selesai.
+**Tujuan dokumen.** Urutan rilis, checklist, dan rollback setelah pipeline AI dipindah dari route handler Next.js ke FastAPI (`/api/v1/ai/*`).
 
-Status (21 Nov 2026): kode backend, flag frontend, dan tes kontrak sudah ada di branch `feat/ai-backend`. Rilis production dan perbandingan di bawah belum dilakukan. Route Next.js `/api/ai/*` masih ada sebagai jalan mundur.
+Status (21 Nov 2026): di branch `dev`, frontend tidak lagi memuat kode server AI. Route Next.js `/api/ai/*`, `frontend/src/lib/ai/*`, `lib/validation/*`, flag `NEXT_PUBLIC_AI_BACKEND`, dan env `AI_*` web sudah dihapus. Satu-satunya route handler di frontend adalah `GET /api/health` (liveness). Smoke lokal dengan Gemini asli lolos (analyze, plan, story). Rilis production belum dilakukan. Kode Next.js lama tersimpan di branch `backup/dev-before-fe-ai-removal` (`8425bb0`).
 
 ## 1. Apa yang berubah
 
 | Sisi | Sebelum | Sesudah |
 |---|---|---|
-| Browser | `POST /api/ai/{step}` | `POST /api/v1/ai/{step}` bila build memakai `NEXT_PUBLIC_AI_BACKEND=api` |
+| Browser | `POST /api/ai/{step}` (Next.js) | `POST /api/v1/ai/{step}` (Caddy ke FastAPI) |
 | Gemini key | env container web | SSM SecureString `/lore/prod/api/env/GOOGLE_API_KEY`, env container api |
-| Pembatasan | tidak ada | per IP, per owner, kuota harian per IP, dan batas request berjalan (lihat bagian 4) |
-| Langkah | `analyze-material`, `plan-campaign`, `generate-story` | sama, dengan envelope dan kode galat yang sama |
+| Env web | `AI_PROVIDER`, `AI_MODEL`, `AI_TIMEOUT_MS`, `AI_DEADLINE_MS` | tidak ada (parameter SSM web dihapus Terraform) |
+| Egress web 443 | GHCR, SSM, Let's Encrypt, Gemini | GHCR, SSM, Let's Encrypt (rule tetap, hanya deskripsi berubah) |
+| Pembatasan | tidak ada | per IP, per owner, kuota harian per IP, dan batas request berjalan (bagian 4) |
 
 Parsing file (PDF, DOCX, PPTX) tetap di browser. Backend hanya menerima teks hasil ekstraksi.
 
 ## 2. Urutan rilis
 
-1. Merge PR infra. CI menjalankan `terraform apply` dan membuat parameter `GOOGLE_API_KEY` dengan nilai placeholder.
-2. Isi nilai asli key (runbook 3.2a) dan rilis api (`release-api.yml`).
-3. Cek dari instance api: `curl -fsS http://127.0.0.1:8000/health/ai` harus mengembalikan `{"configured":true}`.
-4. Dari mesin yang punya akses: `python3 scripts/verify/ai-smoke.py https://<APP_URL>` setelah web siap (langkah 5), atau terhadap API lokal sebelum itu. Exit code 0 berarti tiga langkah berhasil. Skrip ini memakai beberapa panggilan Gemini sungguhan.
-5. Set variabel repo `NEXT_PUBLIC_AI_BACKEND=api` (`gh variable set NEXT_PUBLIC_AI_BACKEND --body api`), lalu jalankan `release-web.yml`. Variabel kosong berarti `next`.
-6. Bandingkan (bagian 3). Selama tahap ini jangan mengubah prompt di `frontend/src/lib/ai/*`, supaya dua implementasi tetap sama.
+Web dan API harus dirilis bersama: web baru hanya memanggil `/api/v1/ai/*`, jadi generasi story baru berjalan setelah API baru aktif dan key terisi.
 
-## 3. Checklist perbandingan
+1. Merge PR `dev` ke `main`. CI menjalankan `terraform apply`: membuat parameter `GOOGLE_API_KEY` api (placeholder) dan menghapus parameter `AI_*` web.
+2. Isi nilai asli key (runbook 3.2a). Jangan sebelum apply, karena akan tertimpa placeholder.
+3. Rilis api (`release-api.yml`) lebih dulu, lalu cek dari instance api: `curl -fsS http://127.0.0.1:8000/health/ai` harus `{"configured":true}`.
+4. Rilis web (`release-web.yml`).
+5. Smoke: `python3 scripts/verify/ai-smoke.py https://<APP_URL>`. Exit code 0 berarti tiga langkah berhasil. Skrip ini memakai beberapa panggilan Gemini sungguhan.
+6. Jalankan checklist bagian 3.
 
-Pakai materi yang sama (satu file kecil dan satu file sedang) pada build `next` dan build `api`. Catat untuk masing-masing:
+## 3. Checklist
 
-- [ ] Ketiga langkah selesai tanpa galat.
-- [ ] Jumlah konsep, jumlah story, dan jumlah scene sebanding (angka persis boleh beda karena model non-deterministik).
-- [ ] Hasil lolos validasi klien (tidak ada pesan "unexpected" di UI).
-- [ ] Latensi tiap langkah, dan tidak ada putus koneksi pada langkah terpanjang (batas Caddy 330 detik).
-- [x] Tanpa key (parameter masih placeholder): UI menampilkan peringatan "AI belum diatur", bukan galat umum. *Lokal 21 Nov 2026: `/health/ai` = `configured:false` dan endpoint menjawab 503 `PROVIDER_NOT_CONFIGURED`; pemetaan ke pesan UI dicakup tes kontrak. Tampilan UI di production belum dicek.*
-- [x] Rate limit: kirim lebih dari batas per menit. Respons 429 membawa `Retry-After`, dan UI menampilkan pesan "sibuk". *Lokal (batas diset 3/menit): request ke-4 dst 429 `RATE_LIMITED` dengan `Retry-After: 60`; pesan UI dicakup tes kontrak.*
-- [x] Cookie `lore_device` diterbitkan pada `/api/v1/ai/*` dan tidak mengganti owner project yang sudah ada. *Lokal: terbit tanpa cookie, tidak ada `Set-Cookie` bila cookie sudah ada. Interaksi dengan owner project di DB belum dicek (butuh Postgres).*
-- [ ] Log Caddy tidak lagi menerima `/api/ai/*` dari browser setelah rilis web.
-- [ ] Log container api tidak memuat key maupun isi prompt.
+- [x] Lokal: tiga langkah selesai dengan Gemini asli lewat `/api/v1/ai/*` (`ai-smoke.py`).
+- [x] Lokal: tanpa key, `/health/ai` = `configured:false` dan endpoint 503 `PROVIDER_NOT_CONFIGURED`.
+- [x] Lokal: melebihi batas per menit memberi 429 `RATE_LIMITED` dengan `Retry-After`.
+- [x] Lokal: cookie `lore_device` terbit di `/api/v1/ai/*` dan tidak diganti bila sudah ada.
+- [ ] Production: `/health/ai` = `configured:true` setelah key diisi.
+- [ ] Production: `ai-smoke.py https://<APP_URL>` lolos.
+- [ ] Production: satu story dibuat dari `/create` di browser sampai bisa dimainkan.
+- [ ] Production: langkah terpanjang tidak putus (batas Caddy 330 detik).
+- [ ] Production: log container api tidak memuat key maupun isi prompt.
+- [ ] Production: container web tidak punya env `AI_*` atau key (`docker exec <web> env`).
 
 ## 4. Batas default (env backend, bisa diubah lewat SSM)
 
@@ -52,12 +54,7 @@ Satu campaign berisi sekitar 8 request per story. Angka ini perlu ditinjau setel
 
 ## 5. Rollback
 
-Set variabel kembali ke `next` (`gh variable set NEXT_PUBLIC_AI_BACKEND --body next`) lalu jalankan ulang `release-web.yml`. `deploy.sh` selalu menjalankan `docker compose pull`, jadi image yang dibangun ulang dengan tag yang sama tetap terambil. Route Next.js dan key web harus masih ada pada saat itu, karena itu Tahap 4 hanya dikerjakan setelah bagian 3 lolos.
+Tidak ada lagi flag untuk kembali ke route Next.js. Pilihan:
 
-## 6. Syarat memulai Tahap 4 (penghapusan)
-
-- Checklist bagian 3 lolos pada build `api` di production.
-- Build `api` dipakai tanpa masalah selama periode yang Anda tentukan.
-- Anda memberi persetujuan, karena setelah itu rollback lewat flag tidak ada lagi.
-
-Tahap 4 menghapus `frontend/src/app/api/ai/*`, `frontend/src/lib/ai/*` yang tersisa, `lib/validation/*` yang hanya dipakai server, helper dummy provider, flag `NEXT_PUBLIC_AI_BACKEND`, parameter `AI_*` dan key di env web, dan kata "transitional Gemini" pada deskripsi egress web di `infra/security.tf`. Rule egress 443 tetap karena GHCR, SSM, dan Let's Encrypt memakainya.
+1. **Masalah di API saja:** rilis ulang api dengan tag sebelumnya (runbook 3.3). Generasi story berhenti sampai API pulih, data pemain di IndexedDB tidak terpengaruh.
+2. **Kembali ke pipeline Next.js:** `git revert` merge commit penghapusan di `dev`/`main` (atau buat branch dari `backup/dev-before-fe-ai-removal`), revert juga perubahan `infra/ssm.tf` web, lalu isi kembali key di env web. Ini butuh PR dan rilis ulang web.

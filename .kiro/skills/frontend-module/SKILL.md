@@ -10,14 +10,14 @@ Work from `frontend/`. If `frontend/node_modules` is missing, run `npm ci` first
 ## 1. Read a reference before writing
 - Pure logic: `src/lib/game/hp-manager.ts` and its test `tests/game/hp-manager.test.ts`.
 - Component with interaction: `src/components/stage/StagePuzzle.tsx` and `tests/stage/stage-puzzle.test.tsx`.
-- Zod schemas: `src/lib/ai/schemas/*` and `tests/schemas/*.test.ts`.
+- Zod schemas: `src/lib/contracts/schemas/*` and `tests/schemas/*.test.ts`.
 - Tests that need the DOM use the docblock `@vitest-environment jsdom`; the default environment is `node`. `tests/setup.ts` already loads jest-dom and fake-indexeddb.
 
 ## 2. Write the module
 1. Put logic in `src/lib/<domain>/` as pure functions. Put React state in a thin hook (`use-*.ts`) on top. Components never compute game rules (HP, correct/incorrect) themselves.
 2. Start every file with a header comment that says what it is for and why it exists.
 3. Return `{ ok: true, ... } | { ok: false, ... }` at module boundaries. Do not throw across a boundary.
-4. Validate every trust boundary with Zod: route requests, responses on the client, and data read from IndexedDB or localStorage. Types live in `src/lib/types`, schemas in `src/lib/ai/schemas`.
+4. Validate every trust boundary with Zod: route requests, responses on the client, and data read from IndexedDB or localStorage. Types live in `src/lib/types`, schemas in `src/lib/contracts/schemas`. The frontend has no server code besides `app/api/health`; AI calls go to the backend at `/api/v1/ai/*`.
 5. Style with the semantic CSS variables and `lore-*` glass classes (see the theme steering). Add `data-testid` to interactive elements.
 6. This is Next 16: read `node_modules/next/dist/docs/` before using a Next API you are not sure about.
 
