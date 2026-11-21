@@ -186,7 +186,6 @@ def test_put_state_on_foreign_id_returns_404_and_writes_nothing(
 # ---------------------------------------------------------------- create (T8)
 
 
-@pending("T8")
 def test_create_with_a_foreign_id_returns_409_and_changes_nothing(
     engine: Engine, client_b: TestClient
 ) -> None:
@@ -199,7 +198,6 @@ def test_create_with_a_foreign_id_returns_409_and_changes_nothing(
     assert snapshot(engine, A_ID) == before
 
 
-@pending("T8")
 def test_create_with_a_null_owner_id_returns_409(engine: Engine, client_a: TestClient) -> None:
     seed(engine, "p_legacy", None)
     before = snapshot(engine, "p_legacy")
