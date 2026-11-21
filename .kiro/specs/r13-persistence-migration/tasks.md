@@ -184,13 +184,13 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 3 — Frontend (PR 3; flag stays `idb`)
 
-- [ ] **F1 — Repository interface and shared model module** `[CI]`
+- [x] **F1 — Repository interface and shared model module** `[CI]`
   - **Satisfies:** FR-3.1, FR-3.4; design "ProjectRepository interface".
   - **Files:** `frontend/src/lib/state/repository.ts` (interface), `frontend/src/lib/state/project-model.ts` (move `Project`, `ProjectSummary`, `StoreResult`, `ProjectSchema`, `SummarySchema`, `readProject`, `summarize`, `newId` here so `HttpRepository` can reuse them without a circular import). `project-store.ts` re-exports them so no importer changes. `createProject` takes an optional `id`. `saveCampaignState` takes an optional `updatedAt`, so the local and server copies carry the same timestamp (the design's snippet calls `Date.now()` twice, which makes the local copy a few milliseconds newer than the server's).
   - **Test:** `npx tsc --noEmit` and the full existing suite, unchanged.
   - **Commit:** `refactor(state): extract the project model and repository interface`.
 
-- [ ] **F2 — Extract `IndexedDbRepository`** `[CI]`
+- [x] **F2 — Extract `IndexedDbRepository`** `[CI]`
   - **Satisfies:** FR-3.2, AC 2; design "IndexedDbRepository".
   - **Files:** `frontend/src/lib/state/indexed-db-repository.ts` (existing IndexedDB logic, localStorage migration, `storeReady`), `frontend/src/lib/state/project-store.ts` (the five functions delegate to it; `projectStories` and `resetProjectStoreForTests` stay exported).
   - **Test:** a pure refactor. Run the full frontend suite before and after: all 854 tests pass, and `git diff --stat -- frontend/tests` is empty for this commit, so no existing test was edited. New tests go in a separate commit, `frontend/tests/state/indexed-db-repository.test.ts`: an explicit `id` is honored, an explicit `updatedAt` is stored.
