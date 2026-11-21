@@ -121,55 +121,64 @@ Password diambil dari Secrets Manager oleh admin, bukan disalin ke file. Perinta
 - Snapshot manual sebelum migrasi berisiko: `aws rds create-db-snapshot --db-instance-identifier lore-prod-db --db-snapshot-identifier lore-prod-db-premigrate-<TANGGAL>`.
 - Test migrasi di CI memakai service container Postgres (lihat [05-cicd.md](./05-cicd.md)).
 
-## 7. Sketsa schema (ilustrasi)
+## 7. Schema persistensi (R13)
 
-Sketsa ini dasar untuk Phase B (R13). Bentuk akhirnya menunggu keputusan identitas pemilik data (Q4).
+Diimplementasikan di revisi Alembic `7c1d9e4a52b8` (`backend/alembic/versions/7c1d9e4a52b8_r13_persistence.py`, setelah `4ee36ac0a0f8`). Spesifikasi lengkap: `.kiro/specs/r13-persistence-migration/` (`requirements.md`, `design.md`). Migrasinya hanya menambah tabel (expand-only), jadi image api sebelumnya tetap jalan setelah `alembic upgrade head`. Status rilis ada di [10-implementation-roadmap.md](./10-implementation-roadmap.md) R13.
 
 ```sql
 CREATE TABLE projects (
-  id                uuid PRIMARY KEY,
-  owner_id          uuid NULL,            -- menunggu keputusan identitas (Q4)
-  created_at        timestamptz NOT NULL,
-  updated_at        timestamptz NOT NULL,
+  id                text PRIMARY KEY,     -- id dari klien; bisa bukan UUID (p_<waktu>_<acak>)
+  owner_id          uuid NULL,            -- token perangkat (Q4); API selalu mengisinya
+  created_at        bigint NOT NULL,      -- milidetik sejak epoch, sama dengan klien
+  updated_at        bigint NOT NULL,
   source            jsonb NOT NULL,       -- { file_name, file_type }
-  campaign          jsonb NOT NULL,       -- CampaignBlueprint
-  materials         jsonb NULL,           -- MaterialBlueprint[]
+  campaign          jsonb NOT NULL,       -- CampaignBlueprint (opaque)
+  materials         jsonb NULL,           -- MaterialBlueprint[] (opaque)
   title             text NOT NULL,        -- denormalisasi untuk daftar
   genre             text NOT NULL,
   source_name       text NOT NULL,
-  stories_total     integer NOT NULL,
-  stories_completed integer NOT NULL DEFAULT 0,
+  stories_total     integer NOT NULL,     -- jsonb_array_length(campaign->'story_sequence')
+  stories_completed integer NOT NULL DEFAULT 0,  -- selalu dihitung dari project_state
   schema_version    integer NOT NULL DEFAULT 1
 );
 
 CREATE TABLE project_stories (
-  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  project_id text NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   story_id   text NOT NULL,
-  blueprint  jsonb NOT NULL,              -- StoryBlueprint
+  blueprint  jsonb NOT NULL,              -- StoryBlueprint (opaque)
   PRIMARY KEY (project_id, story_id)
 );
 
 CREATE TABLE project_state (
-  project_id     uuid PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
-  campaign_state jsonb NOT NULL,          -- CampaignState
-  updated_at     timestamptz NOT NULL
+  project_id     text PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE,
+  campaign_state jsonb NOT NULL,          -- CampaignState (opaque)
+  updated_at     bigint NOT NULL          -- untuk deteksi konflik
 );
+
+CREATE INDEX idx_projects_owner_updated ON projects (owner_id, updated_at DESC);
 ```
 
-Alasan pemisahan:
+Perbedaan dari sketsa awal dan alasannya:
 
-- Pada `project-store.ts` sekarang, `Project` memuat `campaign`, `stories`, `campaign_state`, dan `materials`. `summaries` ditulis dalam transaksi yang sama untuk daftar di beranda.
+- `id` bertipe `text`, bukan `uuid`: `newId()` di klien jatuh ke format `p_<waktu>_<acak>` bila `crypto.randomUUID` tidak ada, dan project lama di IndexedDB memakai id itu.
+- Timestamp bertipe `bigint` (milidetik): tipe `Project` di klien memakai `number`, jadi tidak ada konversi `timestamptz` di kedua sisi.
+- `owner_id` nullable demi keamanan migrasi, tetapi setiap baris yang ditulis lewat API punya pemilik. Baris tanpa pemilik tidak terlihat oleh siapa pun.
+- `campaign_state` juga ditulis saat create dan import, sehingga progres pemain ikut pindah. `stories_completed` selalu diturunkan dari state yang tersimpan, dan `projects.updated_at` hanya bisa maju.
+- Tidak ada tabel identitas: token perangkat stateless (lihat Q4).
+
+Alasan pemisahan tabel tetap sama:
+
 - `campaign_state` disimpan setiap perubahan, sedangkan blueprint besar jarang berubah. Memisahkannya mencegah menulis ulang blueprint tiap kali pemain maju.
-- Kolom denormalisasi (`title`, `genre`, `source_name`, `stories_total`, `stories_completed`) menggantikan store `summaries` untuk `listProjects`.
+- Kolom denormalisasi menggantikan store `summaries` untuk daftar di beranda; query daftar tidak menyentuh kolom jsonb.
 - `schema_version` memudahkan migrasi bentuk JSON di masa depan.
 
-Tabel identitas (user, sesi, atau token perangkat) belum ada di sketsa karena menunggu Q4.
+Ukuran terukur (T0, 20 Nov 2026, Gemini): satu project 25 sampai 42 KB, `campaign_state` di bawah 2 KB. Batas body dan storage cap ada di [06-app-changes.md](./06-app-changes.md) bagian 4.
 
 ## 8. Validasi, import, dan penghapusan
 
-- Validasi di batas kepercayaan: model Pydantic menyamai skema Zod di `src/lib/ai/schemas/*`. Data dari DB divalidasi saat dibaca, seperti `readProject` sekarang. Campaign state yang tidak valid dibuang tanpa menghapus story.
-- Import sekali jalan dari IndexedDB mengikuti logika `migrateFromLocalStorage` di `project-store.ts`: idempotent per `id`, dan salinan dengan `updated_at` lebih baru yang menang. Detail ada di [06-app-changes.md](./06-app-changes.md).
-- Kebijakan penghapusan data per pemilik mengikuti keputusan identitas (Q4).
+- Validasi di server hanya untuk envelope (model Pydantic di `backend/app/models.py`): field level atas dan field yang mengisi kolom NOT NULL (`campaign.title`, `campaign.genre`, `campaign.story_sequence`, `campaign_state.completed_stories`). Nilai yang salah menghasilkan `422`, bukan `500`. Isi `campaign`, `stories`, `campaign_state`, dan `materials` disimpan apa adanya; validasi penuh tetap di klien dengan Zod, termasuk membuang `campaign_state` yang tidak valid tanpa menghapus story.
+- Import dari IndexedDB (`POST /api/v1/projects/import`) idempotent per `id`: hanya salinan dengan `updated_at` yang lebih baru yang mengganti; salinan sama atau lebih lama dihitung `skipped`. Item divalidasi satu per satu; item yang tidak valid atau melewati storage cap masuk daftar `rejected` tanpa menggagalkan item lain. Id milik pemilik lain dilewati.
+- Penghapusan per pemilik lewat `DELETE /api/v1/projects/{id}` (cascade ke story dan state). Belum ada penghapusan massal per pemilik; token yang hilang membuat datanya yatim (tidak terlihat siapa pun).
 
 ## 9. Backup, restore, dan teardown
 

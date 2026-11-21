@@ -247,7 +247,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 4 — Documentation and deployment
 
-- [ ] **D1 — Update the docs** `[CI]`
+- [x] **D1 — Update the docs** `[CI]`
   - **Satisfies:** the docs-vs-code rule in `product` steering; the `docs/infra` documents are in Indonesian, so these edits are too.
   - **Files:** `docs/infra/04-database.md` section 7 (text ids, `bigint` timestamps, state written on create and import), `docs/infra/06-app-changes.md` section 4 (final endpoint table with 404, 409, 413, 422, and 429, the device cookie, the limits), `docs/infra/open-questions.md` (Q4 and Q5 decisions), `docs/infra/10-implementation-roadmap.md` (R13 status and PR plan), and the `persistence`, `backend`, and `product` steering files once the code has landed.
   - **Commit:** `docs(infra): document the r13 persistence design and decisions`.
