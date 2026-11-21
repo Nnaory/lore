@@ -13,8 +13,8 @@ Cara memakai: tulis keputusan pada kolom "Keputusan" di tabel ringkasan. Jika ke
 | Q1 | Bentuk backend | Python FastAPI (sesuai README) | R6, R9, R13 | FastAPI di `backend/` |
 | Q2 | Frontend di GitHub Pages | Tidak. Next.js di EC2 | R8 | Next.js (`frontend/`) + Caddy di EC2 `web` |
 | Q3 | Domain dan TLS | Tanpa domain, HTTP lewat EIP | R8 | HTTP lewat EIP `web` (TLS via Caddy saat domain diset) |
-| Q4 | Identitas pemilik data | Belum diputuskan, `owner_id` nullable | R13 | Menunggu desain R13 |
-| Q5 | Fitur yang pindah ke backend | Project, campaign state, pipeline AI | R13 | Menunggu desain R13 |
+| Q4 | Identitas pemilik data | Belum diputuskan, `owner_id` nullable | R13 | Token perangkat anonim (cookie `lore_device`, opsi A) |
+| Q5 | Fitur yang pindah ke backend | Project, campaign state, pipeline AI | R13 | Project, story, dan campaign state; pipeline AI tetap di Next.js |
 | Q6 | Akun AWS dan Free Tier | Akun yang sama dengan `zero-to-prod` | R1 | AWS Free Account Plan (`FREE`) |
 | Q7 | Region | `ap-southeast-3` | R1, R3 | `ap-southeast-3` (Jakarta) |
 | Q8 | Budget dan aksi | US$70, alert email, aksi deny policy | R1 | US$70/bln + `lore-deny-new-spend` di 100% ACTUAL |
@@ -74,6 +74,7 @@ Cara memakai: tulis keputusan pada kolom "Keputusan" di tabel ringkasan. Jika ke
   - Akun (OAuth GitHub atau Google, atau email). Lintas perangkat, butuh layanan auth dan kebijakan privasi.
   - Single-user (satu pemilik). Paling sederhana, tetapi tidak untuk publik.
 - **Default.** Belum diputuskan. Kolom `owner_id` dibuat nullable.
+- **Keputusan (R13).** Opsi A, token perangkat anonim. Cookie `lore_device` berisi UUID v4 (`HttpOnly`, `SameSite=Lax`, `Path=/`, umur 1 tahun; `Secure` bila Caddy mengirim `X-Forwarded-Proto: https`) dan menjadi `owner_id`. Tidak ada tabel identitas. Akses ke project milik token lain menghasilkan `404`. Konsekuensi yang diterima: data tidak lintas perangkat, dan menghapus cookie membuat pemilik baru; sync check lalu mengimport ulang salinan IndexedDB perangkat itu ke pemilik baru. Akun (OAuth) tetap opsi upgrade di masa depan. Detail: [06-app-changes.md](./06-app-changes.md) bagian 4.
 - **Dampak jika berbeda.** Schema dan tabel identitas ([04-database.md](./04-database.md) bagian 7), auth di backend, kebijakan penghapusan data, dan hampir seluruh R13.
 
 ## Q5 Fitur yang pindah ke backend
@@ -81,6 +82,7 @@ Cara memakai: tulis keputusan pada kolom "Keputusan" di tabel ringkasan. Jika ke
 - **Konteks.** "Beberapa fitur" belum ditentukan.
 - **Opsi.** Project dan campaign state, pipeline AI, chat "type something" (belum ada di kode), avatar dan pacing (sekarang localStorage).
 - **Default.** Project (`projects`, `project_stories`, `project_state`), campaign state, dan pipeline AI pindah. Avatar dan pacing tetap lokal. Import data IndexedDB yang ada. Chat in-character belakangan.
+- **Keputusan (R13).** Yang pindah: project, story, dan campaign state, plus import data IndexedDB yang ada. Pipeline AI **tidak** pindah di R13 (tetap di route handler Next.js `/api/ai/*`, tugas terpisah di masa depan). Pacing tetap di localStorage; fitur avatar sudah dihapus. Chat in-character belum ada di kode.
 - **Dampak jika berbeda.** Endpoint dan tabel ([06-app-changes.md](./06-app-changes.md) bagian 4, [04-database.md](./04-database.md) bagian 7), cakupan R13.
 
 ## Q6 Akun AWS dan Free Tier

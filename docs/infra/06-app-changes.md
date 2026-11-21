@@ -167,56 +167,76 @@ Konsekuensi deadline sama dengan timeout:
 
 Menaikkan timeout hanya memberi ruang. Agar model benar-benar bernalar lebih lama, request perlu meminta reasoning (misalnya lewat `thinkingConfig` pada `generationConfig`). Itu belum ada di kode dan keputusan nilainya ada di Q11. Interaksi reasoning dengan `maxOutputTokens` (token reasoning bisa memakan batas output sehingga JSON terpotong) dicek di dokumentasi Gemini saat implementasi [belum diverifikasi].
 
-## 4. Sketsa migrasi persistensi (Phase B, rencana terpisah)
+## 4. Migrasi persistensi (R13)
 
-Dikerjakan sebagai R13 setelah [open-questions.md](./open-questions.md) dijawab, terutama Q4 (identitas pemilik data). Bagian ini hanya sketsa.
+Spesifikasi lengkap: `.kiro/specs/r13-persistence-migration/` (`requirements.md`, `design.md`, `tasks.md`). Bagian ini meringkas hasil akhirnya. Pipeline AI **tidak** termasuk R13: route `/api/ai/*` tetap di Next.js.
 
-### 4.1 Kondisi sekarang
+### 4.1 Kondisi sebelum R13
 
-[terverifikasi: pembacaan `src/lib/state/project-store.ts` dan `idb.ts`]
+[terverifikasi: pembacaan `src/lib/state/project-store.ts` dan `idb.ts` sebelum R13]
 
 - Database IndexedDB `lore` v1 dengan store `projects` dan `summaries`, ditulis dalam satu transaksi.
 - Fungsi publik: `listProjects`, `loadProject`, `createProject`, `saveCampaignState`, `deleteProject`, `projectStories`.
 - Data divalidasi Zod saat dibaca. `campaign_state` yang tidak valid dibuang tanpa menghapus story.
 - Ada migrasi sekali jalan dari localStorage lama.
 - Pemakai: `src/app/create/page.tsx`, `src/components/home/SavedStories.tsx`, `src/components/play/PlayProject.tsx`.
-- `lore:avatar` dan `lore:pacing` di localStorage tetap lokal.
+- `lore:pacing` di localStorage tetap lokal (fitur avatar sudah dihapus 17 Nov 2026).
 
-### 4.2 Rancangan
+### 4.2 Rancangan yang diimplementasikan
 
-- Interface `ProjectRepository` dengan dua implementasi: `IndexedDbRepository` (kode sekarang) dan `HttpRepository`. Dipilih lewat feature flag (misalnya `NEXT_PUBLIC_PROJECT_STORE=idb|http`). Signature fungsi di `project-store.ts` dipertahankan sehingga komponen tidak berubah banyak.
-- `campaign_state` disimpan dengan debounce. Konflik diselesaikan last-write-wins berdasarkan `updated_at`.
-- Jika offline atau request gagal, status simpan ditampilkan dan salinan lokal dipertahankan sampai berhasil terkirim.
-- Import sekali jalan dari IndexedDB ke server: idempotent per `id`, `updated_at` yang lebih baru menang (meniru `migrateFromLocalStorage`). Data lokal tidak dihapus sebelum server mengonfirmasi.
+- **Repository.** Interface `ProjectRepository` (`src/lib/state/repository.ts`) dengan dua implementasi: `IndexedDbRepository` (kode lama, dipindah tanpa perubahan perilaku) dan `HttpRepository`. `project-store.ts` memilih salah satu saat modul dimuat dari flag build `NEXT_PUBLIC_PROJECT_STORE` (`idb` default, `http`). Signature publik tidak berubah; `PlayProject` hanya menambah satu `useEffect` untuk banner error simpan dari server.
+- **Local-first.** Di mode `http`, tulisan masuk IndexedDB dulu lalu ke server. Simpan `campaign_state` di-debounce 1,5 detik, dikirim satu per satu, retry 5 detik sampai 60 detik (dua kali lipat), `Retry-After` dihormati untuk `429`. Muat project dari server, jatuh ke salinan lokal bila `404`, error, atau data tidak valid.
+- **Sync check** (`src/lib/state/sync.ts`) berjalan sekali tiap page load, tanpa flag "sudah diimport": project lokal yang tidak ada di server diimport (dengan progresnya), project lokal yang lebih baru di-`PUT` state-nya. Import dikirim per batch maksimal 4 MB.
+- **Identitas.** Cookie `lore_device` (UUID v4, `HttpOnly`, `SameSite=Lax`, `Path=/`, 1 tahun) dipasang oleh middleware FastAPI pada setiap respons `/api/v1/projects/*`, termasuk respons error. `Secure` mengikuti `X-Forwarded-Proto: https` dari Caddy. Lihat Q4.
+- **Konflik.** `PUT .../state` dengan `updated_at` lebih lama ditolak `409` (cek atomik dalam satu `INSERT ... ON CONFLICT ... WHERE`). Kepemilikan selalu dicek sebelum menulis, dan akses ke project milik orang lain menghasilkan `404` yang sama persis dengan id yang tidak ada.
 
 ### 4.3 Endpoint
 
-| Method dan path | Fungsi | Menggantikan |
-|---|---|---|
-| `GET /api/v1/projects` | Daftar ringkasan | `listProjects` |
-| `POST /api/v1/projects` | Buat project | `createProject` |
-| `GET /api/v1/projects/{id}` | Muat project | `loadProject` |
-| `DELETE /api/v1/projects/{id}` | Hapus project | `deleteProject` |
-| `PUT /api/v1/projects/{id}/state` | Simpan `campaign_state` | `saveCampaignState` |
-| `POST /api/v1/projects/import` | Import dari IndexedDB | Migrasi sekali jalan |
-| `POST /api/v1/ai/analyze-material`, `/plan-campaign`, `/generate-story` | Pipeline AI | `/api/ai/*` di Next |
+| Method dan path | Fungsi | Sukses | Error |
+|---|---|---|---|
+| `GET /api/v1/projects` | Daftar ringkasan milik pemanggil, terbaru dulu | `200` | `429` |
+| `POST /api/v1/projects` | Buat project (boleh dengan id, timestamp, dan `campaign_state` dari klien) | `201` baris baru, `200` jika id sudah milik pemanggil | `409` id milik orang lain, `413`, `422`, `429` |
+| `GET /api/v1/projects/{id}` | Muat project lengkap | `200` | `404`, `429` |
+| `DELETE /api/v1/projects/{id}` | Hapus project (cascade) | `204` | `404`, `429` |
+| `PUT /api/v1/projects/{id}/state` | Simpan `campaign_state` | `200` `{ updated_at }` | `404`, `409` `{ stored_updated_at }`, `413`, `422`, `429` |
+| `POST /api/v1/projects/import` | Import dari IndexedDB | `200` `{ imported, skipped, rejected }` | `413`, `422`, `429` |
 
-Route `/api/ai/full-workflow` tidak dipakai UI (hanya test dan `requestCampaign()` lama), sehingga tidak perlu dipindah kecuali diputuskan lain. Route `/api/ai/*` di Next tetap hidup berdampingan sampai pemindahan selesai.
+Semua endpoint mengembalikan `503` bila database tidak dikonfigurasi. `429` selalu membawa `Retry-After: 60`.
+
+**Batas** (`backend/app/projects.py`, `Limits`; byte desimal, sama dengan Caddy):
+
+| Batas | Nilai |
+|---|---|
+| Body `POST /projects` | 2.000.000 byte |
+| Body `PUT /state` | 500.000 byte |
+| Body `POST /import` | 5.000.000 byte (sama dengan `request_body max_size 5MB` di Caddy untuk `/api/v1/*`) |
+| Rate limit per IP | 120 request per menit untuk semua endpoint project |
+| Rate limit tulis per pemilik | 60 per menit (POST, PUT, DELETE) |
+| Import per IP | 5 per menit |
+| Kuota create per IP | 100 per hari UTC |
+| Storage per pemilik | 100 project dan 50 MB |
+| Storage global | 10.000 project |
+
+Body diukur saat streaming, jadi body chunked tanpa `Content-Length` juga kena batas. Rate limiter berada di memori proses (satu instance api) dan memakai `request.client.host` yang sudah diresolusi uvicorn `--proxy-headers` dari Caddy. Ukuran terukur (T0): satu project 25 sampai 42 KB.
 
 ### 4.4 File yang terdampak
 
 | File | Dampak |
 |---|---|
-| `src/lib/state/project-store.ts` | Menjadi adapter di belakang interface |
-| `src/lib/state/idb.ts` | Tetap untuk implementasi IndexedDB dan import |
-| `src/app/create/page.tsx` | Memanggil `createProject` lewat adapter |
-| `src/components/home/SavedStories.tsx` | `listProjects`, `deleteProject` |
-| `src/components/play/PlayProject.tsx` | `loadProject`, `saveCampaignState` |
-| `src/lib/generation/generation.ts` | URL objek `api` (`/api/ai/*` ke `/api/v1/ai/*`) |
+| `backend/alembic/versions/7c1d9e4a52b8_r13_persistence.py` | Tabel `projects`, `project_stories`, `project_state` |
+| `backend/app/owner.py`, `ratelimit.py`, `models.py`, `projects.py`, `main.py` | Middleware cookie, rate limiter, model envelope, router, wiring |
+| `deploy/web/Caddyfile` | `request_body { max_size 5MB }` di `handle /api/v1/*` (mengganti instance web saat di-apply) |
+| `frontend/src/lib/state/project-model.ts`, `repository.ts`, `indexed-db-repository.ts`, `http-repository.ts`, `sync.ts`, `api-paths.ts` | Model bersama, interface, dua implementasi, sync check |
+| `frontend/src/lib/state/project-store.ts` | Pemilihan repository dan `setupSaveErrorHandler` |
+| `frontend/src/components/play/PlayProject.tsx` | Banner error simpan dari server |
+| `frontend/Dockerfile`, `frontend/.env.example` | `ARG NEXT_PUBLIC_PROJECT_STORE=idb` |
+| `.github/workflows/release-web.yml` | Belum diubah; build arg `http` adalah langkah cutover (D5) |
+
+`src/app/create/page.tsx` dan `src/components/home/SavedStories.tsx` tidak berubah.
 
 ### 4.5 Strategi test
 
-- Backend: pytest dengan Postgres sebagai service container di CI. Migrasi Alembic diuji dari kosong.
-- Frontend: vitest untuk adapter, dengan `fake-indexeddb` yang sudah dipakai test saat ini.
-- Contract test: skema Zod (`src/lib/ai/schemas/*`) dan model Pydantic harus menerima fixture yang sama (misalnya fixture `linear-story`).
+- Backend: pytest dengan Postgres 16 (service container di CI): migrasi dari kosong dan downgrade, middleware cookie, model, rate limiter (jam disuntikkan), isolasi pemilik, CRUD, konflik dan race, import, batas body (termasuk chunked), storage cap, kuota harian.
+- Frontend: vitest dengan `fake-indexeddb` dan `fetch` di-mock untuk `IndexedDbRepository`, `HttpRepository`, sync check, dan pemilihan mode (`vi.stubEnv` + `vi.resetModules`).
+- Contract test: `backend/tests/fixtures/project.json` diterima model Pydantic (`test_models.py`) dan skema Zod (`tests/state/project-contract.test.ts`).
 - Kode dan test masuk commit terpisah (konvensi repo).
