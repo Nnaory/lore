@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { DummyProvider } from "@/lib/ai/providers/dummy-provider";
+import { DummyProvider } from "../helpers/dummy-providers/dummy-provider";
 import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
 import { dummyMaterial } from "@/data/dummy-campaign";
 import type { AnalyzeMaterialRequest } from "@/lib/ai/types";

@@ -2,18 +2,11 @@
  * Tests — Dummy Campaign Planner Provider (M8 Phase 4)
  *
  * Verifies provider contract compliance, determinism, error handling,
- * and registry selection. No network calls.
+ * No network calls.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { DummyCampaignPlannerProvider } from "@/lib/ai/providers/dummy-campaign-planner-provider";
-import {
-  getCampaignPlannerProvider,
-  getCampaignPlannerProviderCached,
-  resetCampaignPlannerProviderCache,
-  getProvider,
-  resetProviderCache,
-} from "@/lib/ai/providers";
+import { describe, it, expect } from "vitest";
+import { DummyCampaignPlannerProvider } from "../helpers/dummy-providers/dummy-campaign-planner-provider";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { PlanCampaignRequest } from "@/lib/ai/campaign-planner-types";
 
@@ -127,64 +120,5 @@ describe("DummyCampaignPlannerProvider — contract", () => {
     if (!result.ok) {
       expect(result.error.code).toBe("PREREQUISITE_CYCLE");
     }
-  });
-});
-
-describe("Campaign Planner provider registry", () => {
-  const originalEnv = process.env.AI_PROVIDER;
-
-  beforeEach(() => {
-    resetCampaignPlannerProviderCache();
-    vi.clearAllMocks();
-  });
-
-  afterEach(() => {
-    process.env.AI_PROVIDER = originalEnv;
-    resetCampaignPlannerProviderCache();
-  });
-
-  it("defaults to dummy when AI_PROVIDER is unset", () => {
-    delete process.env.AI_PROVIDER;
-    const provider = getCampaignPlannerProvider();
-    expect(provider.id).toBe("dummy");
-    expect(provider.model).toBe("dummy-planner-v1");
-  });
-
-  it("selects dummy when AI_PROVIDER=dummy", () => {
-    process.env.AI_PROVIDER = "dummy";
-    const provider = getCampaignPlannerProvider();
-    expect(provider.id).toBe("dummy");
-  });
-
-  it("falls back to dummy for an unknown provider with a warning", () => {
-    process.env.AI_PROVIDER = "not-a-provider";
-    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const provider = getCampaignPlannerProvider();
-    expect(provider.id).toBe("dummy");
-    expect(warn).toHaveBeenCalled();
-    warn.mockRestore();
-  });
-
-  it("caches the resolved provider", () => {
-    delete process.env.AI_PROVIDER;
-    const first = getCampaignPlannerProviderCached();
-    const second = getCampaignPlannerProviderCached();
-    expect(first).toBe(second);
-  });
-
-  it("resetCampaignPlannerProviderCache clears the cache", () => {
-    const first = getCampaignPlannerProviderCached();
-    resetCampaignPlannerProviderCache();
-    const second = getCampaignPlannerProviderCached();
-    expect(first).not.toBe(second);
-  });
-
-  it("does not disturb the Material Intelligence provider registry", () => {
-    delete process.env.AI_PROVIDER;
-    resetProviderCache();
-    const materialProvider = getProvider();
-    expect(materialProvider.id).toBe("dummy");
-    expect(materialProvider.model).toBe("dummy-v1");
-    resetProviderCache();
   });
 });

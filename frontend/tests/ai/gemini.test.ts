@@ -4,7 +4,8 @@
 
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
+import { clearProvidersForTest } from "@/lib/ai/providers";
 import { generateJson, geminiConfigFromEnv, type GeminiConfig } from "@/lib/ai/providers/gemini-client";
 import { GeminiMaterialProvider, normalizeMaterialBlueprint } from "@/lib/ai/providers/gemini-material-provider";
 import { GeminiCampaignPlannerProvider } from "@/lib/ai/providers/gemini-campaign-planner-provider";
@@ -47,6 +48,11 @@ function queue(...responses: Array<Response | Error>) {
   });
   return { fetch: fn as unknown as typeof fetch, calls };
 }
+
+// These tests exercise the real (Gemini) registry, not the global test doubles.
+beforeEach(() => {
+  clearProvidersForTest();
+});
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -246,6 +252,12 @@ describe("Gemini material provider", () => {
     expect(result.value.meta).toMatchObject({ provider: "google", model: "model-a", tokensIn: 10, tokensOut: 5 });
     const sent = JSON.parse(q.calls[0].init.body as string);
     expect(sent.systemInstruction.parts[0].text).toContain("at most 3 concepts");
+  });
+
+  it("reports MATERIAL_ANALYSIS_FAILED when the model finds no concepts", async () => {
+    const q = queue(geminiOk({ ...llmMaterial, concepts: [], learning_objectives: [] }));
+    const result = await new GeminiMaterialProvider(config, q.fetch).analyzeMaterial({ material: "belajar vector" });
+    expect(result).toMatchObject({ ok: false, error: { code: "MATERIAL_ANALYSIS_FAILED" } });
   });
 
   it("rejects output that is not a MaterialBlueprint", async () => {

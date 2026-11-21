@@ -6,6 +6,23 @@ import "@testing-library/jest-dom";
 // In-memory IndexedDB (the project store) for node and jsdom tests.
 import "fake-indexeddb/auto";
 
+// The app has no offline AI provider. Pipeline tests get deterministic doubles
+// instead; tests of the real registry or Gemini call clearProvidersForTest().
+import { beforeEach } from "vitest";
+import { setProvidersForTest, clearProvidersForTest } from "@/lib/ai/providers";
+import { DummyProvider } from "./helpers/dummy-providers/dummy-provider";
+import { DummyCampaignPlannerProvider } from "./helpers/dummy-providers/dummy-campaign-planner-provider";
+import { dummyStoryGeneratorProvider } from "./helpers/dummy-providers/dummy-story-generator";
+
+beforeEach(() => {
+  clearProvidersForTest();
+  setProvidersForTest({
+    material: new DummyProvider(),
+    planner: new DummyCampaignPlannerProvider(),
+    story: dummyStoryGeneratorProvider,
+  });
+});
+
 // jsdom does not implement scrollIntoView — polyfill it for component tests.
 if (typeof window !== "undefined") {
   window.HTMLElement.prototype.scrollIntoView = function () {};
