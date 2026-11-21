@@ -533,6 +533,16 @@ handle /api/v1/* {
 | `POST /import` | 5 MB | Client batches by byte size, not count: max 4 MB per request (1 MB headroom under Caddy's 5 MB). At ~170 KB per project, that is ~23 projects per batch. No hard count cap — size is the binding constraint. |
 | `PUT /state` | 500 KB | CampaignState ~10 KB; 500 KB is ~50× headroom. |
 
+**T0 measurement (20 Nov 2026): lower bound only, the ~170 KB estimate is still unverified.**
+The real measurement could not run: the Gemini key in the root `.env.local` is rejected with HTTP 402 "prepayment credits are depleted". Following T0's fallback, the same pipeline ran with the dummy provider. The script is `t0/measure-project-size.test.ts` in this spec folder: staged analyze → plan → stories with `previousSummaries` through the real route handlers, story 1 played with the `StoryViewer` recipe, sizes from `new Blob([JSON.stringify(x)]).size`.
+
+| Input (all real repo documents) | Input chars | Concepts / stories / chapters | Record | campaign | stories | materials | campaign_state | PUT state body |
+|---|---|---|---|---|---|---|---|---|
+| short, `docs/DOCS.md` | 22,197 | 1 / 1 / 1 | 8,119 B | 1,822 B | 4,429 B | 911 B | 754 B | 800 B |
+| medium, `docs/DESIGN.md` | 12,542 | 1 / 1 / 1 | 8,118 B | 1,822 B | 4,428 B | 909 B | 754 B | 800 B |
+| medium, `docs/infra/*.md` cut at 80,000 | 80,000 | 1 / 1 / 1 | 8,125 B | 1,822 B | 4,429 B | 911 B | 754 B | 800 B |
+
+The dummy provider ignores `story_length` and the input size (always 1 concept, 1 story, 1 chapter), so these numbers are a floor, not typical sizes, and they say nothing about the upper end. The limits above stay as estimated (`# TODO(T0)` in `backend/app/projects.py`) until T0 runs with a working Gemini key.
 Oversized → `413 Payload Too Large`.
 
 ## Frontend design
