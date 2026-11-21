@@ -233,7 +233,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** in http mode a server save error shows the existing `play-save-error` banner, and a later success clears it. `create/page.tsx` and `SavedStories.tsx` are not modified. `tests/state/play-and-home.test.tsx` stays green.
   - **Commits:** `feat(state): show server save errors on the play page`, then `test(state): server save errors on the play page`.
 
-- [ ] **F7 — Build flag plumbing, default `idb`** `[CI]`
+- [x] **F7 — Build flag plumbing, default `idb`** `[CI]`
   - **Satisfies:** NFR-1.2; design "Deployment sequence".
   - **Files:** `frontend/Dockerfile` (`ARG NEXT_PUBLIC_PROJECT_STORE=idb` and `ENV` in the build stage, before `npm run build`, next to the existing `AI_PROVIDER` pattern), `frontend/.env.example`.
   - **Test:** the `docker` job in `ci.yml` builds the default image. Confirm the build still succeeds and the default stays `idb`. `release-web.yml` is **not** changed here (that is D5).
