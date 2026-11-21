@@ -36,6 +36,8 @@ export const BUILD_MESSAGES = {
   invalidRequest: "The material couldn't be sent. Try deselecting some sections, then try again.",
   storyFailed: "The story could not be built from this material. Try again, or change the selected sections.",
   busy: "The AI storyteller is busy right now. Wait a moment, then try again.",
+  notConfigured:
+    "The AI storyteller isn't set up on this server yet. Contact the admin or check the API key, then try again.",
   unexpected: "Something went wrong while building your story. Try again.",
 } as const;
 
@@ -44,6 +46,8 @@ export function messageForCode(code: string): string {
   switch (code) {
     case "MATERIAL_ANALYSIS_FAILED":
       return BUILD_MESSAGES.noConcepts;
+    case "PROVIDER_NOT_CONFIGURED":
+      return BUILD_MESSAGES.notConfigured;
     case "PROVIDER_UNAVAILABLE":
     case "RATE_LIMITED":
     case "TIMEOUT":

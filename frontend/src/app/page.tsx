@@ -2,7 +2,8 @@
  * Landing Page
  *
  * A chat-style entry point: the LORE mark and title above one field where the
- * player pastes material or attaches a document (components/home/HomeComposer).
+ * player attaches a material file and may type extra instructions
+ * (components/home/HomeComposer).
  * Sending continues at /create. Below it sit the built-in demo campaign
  * (/game) and the stories saved in this browser, which this page is the only
  * way to reopen.

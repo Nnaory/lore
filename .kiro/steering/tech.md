@@ -10,13 +10,13 @@ inclusion: always
   - Perintah (jalankan dari `frontend/`): `npm run dev | build | lint | test | test:watch | test:coverage`.
   - Next 16 punya breaking changes: baca `node_modules/next/dist/docs/` (resolve dari root repo; lihat `AGENTS.md`) sebelum menulis kode Next.
   - `frontend/node_modules` tidak selalu ada di mesin lokal (kadang hanya `node_modules` di root). Jalankan `npm ci` di `frontend/` sebelum lint, tsc, atau vitest.
-  - Urutan check CI web (dari `.github/workflows/ci.yml`): `npm run lint`, `npx next typegen`, `npx tsc --noEmit`, `npx vitest run --testTimeout=60000`, `npm run build` dengan `AI_PROVIDER=dummy`.
+  - Urutan check CI web (dari `.github/workflows/ci.yml`): `npm run lint`, `npx next typegen`, `npx tsc --noEmit`, `npx vitest run --testTimeout=60000`, `npm run build` dengan `AI_PROVIDER=google` (tanpa key; build tidak memanggil AI).
 - **Backend (`backend/`):** Python 3.12, FastAPI 0.163.2, Uvicorn 0.54.0, SQLAlchemy 2.1.9, psycopg[binary] 3.3.9, Alembic 1.20.1, Ruff 0.17.5, Pytest 9.2.0.
   - Perintah (jalankan dari `backend/`): `ruff check . && ruff format --check .`, `alembic upgrade head`, `pytest -q` (yang dipakai CI; `-v` boleh untuk lokal).
   - Ruff: `line-length = 100`, aturan `E,F,I,B,UP` (`backend/pyproject.toml`).
 - **Env frontend (`frontend/.env.example`):**
-  - `AI_PROVIDER=dummy|google`;
-  - `GOOGLE_API_KEY` (atau `GEMINI_API_KEY`); tanpa key, provider jatuh ke dummy;
+  - `AI_PROVIDER=google` (satu-satunya provider; tidak ada provider offline/dummy di runtime);
+  - `GOOGLE_API_KEY` (atau `GEMINI_API_KEY`); tanpa key, semua layer mengembalikan `PROVIDER_NOT_CONFIGURED` dan UI menampilkan peringatan;
   - `AI_MODEL`: daftar model dipisah koma, dicoba berurutan;
   - `AI_TIMEOUT_MS=300000` per request (5 menit, default di `gemini-client.ts`);
   - `AI_DEADLINE_MS=300000` total per langkah AI (5 menit, default di `gemini-client.ts`).

@@ -75,7 +75,7 @@ export function pdfPagesToDocument(fileName: string, pages: string[]): Extracted
   if (sections.length === 0) {
     throw new IngestError(
       "NO_TEXT",
-      "This PDF has no selectable text — it looks like scanned images. Paste the text instead, or use a PDF with a text layer."
+      "This PDF has no selectable text — it looks like scanned images. Use a PDF with a text layer."
     );
   }
 

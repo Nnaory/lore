@@ -1,7 +1,7 @@
 /**
  * Ingest — Layer 0 entry point
  *
- * Reads a user's file (or pasted text) in the browser and returns an
+ * Reads a user's file in the browser and returns an
  * ExtractedDocument. Never throws: expected problems come back as
  * `{ ok: false, error }` with a message that can be shown to the user.
  *
@@ -103,7 +103,7 @@ export async function extractDocument(
     const limitMb = Math.round(maxBytes / (1024 * 1024));
     return failure(
       "FILE_TOO_LARGE",
-      `This file is larger than ${limitMb} MB. Split it, or paste the part you need.`
+      `This file is larger than ${limitMb} MB. Split it into smaller files.`
     );
   }
 
@@ -111,7 +111,7 @@ export async function extractDocument(
     return { ok: true, document: await readByKind(kind, file) };
   } catch (err) {
     if (err instanceof IngestError) return { ok: false, error: err.toFailure() };
-    return failure("READ_FAILED", "This file could not be read. Try again, or paste the text instead.");
+    return failure("READ_FAILED", "This file could not be read. Try again, or use a different file.");
   }
 }
 

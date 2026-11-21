@@ -9,7 +9,7 @@
 import type { MaterialBlueprint } from "@/lib/types/material";
 
 /** Supported AI provider identifiers. */
-export type AIProviderId = "dummy" | "openai" | "anthropic" | "google";
+export type AIProviderId = "dummy" | "openai" | "anthropic" | "google" | "none";
 
 /** Input for Material Intelligence (Layer 1). */
 export interface AnalyzeMaterialRequest {
@@ -45,6 +45,8 @@ export type AnalyzeMaterialResult =
 /** Standardized error codes. */
 export type AIErrorCode =
   | "PROVIDER_UNAVAILABLE"
+  | "PROVIDER_NOT_CONFIGURED"
+  | "MATERIAL_ANALYSIS_FAILED"
   | "INVALID_REQUEST"
   | "OUTPUT_PARSE_FAILED"
   | "VALIDATION_FAILED"
@@ -71,7 +73,6 @@ export interface IMaterialIntelligenceProvider {
   /**
    * Analyze raw material and return a MaterialBlueprint.
    * MUST NOT throw — return AnalyzeMaterialResult.
-   * MUST be deterministic when provider = "dummy".
    */
   analyzeMaterial(request: AnalyzeMaterialRequest): Promise<AnalyzeMaterialResult>;
 

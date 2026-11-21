@@ -73,10 +73,15 @@ export interface FullWorkflowResult {
 }
 
 /** Codes meaning "the AI provider was busy/unreachable", not "the input is bad". */
-const PROVIDER_FAILURE_CODES = new Set(["PROVIDER_UNAVAILABLE", "RATE_LIMITED", "TIMEOUT"]);
+const PROVIDER_FAILURE_CODES = new Set(["PROVIDER_UNAVAILABLE", "PROVIDER_NOT_CONFIGURED", "RATE_LIMITED", "TIMEOUT"]);
 
 function allProviderFailures(codes: Array<string | undefined>): boolean {
   return codes.length > 0 && codes.every((c) => c !== undefined && PROVIDER_FAILURE_CODES.has(c));
+}
+
+/** "Not set up" beats "unreachable": it is the cause the operator has to fix. */
+function providerFailureCode(codes: Array<string | undefined>): "PROVIDER_NOT_CONFIGURED" | "PROVIDER_UNAVAILABLE" {
+  return codes.includes("PROVIDER_NOT_CONFIGURED") ? "PROVIDER_NOT_CONFIGURED" : "PROVIDER_UNAVAILABLE";
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +155,7 @@ export async function runFullWorkflow(
       warnings: allWarnings,
       error: {
         code: allProviderFailures(failedMaterials.map((m) => m.error?.code))
-          ? "PROVIDER_UNAVAILABLE"
+          ? providerFailureCode(failedMaterials.map((m) => m.error?.code))
           : "MATERIAL_ANALYSIS_FAILED",
         message: `${failedMaterials.length} of ${materialResults.length} materials failed analysis`,
         detail: failedMaterials.map((m) => m.error),
@@ -244,7 +249,7 @@ export async function runFullWorkflow(
           code: generationResult.ok
             ? "CAMPAIGN_VALIDATION_FAILED"
             : allProviderFailures([...generationResult.errors.values()].map((e) => e.code))
-              ? "PROVIDER_UNAVAILABLE"
+              ? providerFailureCode([...generationResult.errors.values()].map((e) => e.code))
               : "STORY_GENERATION_FAILED",
           message: generationResult.ok
             ? "Campaign generated but failed final validation"

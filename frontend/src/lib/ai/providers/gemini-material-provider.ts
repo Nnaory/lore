@@ -64,6 +64,13 @@ export function normalizeMaterialBlueprint(
   };
 }
 
+/** True when the model answered with a blueprint whose `concepts` list is empty. */
+function hasNoConcepts(json: unknown): boolean {
+  if (typeof json !== "object" || json === null) return false;
+  const concepts = (json as { concepts?: unknown }).concepts;
+  return Array.isArray(concepts) && concepts.length === 0;
+}
+
 export class GeminiMaterialProvider implements IMaterialIntelligenceProvider {
   readonly id = "google" as const;
   readonly model: string;
@@ -97,6 +104,18 @@ export class GeminiMaterialProvider implements IMaterialIntelligenceProvider {
 
     if (!result.ok) {
       return { ok: false, error: { code: result.code, message: result.message, detail: result.detail } };
+    }
+
+    // The model was told to return no concepts when the material has nothing to teach.
+    // Report that as a material problem, not as a malformed answer.
+    if (hasNoConcepts(result.json)) {
+      return {
+        ok: false,
+        error: {
+          code: "MATERIAL_ANALYSIS_FAILED",
+          message: "No teachable concepts were found in this material.",
+        },
+      };
     }
 
     const parsed = MaterialBlueprintSchema.safeParse(result.json);

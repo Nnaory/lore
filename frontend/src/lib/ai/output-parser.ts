@@ -51,6 +51,17 @@ export function parseAndValidateMaterialOutput(
 
   const blueprint = schemaResult.data;
 
+  // 1b. A concept with no evidence in the material is a guess. When none of them
+  // is grounded in the source, the material gave the model nothing to teach.
+  const grounded = blueprint.concepts.some((c) => c.source_evidence.some((e) => e.trim() !== ""));
+  if (!grounded) {
+    return {
+      ok: false,
+      code: "MATERIAL_ANALYSIS_FAILED",
+      message: "No concept could be tied to the material (no source evidence).",
+    };
+  }
+
   // 2. Semantic validation (cross-reference checks)
   // Note: Campaign validation requires full campaign + materials.
   // For Layer 1 output, we only validate the MaterialBlueprint internally.

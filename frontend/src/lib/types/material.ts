@@ -22,7 +22,7 @@ export type Concept = {
   /**
    * Symbols and terms exactly as the material writes them, e.g.
    * "‖v‖ = length of v". Lessons reuse this notation. Optional: older
-   * blueprints and the dummy provider do not have it.
+   * blueprints do not have it.
    */
   notation?: string[];
   /** Worked examples or exercises from the material, summarised. Optional. */

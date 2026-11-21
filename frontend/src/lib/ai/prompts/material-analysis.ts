@@ -2,7 +2,7 @@
  * Prompt Builder — Material Analysis (Layer 1)
  *
  * Constructs the prompt for Material Intelligence.
- * Used by future real providers; dummy provider does not use this.
+ * Used by the Gemini provider.
  * Kept separate to enable prompt iteration without touching provider code.
  */
 
@@ -30,7 +30,7 @@ Schema:
     "source_evidence": ["string", ...] (verbatim or paraphrased passages from source),
     "notation": ["string", ...] (symbols, formulas and key terms exactly as the material writes them, each with its meaning, e.g. "‖v‖ = panjang vektor v"; [] if none),
     "examples": ["string", ...] (worked examples or exercises from the material, summarised with their numbers and result; [] if none)
-  }, ...] (at least 1 concept),
+  }, ...] ([] when the material has nothing teachable, see the rules),
   "scope_limitations": ["string", ...] (topics NOT covered by the material)
 }
 
@@ -41,6 +41,7 @@ Rules:
 - prerequisites must reference concept_ids from THIS blueprint.
 - learning_objectives must be measurable (Bloom's taxonomy: understand, apply, analyze).
 - If material covers multiple topics, create separate concepts for each.
+- If the material is empty, only a topic name or request (for example "learn vectors"), or otherwise has no teachable content of its own, return "concepts": [] and "learning_objectives": []. Never invent concepts from your own knowledge.
 - scope_limitations must be honest about what the material does NOT cover.`;
 
 /** Builds the user prompt with the material and optional context. */
