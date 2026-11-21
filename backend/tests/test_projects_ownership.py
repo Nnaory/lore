@@ -14,24 +14,14 @@ from __future__ import annotations
 import json
 import os
 import uuid
-from collections.abc import Iterator
-from pathlib import Path
 from typing import Any
 
 import pytest
-from alembic import command
-from alembic.config import Config
+from conftest import fixture_payload, make_client
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
-from sqlalchemy.pool import NullPool
 
-from app.db import create_db_engine
-from app.main import create_app
-from app.owner import COOKIE_NAME
-
-BACKEND_DIR = Path(__file__).resolve().parent.parent
-FIXTURE = Path(__file__).parent / "fixtures" / "project.json"
 BASE = "/api/v1/projects"
 
 OWNER_A = uuid.UUID("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")
@@ -48,46 +38,18 @@ def pending(task: str) -> pytest.MarkDecorator:
     return pytest.mark.xfail(strict=True, reason=f"endpoint implemented in {task}")
 
 
-@pytest.fixture(scope="module")
-def migrated() -> None:
-    command.upgrade(Config(str(BACKEND_DIR / "alembic.ini")), "head")
-
-
-@pytest.fixture
-def engine(migrated: None) -> Iterator[Engine]:
-    eng = create_db_engine(poolclass=NullPool)
-    assert eng is not None
-    with eng.begin() as conn:
-        conn.execute(text("TRUNCATE projects CASCADE"))
-    try:
-        yield eng
-    finally:
-        eng.dispose()
-
-
-@pytest.fixture
-def app(engine: Engine) -> FastAPI:
-    return create_app(engine)
-
-
-def _client(app: FastAPI, owner: uuid.UUID) -> TestClient:
-    client = TestClient(app)
-    client.cookies.set(COOKIE_NAME, str(owner))
-    return client
-
-
 @pytest.fixture
 def client_a(app: FastAPI) -> TestClient:
-    return _client(app, OWNER_A)
+    return make_client(app, OWNER_A)
 
 
 @pytest.fixture
 def client_b(app: FastAPI) -> TestClient:
-    return _client(app, OWNER_B)
+    return make_client(app, OWNER_B)
 
 
 def payload(project_id: str, updated_at: int = 5000) -> dict[str, Any]:
-    body = json.loads(FIXTURE.read_text(encoding="utf-8"))
+    body = fixture_payload()
     body["id"] = project_id
     body["created_at"] = updated_at
     body["updated_at"] = updated_at
@@ -155,7 +117,6 @@ def snapshot(engine: Engine, project_id: str) -> dict[str, Any]:
 # ---------------------------------------------------------------- list / get / delete (T7)
 
 
-@pending("T7")
 def test_list_returns_only_the_callers_projects(
     engine: Engine, client_a: TestClient, client_b: TestClient
 ) -> None:
@@ -169,7 +130,6 @@ def test_list_returns_only_the_callers_projects(
     assert [p["id"] for p in b.json()] == ["p_owner_b"]
 
 
-@pending("T7")
 def test_get_foreign_id_is_indistinguishable_from_missing(
     engine: Engine, client_b: TestClient
 ) -> None:
@@ -181,7 +141,6 @@ def test_get_foreign_id_is_indistinguishable_from_missing(
     assert A_TITLE not in foreign.text
 
 
-@pending("T7")
 def test_delete_foreign_id_returns_404_and_keeps_the_project(
     engine: Engine, client_b: TestClient
 ) -> None:
@@ -194,7 +153,6 @@ def test_delete_foreign_id_returns_404_and_keeps_the_project(
     assert snapshot(engine, A_ID) == before
 
 
-@pending("T7")
 def test_null_owner_rows_are_invisible_to_everyone(
     engine: Engine, client_a: TestClient, client_b: TestClient
 ) -> None:
