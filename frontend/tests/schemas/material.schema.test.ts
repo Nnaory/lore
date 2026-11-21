@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
 import { dummyMaterial } from "@/data/dummy-campaign";
 
 describe("MaterialBlueprintSchema", () => {

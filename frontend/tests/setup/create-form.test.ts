@@ -15,7 +15,7 @@ import {
 } from "@/lib/setup/create-form";
 import { extractText } from "@/lib/ingest/text";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
-import { FullWorkflowRequestSchema } from "@/lib/ai/full-workflow-schema";
+import { GenerationRequestSchema } from "@/lib/contracts/generation-request";
 
 const doc = extractText(
   "## Vectors\nA vector has direction and size.\n\n## Span\nThe span is every linear combination.",
@@ -110,7 +110,7 @@ describe("buildWorkflowRequest", () => {
     expect(buildWorkflowRequest(run(...loaded))).toBeNull();
   });
 
-  it("builds a request the full-workflow route accepts", () => {
+  it("builds a request the generation contract accepts", () => {
     const state = run(
       ...loaded,
       { type: "genre_set", genre: "science_fiction" },
@@ -119,7 +119,7 @@ describe("buildWorkflowRequest", () => {
       { type: "instructions_set", text: "  Keep it light.  " },
     );
     const body = buildWorkflowRequest(state);
-    expect(FullWorkflowRequestSchema.safeParse(body).success).toBe(true);
+    expect(GenerationRequestSchema.safeParse(body).success).toBe(true);
     expect(body).toMatchObject({
       materials: [
         {

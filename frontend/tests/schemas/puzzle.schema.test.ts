@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { PuzzleSchema } from "@/lib/ai/schemas/puzzle.schema";
+import { PuzzleSchema } from "@/lib/contracts/schemas/puzzle.schema";
 import { dummyStory } from "@/data/dummy-campaign";
 
 const validPuzzle = dummyStory.puzzles[0];

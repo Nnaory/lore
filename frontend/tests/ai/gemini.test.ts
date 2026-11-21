@@ -5,7 +5,7 @@
 import { createServer } from "node:http";
 import type { AddressInfo } from "node:net";
 import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
-import { clearProvidersForTest } from "@/lib/ai/providers";
+import { clearProvidersForTest, resetProviderCache, resetStoryGeneratorProviderCache } from "@/lib/ai/providers";
 import { generateJson, geminiConfigFromEnv, type GeminiConfig } from "@/lib/ai/providers/gemini-client";
 import { GeminiMaterialProvider, normalizeMaterialBlueprint } from "@/lib/ai/providers/gemini-material-provider";
 import { GeminiCampaignPlannerProvider } from "@/lib/ai/providers/gemini-campaign-planner-provider";
@@ -14,8 +14,8 @@ import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
 import { buildStoryBlueprint } from "@/lib/ai/story-generator-engine";
 import { validateGeneratedStory } from "@/lib/validation/generator-validator";
 import { validateStory } from "@/lib/validation/story-validator";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
-import { runFullWorkflow, resetFullWorkflowCaches } from "@/lib/ai/full-workflow";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
+import { resetCampaignPlannerCache } from "@/lib/ai/campaign-planner";
 import { dummyMaterial } from "@/data/dummy-campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { StoryBlueprint } from "@/lib/types/story";
@@ -57,7 +57,9 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
-  resetFullWorkflowCaches();
+  resetProviderCache();
+  resetCampaignPlannerCache();
+  resetStoryGeneratorProviderCache();
 });
 
 // ---------------------------------------------------------------------------
@@ -577,68 +579,5 @@ describe("mergeStoryContent — lesson steps", () => {
     expect(lessons).toHaveLength(1);
     expect(lessons[0]).toMatchObject({ title: "Lesson 1", body: "Lesson body 1." });
     expect(templated).toEqual([]);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// End to end through the registry (AI_PROVIDER=google)
-// ---------------------------------------------------------------------------
-
-describe("full workflow with AI_PROVIDER=google", () => {
-  it("builds a validated campaign from material using all three Gemini layers", async () => {
-    vi.stubEnv("AI_PROVIDER", "google");
-    vi.stubEnv("GOOGLE_API_KEY", KEY);
-    vi.stubEnv("AI_MODEL", "model-a");
-    resetFullWorkflowCaches();
-
-    const fake = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      const body = JSON.parse(init!.body as string);
-      const system: string = body.systemInstruction.parts[0].text;
-      const prompt: string = body.contents[0].parts[0].text;
-      if (system.includes("learning engineer")) return geminiOk(llmMaterial);
-      if (system.includes("narrative designer")) return geminiOk({ title: "The Glass Lanterns" });
-      const ids = [...prompt.matchAll(/"concept_id": "([^"]+)"/g)].map((m) => m[1]);
-      return geminiOk(contentFor(ids));
-    });
-    vi.stubGlobal("fetch", fake);
-
-    const result = await runFullWorkflow({
-      materials: [{ material: "Photosynthesis lecture notes ...", context: { story_length: "short" } }],
-      campaignOptions: { genre: "fantasy" },
-      storyOptions: { conceptsPerChapter: 1 },
-    });
-
-    expect(result.ok).toBe(true);
-    expect(fake).toHaveBeenCalledTimes(3); // one call per layer
-    expect(result.campaign?.title).toBe("The Glass Lanterns");
-    const story = [...(result.stories?.values() ?? [])][0];
-    expect(story.chapters).toHaveLength(3);
-    expect(story.puzzles.map((p) => p.question)).toEqual(["Question 1?", "Question 2?", "Question 3?"]);
-  });
-
-  it("reports PROVIDER_UNAVAILABLE (not a material problem) when the storyteller is down", async () => {
-    vi.stubEnv("AI_PROVIDER", "google");
-    vi.stubEnv("GOOGLE_API_KEY", KEY);
-    vi.stubEnv("AI_MODEL", "model-a");
-    vi.stubEnv("AI_DEADLINE_MS", "1"); // story call gets no time
-    resetFullWorkflowCaches();
-
-    let call = 0;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async () => {
-        call++;
-        if (call === 1) return geminiOk(llmMaterial);
-        if (call === 2) return geminiOk({ title: "X" });
-        return geminiError(503);
-      })
-    );
-
-    const result = await runFullWorkflow({
-      materials: [{ material: "Photosynthesis lecture notes ...", context: { story_length: "short" } }],
-      campaignOptions: { genre: "fantasy" },
-    });
-    expect(result.ok).toBe(false);
-    expect(result.error?.code).toBe("PROVIDER_UNAVAILABLE");
   });
 });

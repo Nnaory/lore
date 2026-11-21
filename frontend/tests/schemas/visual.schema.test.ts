@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { LessonVisualSchema } from "@/lib/ai/schemas/visual.schema";
-import { LearningContentSchema } from "@/lib/ai/schemas/scene.schema";
+import { LessonVisualSchema } from "@/lib/contracts/schemas/visual.schema";
+import { LearningContentSchema } from "@/lib/contracts/schemas/scene.schema";
 
 const ok = (v: unknown) => LessonVisualSchema.safeParse(v).success;
 

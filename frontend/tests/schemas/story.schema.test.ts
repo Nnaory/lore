@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
 import { dummyStory } from "@/data/dummy-campaign";
 
 describe("StoryBlueprintSchema", () => {

@@ -8,13 +8,11 @@ import { NextRequest } from "next/server";
 import { POST as analyzeMaterial } from "@/app/api/ai/analyze-material/route";
 import { POST as planCampaign } from "@/app/api/ai/plan-campaign/route";
 import { POST as generateStory } from "@/app/api/ai/generate-story/route";
-import { POST as fullWorkflow } from "@/app/api/ai/full-workflow/route";
 
 const ROUTES: Record<string, (req: NextRequest) => Promise<Response>> = {
   "/api/ai/analyze-material": analyzeMaterial,
   "/api/ai/plan-campaign": planCampaign,
   "/api/ai/generate-story": generateStory,
-  "/api/ai/full-workflow": fullWorkflow,
 };
 
 export type RouteCall = { path: string; body: unknown };

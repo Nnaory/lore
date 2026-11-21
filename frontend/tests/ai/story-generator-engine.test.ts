@@ -7,7 +7,7 @@
 
 import { describe, it, expect } from "vitest";
 import { buildStoryBlueprint } from "@/lib/ai/story-generator-engine";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
 import { validateStory } from "@/lib/validation/story-validator";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
 import {

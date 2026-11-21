@@ -15,14 +15,15 @@ import {
   selectConcepts,
 } from "@/lib/generation/generation";
 import { useGeneration, type GenerationResult } from "@/lib/generation/use-generation";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
-import { BUILD_MESSAGES } from "@/lib/setup/request-campaign";
-import type { FullWorkflowRequestBody } from "@/lib/ai/full-workflow-schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
+import { BUILD_MESSAGES, messageForCode } from "@/lib/contracts/error-messages";
+import { aiUrl } from "@/lib/generation/ai-endpoints";
+import type { GenerationRequest } from "@/lib/contracts/generation-request";
 import { dummyMaterial } from "@/data/dummy-campaign";
 import { routeFetch } from "../fixtures/route-fetch";
 
 // The dummy provider recognises linear-algebra material and returns two concepts.
-const input: FullWorkflowRequestBody = {
+const input: GenerationRequest = {
   materials: [{ material: "Linear algebra notes: a linear combination scales vectors; the vector span is every combination." }],
   campaignOptions: { genre: "fantasy" },
   storyOptions: { conceptsPerChapter: 1 },
@@ -63,6 +64,29 @@ describe("postBlueprint", () => {
   it("maps an error envelope to a user message", async () => {
     const fetchImpl = vi.fn(async () => busy()) as unknown as typeof fetch;
     expect(await postBlueprint("/x", {}, MaterialBlueprintSchema, { fetchImpl })).toEqual({ ok: false, message: BUILD_MESSAGES.busy });
+  });
+
+  it("maps a 429 RATE_LIMITED envelope from the api backend to the busy message", async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ ok: false, error: { code: "RATE_LIMITED", message: "x" } }), { status: 429 })
+    ) as unknown as typeof fetch;
+    const url = aiUrl("analyze-material", "api");
+    expect(await postBlueprint(url, {}, MaterialBlueprintSchema, { fetchImpl })).toEqual({
+      ok: false,
+      message: messageForCode("RATE_LIMITED"),
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("/api/v1/ai/analyze-material", expect.objectContaining({ method: "POST" }));
+    expect(messageForCode("RATE_LIMITED")).toBe(BUILD_MESSAGES.busy);
+  });
+
+  it("maps a 503 PROVIDER_NOT_CONFIGURED envelope from the api backend to the not-set-up message", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_NOT_CONFIGURED", message: "x" } }), { status: 503 })
+    ) as unknown as typeof fetch;
+    const result = await postBlueprint(aiUrl("plan-campaign", "api"), {}, MaterialBlueprintSchema, { fetchImpl });
+    expect(result).toEqual({ ok: false, message: BUILD_MESSAGES.notConfigured });
+    expect(BUILD_MESSAGES.notConfigured).toMatch(/isn't set up/);
   });
 
   it("rejects a success envelope whose blueprint is invalid", async () => {

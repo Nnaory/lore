@@ -17,7 +17,7 @@ import { planCampaign, resetCampaignPlannerCache } from "@/lib/ai/campaign-plann
 import { resetProviderCache } from "@/lib/ai/providers";
 import { validateCampaign } from "@/lib/validation/campaign-validator";
 import { validatePlannedCampaign } from "@/lib/validation/planner-validator";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
+import { CampaignBlueprintSchema } from "@/lib/contracts/schemas/campaign.schema";
 import {
   createInitialCampaignState,
   isStoryUnlocked,
