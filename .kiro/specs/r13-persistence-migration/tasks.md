@@ -128,7 +128,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** list order is `updated_at` descending. The list query selects only summary columns (capture SQL with a SQLAlchemy event listener and assert `campaign` and `blueprint` are absent). `GET` assembles `stories` from `project_stories` and returns `campaign_state` as stored. `DELETE` cascades. T6 cases for these three endpoints turn green.
   - **Commits:** `feat(api): list, get and delete projects`, then `test(api): list, get and delete projects`.
 
-- [ ] **T8 — Create** `[PG]`
+- [x] **T8 — Create** `[PG]`
   - **Satisfies:** FR-2 endpoint 2, FR-1.6; design "Create / import: id collision handling".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
   - **Behavior:** one transaction runs the project upsert (`ON CONFLICT (id) DO UPDATE ... WHERE owner_id = EXCLUDED.owner_id AND updated_at <= EXCLUDED.updated_at`), the story replacement, and, when `campaign_state` is present, the `project_state` upsert. `stories_completed` comes from the state. A foreign id gives 409.
