@@ -11,9 +11,10 @@ from __future__ import annotations
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlalchemy import Engine
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from sqlalchemy import Engine, text
 
+from app.models import ProjectResponse, ProjectSummaryResponse
 from app.owner import get_owner_id
 from app.ratelimit import RateLimiter
 
@@ -101,9 +102,31 @@ def _not_implemented() -> HTTPException:
     return HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="not implemented")
 
 
+def _not_found() -> HTTPException:
+    # One body for "missing" and "not yours", so a caller cannot tell them apart.
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="project not found")
+
+
+_LIST_SQL = text(
+    "SELECT id, title, genre, source_name, updated_at, stories_total, stories_completed "
+    "FROM projects WHERE owner_id = :owner_id ORDER BY updated_at DESC"
+)
+_GET_SQL = text(
+    "SELECT p.id, p.created_at, p.updated_at, p.source, p.campaign, p.materials, "
+    "ps.campaign_state FROM projects p "
+    "LEFT JOIN project_state ps ON ps.project_id = p.id "
+    "WHERE p.id = :id AND p.owner_id = :owner_id"
+)
+_GET_STORIES_SQL = text("SELECT story_id, blueprint FROM project_stories WHERE project_id = :id")
+_DELETE_SQL = text("DELETE FROM projects WHERE id = :id AND owner_id = :owner_id")
+
+
 @router.get("", dependencies=_READ)
-def list_projects(engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+def list_projects(engine: EngineDep, owner_id: OwnerDep) -> list[ProjectSummaryResponse]:
+    """Summaries only: the query never touches campaign, stories or state (NFR-2.1)."""
+    with engine.connect() as conn:
+        rows = conn.execute(_LIST_SQL, {"owner_id": owner_id}).mappings().all()
+    return [ProjectSummaryResponse.model_validate(dict(row)) for row in rows]
 
 
 @router.post("", dependencies=_CREATE, status_code=status.HTTP_201_CREATED)
@@ -117,13 +140,27 @@ def import_projects(engine: EngineDep, owner_id: OwnerDep) -> None:
 
 
 @router.get("/{project_id}", dependencies=_READ)
-def get_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+def get_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> ProjectResponse:
+    """Full project; campaign_state is returned as stored, the client's Zod decides on it."""
+    with engine.connect() as conn:
+        row = conn.execute(_GET_SQL, {"id": project_id, "owner_id": owner_id}).mappings().first()
+        if row is None:
+            raise _not_found()
+        stories = conn.execute(_GET_STORIES_SQL, {"id": project_id}).all()
+    return ProjectResponse(
+        **dict(row),
+        stories={story_id: blueprint for story_id, blueprint in stories},
+    )
 
 
 @router.delete("/{project_id}", dependencies=_WRITE, status_code=status.HTTP_204_NO_CONTENT)
-def delete_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+def delete_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> Response:
+    """Owner-filtered delete; stories and state go with it through ON DELETE CASCADE."""
+    with engine.begin() as conn:
+        result = conn.execute(_DELETE_SQL, {"id": project_id, "owner_id": owner_id})
+    if result.rowcount == 0:
+        raise _not_found()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.put("/{project_id}/state", dependencies=_WRITE)
