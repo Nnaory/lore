@@ -48,8 +48,10 @@ def _parse_positive_ms(raw: str | None, fallback: float) -> float:
 def gemini_config_from_env(env: Mapping[str, str] | None = None) -> GeminiConfig | None:
     """Read config from env. Returns None when no key is configured."""
     source = os.environ if env is None else env
-    api_key = source.get("GOOGLE_API_KEY") or source.get("GEMINI_API_KEY")
-    if not api_key or api_key.strip() == PLACEHOLDER_KEY:
+    # Strip surrounding whitespace: a key pasted with spaces or a CR (common with `set /p` on
+    # Windows) is not a valid HTTP header value and would never reach Google.
+    api_key = (source.get("GOOGLE_API_KEY") or source.get("GEMINI_API_KEY") or "").strip()
+    if not api_key or api_key == PLACEHOLDER_KEY:
         return None
     models = tuple(m.strip() for m in source.get("AI_MODEL", "").split(",") if m.strip())
     return GeminiConfig(

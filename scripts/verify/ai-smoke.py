@@ -51,6 +51,12 @@ def post(client: httpx2.Client, step: str, body: dict[str, Any]) -> dict[str, An
         f"{step}: HTTP {response.status_code} ok={envelope.get('ok')} {elapsed:.1f}s "
         f"model={meta.get('model')} warnings={len(meta.get('warnings', []))} error={error}"
     )
+    if not envelope.get("ok"):
+        print(f"  message: {(envelope.get('error') or {}).get('message')}")
+        # Gemini failures are listed per attempt as {model, reason, status}; the key is never in it.
+        detail = (envelope.get("error") or {}).get("detail")
+        for item in detail if isinstance(detail, list) else []:
+            print(f"  - model={item.get('model')} status={item.get('status')} reason={item.get('reason')}")
     return envelope if envelope.get("ok") else None
 
 

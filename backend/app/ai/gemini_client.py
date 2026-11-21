@@ -129,6 +129,11 @@ async def _attempt_once(
     except httpx2.TimeoutException:
         # A model that is too slow now is likely to stay slow: try the next one.
         return _Attempt("next-model", "timeout")
+    except httpx2.LocalProtocolError:
+        # The request could not even be built, almost always because the key is not a valid
+        # header value (stray spaces or a mis-pasted line). Retrying cannot help, so stop.
+        # The exception text contains the header value, so it is deliberately not used.
+        return _Attempt("fatal", "API key is not a valid header value (check GOOGLE_API_KEY)")
     except httpx2.HTTPError:
         return _Attempt("retry", "network error")
 
