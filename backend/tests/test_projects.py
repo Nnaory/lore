@@ -7,6 +7,7 @@ test_projects_ownership.py; size limits and caps in test_projects_limits.py.
 from __future__ import annotations
 
 import os
+import threading
 import time
 import uuid
 from typing import Any
@@ -223,3 +224,100 @@ def test_create_is_atomic_when_a_story_insert_fails(engine: Engine, app: FastAPI
     assert response.status_code == 500
     assert _count(engine, "projects") == 0
     assert _count(engine, "project_state") == 0
+
+
+# ---------------------------------------------------------------- save state (T9)
+
+
+def _state(*completed: str, marker: str = "") -> dict[str, Any]:
+    return {"completed_stories": list(completed), "marker": marker}
+
+
+def _stored_state(engine: Engine, project_id: str) -> tuple[Any, ...] | None:
+    with engine.connect() as conn:
+        row = conn.execute(
+            text("SELECT campaign_state, updated_at FROM project_state WHERE project_id = :id"),
+            {"id": project_id},
+        ).one_or_none()
+    return tuple(row) if row else None
+
+
+def test_first_save_creates_the_row_and_touches_the_project(
+    engine: Engine, client: TestClient
+) -> None:
+    insert_project(engine, "p1", OWNER, updated_at=1000, stories={"s1": {}, "s2": {}})
+    body = {"campaign_state": _state("s1", marker="first"), "updated_at": 2000}
+    response = client.put(f"{BASE}/p1/state", json=body)
+    assert response.status_code == 200
+    assert response.json() == {"updated_at": 2000}
+    assert _stored_state(engine, "p1") == (body["campaign_state"], 2000)
+    summary = client.get(BASE).json()[0]
+    assert (summary["stories_completed"], summary["updated_at"]) == (1, 2000)
+
+
+def test_equal_updated_at_is_accepted(engine: Engine, client: TestClient) -> None:
+    insert_project(engine, "p1", OWNER, state=_state(marker="old"), state_updated_at=2000)
+    body = {"campaign_state": _state("s1", marker="same-time"), "updated_at": 2000}
+    assert client.put(f"{BASE}/p1/state", json=body).status_code == 200
+    assert _stored_state(engine, "p1") == (body["campaign_state"], 2000)
+
+
+def test_stale_save_is_409_with_stored_value_and_writes_nothing(
+    engine: Engine, client: TestClient
+) -> None:
+    insert_project(engine, "p1", OWNER, updated_at=3000, state=_state("s1", marker="kept"))
+    before_summary = client.get(BASE).json()
+    body = {"campaign_state": _state(marker="stale"), "updated_at": 2999}
+    response = client.put(f"{BASE}/p1/state", json=body)
+    assert response.status_code == 409
+    assert response.json() == {"detail": "stale state", "stored_updated_at": 3000}
+    assert _stored_state(engine, "p1") == (_state("s1", marker="kept"), 3000)
+    assert client.get(BASE).json() == before_summary
+
+
+@pytest.mark.parametrize("state", [{"marker": "x"}, {"completed_stories": "s1"}])
+def test_bad_completed_stories_is_422(
+    engine: Engine, client: TestClient, state: dict[str, Any]
+) -> None:
+    insert_project(engine, "p1", OWNER)
+    response = client.put(f"{BASE}/p1/state", json={"campaign_state": state, "updated_at": 2})
+    assert response.status_code == 422
+    assert "completed_stories" in response.text
+    assert _stored_state(engine, "p1") is None
+
+
+def _race(app: FastAPI, payloads: list[dict[str, Any]]) -> dict[int, int]:
+    """Send the payloads from separate clients released together; return status per updated_at."""
+    barrier = threading.Barrier(len(payloads))
+    statuses: dict[int, int] = {}
+
+    def send(payload: dict[str, Any]) -> None:
+        local = make_client(app, OWNER)
+        barrier.wait()
+        response = local.put(f"{BASE}/p1/state", json=payload)
+        statuses[payload["updated_at"]] = response.status_code
+
+    threads = [threading.Thread(target=send, args=(p,)) for p in payloads]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    return statuses
+
+
+@pytest.mark.parametrize("newer_first", [True, False])
+def test_racing_saves_end_with_the_newer_state(
+    engine: Engine, app: FastAPI, newer_first: bool
+) -> None:
+    """Two clients (two connections) fire at once; whichever lands first, the newer one wins."""
+    insert_project(engine, "p1", OWNER)
+    older = {"campaign_state": _state(marker="older"), "updated_at": 2000}
+    newer = {"campaign_state": _state("s1", marker="newer"), "updated_at": 3000}
+    order = [newer, older] if newer_first else [older, newer]
+    for _ in range(5):
+        with engine.begin() as conn:
+            conn.execute(text("DELETE FROM project_state"))
+        statuses = _race(app, order)
+        assert statuses[3000] == 200
+        assert statuses[2000] in (200, 409)
+        assert _stored_state(engine, "p1") == (newer["campaign_state"], 3000)

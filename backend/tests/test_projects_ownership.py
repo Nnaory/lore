@@ -167,7 +167,6 @@ def test_null_owner_rows_are_invisible_to_everyone(
 # ---------------------------------------------------------------- put state (T9)
 
 
-@pending("T9")
 @pytest.mark.parametrize("updated_at", [A_STATE_UPDATED - 1000, A_STATE_UPDATED + 1000])
 def test_put_state_on_foreign_id_returns_404_and_writes_nothing(
     engine: Engine, client_b: TestClient, updated_at: int
