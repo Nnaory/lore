@@ -4,9 +4,8 @@ Why: the device token is the only access control in R13. Cross-owner access must
 like "not found" (404), ownership must be checked before any write, and id collisions on create
 or import must not overwrite or reveal another owner's project.
 
-Written before the endpoints (tests first). Each test is marked xfail(strict=True) with the task
-that implements its endpoint; that task removes the marker in its test commit. strict=True makes
-an unexpected pass fail the gate, so a marker cannot be forgotten.
+Written before the endpoints (tests first, task T6). Each test carried xfail(strict=True) naming
+the task that implemented its endpoint (T7-T10); each of those tasks removed its markers.
 """
 
 from __future__ import annotations
@@ -32,10 +31,6 @@ A_UPDATED = 2000
 A_STATE_UPDATED = 2000
 
 pytestmark = pytest.mark.skipif(not os.getenv("PGHOST"), reason="PGHOST not configured")
-
-
-def pending(task: str) -> pytest.MarkDecorator:
-    return pytest.mark.xfail(strict=True, reason=f"endpoint implemented in {task}")
 
 
 @pytest.fixture
@@ -208,7 +203,6 @@ def test_create_with_a_null_owner_id_returns_409(engine: Engine, client_a: TestC
 # ---------------------------------------------------------------- import (T10)
 
 
-@pending("T10")
 def test_import_with_a_foreign_id_is_skipped_and_changes_nothing(
     engine: Engine, client_b: TestClient
 ) -> None:

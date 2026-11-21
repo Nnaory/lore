@@ -321,3 +321,88 @@ def test_racing_saves_end_with_the_newer_state(
         assert statuses[3000] == 200
         assert statuses[2000] in (200, 409)
         assert _stored_state(engine, "p1") == (newer["campaign_state"], 3000)
+
+
+# ---------------------------------------------------------------- import (T10)
+
+
+def _import(client: TestClient, *projects: Any) -> dict[str, Any]:
+    response = client.post(f"{BASE}/import", json={"projects": list(projects)})
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def _snapshot(client: TestClient) -> tuple[Any, ...]:
+    listing = client.get(BASE).json()
+    return tuple((p, client.get(f"{BASE}/{p['id']}").json()) for p in listing)
+
+
+def test_import_preserves_campaign_state_and_progress(client: TestClient) -> None:
+    body = _create_payload()
+    assert body["campaign_state"]["completed_stories"] == ["story_01"]
+    result = _import(client, body)
+    assert result == {"imported": 1, "skipped": 0, "rejected": []}
+    loaded = client.get(f"{BASE}/{body['id']}").json()
+    assert loaded["campaign_state"] == body["campaign_state"]
+    assert client.get(BASE).json()[0]["stories_completed"] == 1
+
+
+def test_second_identical_import_changes_nothing(client: TestClient) -> None:
+    body = _create_payload()
+    _import(client, body)
+    before = _snapshot(client)
+    result = _import(client, body)
+    # Equal updated_at rewrites the same data (design uses <=), so it counts as imported.
+    assert result == {"imported": 1, "skipped": 0, "rejected": []}
+    assert _snapshot(client) == before
+
+
+def test_older_copy_never_overwrites_and_newer_copy_replaces(client: TestClient) -> None:
+    _import(client, _create_payload(updated_at=5000))
+    older = _create_payload(updated_at=4000)
+    older["campaign"]["title"] = "Older"
+    older["campaign_state"]["completed_stories"] = []
+    assert _import(client, older) == {"imported": 0, "skipped": 1, "rejected": []}
+    loaded = client.get(f"{BASE}/{older['id']}").json()
+    assert loaded["campaign"]["title"] != "Older"
+    assert loaded["campaign_state"]["completed_stories"] == ["story_01"]
+
+    newer = _create_payload(updated_at=6000)
+    newer["campaign"]["title"] = "Newer"
+    newer["campaign_state"]["completed_stories"] = ["story_01", "story_02"]
+    assert _import(client, newer) == {"imported": 1, "skipped": 0, "rejected": []}
+    loaded = client.get(f"{BASE}/{newer['id']}").json()
+    assert loaded["campaign"]["title"] == "Newer"
+    assert loaded["campaign_state"] == newer["campaign_state"]
+    assert client.get(BASE).json()[0]["stories_completed"] == 2
+
+
+def test_mixed_batch_counts_and_rejects_invalid_items(engine: Engine, client: TestClient) -> None:
+    insert_project(engine, "p_foreign", uuid.UUID(int=7), title="Not yours")
+    _import(client, _create_payload(project_id="p_mine", updated_at=5000))
+
+    invalid = _create_payload(project_id="p_invalid")
+    del invalid["campaign"]["title"]
+    nul = _create_payload(project_id="p_nul")
+    nul["campaign"]["premise"] = "bad \u0000 byte"  # Postgres jsonb refuses NUL characters
+    batch = [
+        _create_payload(project_id="p_new_1"),
+        _create_payload(project_id="p_mine", updated_at=4000),  # own, older: skipped
+        _create_payload(project_id="p_foreign"),  # another owner: skipped
+        invalid,
+        "not an object",
+        nul,
+        _create_payload(project_id="p_new_2"),
+    ]
+    result = _import(client, *batch)
+    assert (result["imported"], result["skipped"]) == (2, 2)
+    rejected = {r["index"]: r for r in result["rejected"]}
+    assert set(rejected) == {3, 4, 5}
+    assert rejected[3]["id"] == "p_invalid"
+    assert "campaign.title" in rejected[3]["error"]
+    assert rejected[4]["id"] is None
+    assert rejected[5] == {"index": 5, "id": "p_nul", "error": "invalid data"}
+
+    ids = {p["id"] for p in client.get(BASE).json()}
+    assert ids == {"p_mine", "p_new_1", "p_new_2"}
+    assert client.get(f"{BASE}/p_mine").json()["updated_at"] == 5000
