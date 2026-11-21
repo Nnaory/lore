@@ -16,10 +16,12 @@
  *   - All types are serializable and server-side only.
  */
 
-import { z } from "zod";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
-import { StorySummaryEntrySchema } from "@/lib/ai/schemas/campaign.schema";
+import type { z } from "zod";
+import {
+  PreviousStorySummarySchema,
+  StoryGeneratorOptionsSchema,
+  GenerateStoryRequestSchema,
+} from "@/lib/contracts/ai-requests";
 import type { AIProviderId } from "@/lib/ai/types";
 import type { CampaignBlueprint, StorySummaryEntry } from "@/lib/types/campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
@@ -30,41 +32,7 @@ import type { ValidationError } from "@/lib/validation/story-validator";
 // Request
 // ---------------------------------------------------------------------------
 
-/** A compact snapshot of a previously completed story, for continuity. */
-export const PreviousStorySummarySchema = z.object({
-  story_id: z.string().min(1, "story_id must not be empty"),
-  title: z.string().min(1, "title must not be empty"),
-  outcome_description: z.string(),
-  world_state_snapshot: z.record(z.string(), z.number()),
-  relationship_snapshot: z.record(z.string(), z.number()),
-});
-
-/** Story-level creative options supplied by the caller. */
-export const StoryGeneratorOptionsSchema = z.object({
-  /** Number of concepts to teach per chapter. Defaults to all concepts in one chapter. */
-  conceptsPerChapter: z.number().int().min(1).optional(),
-  /** Extra instructions from the player, passed to the storyteller. */
-  customInstructions: z.string().optional(),
-  /** Optional language hint for the storyteller. */
-  language: z.string().optional(),
-});
-
-/**
- * Story Generator request — ONE story at a time.
- *
- * `story` must be an entry of `campaign.story_sequence`, and `material` must
- * be the material that entry references (`story.material_id`). Both are
- * validated structurally here and semantically by the service.
- */
-export const GenerateStoryRequestSchema = z.object({
-  campaign: CampaignBlueprintSchema,
-  story: StorySummaryEntrySchema,
-  material: MaterialBlueprintSchema,
-  /** Optional continuity context from earlier completed stories. */
-  previousSummaries: z.array(PreviousStorySummarySchema).optional(),
-  /** Optional story-level options. */
-  options: StoryGeneratorOptionsSchema.optional(),
-});
+export { PreviousStorySummarySchema, StoryGeneratorOptionsSchema, GenerateStoryRequestSchema };
 
 export type PreviousStorySummary = z.infer<typeof PreviousStorySummarySchema>;
 export type StoryGeneratorOptions = z.infer<typeof StoryGeneratorOptionsSchema>;

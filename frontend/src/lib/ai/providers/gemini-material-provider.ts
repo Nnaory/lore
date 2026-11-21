@@ -16,12 +16,12 @@ import type {
   IMaterialIntelligenceProvider,
 } from "@/lib/ai/types";
 import type { MaterialBlueprint } from "@/lib/types/material";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
 import {
   MATERIAL_ANALYSIS_SYSTEM_PROMPT,
   buildMaterialAnalysisPrompt,
 } from "@/lib/ai/prompts/material-analysis";
-import { stableHash } from "@/lib/ai/hash";
+import { stableHash } from "@/lib/contracts/hash";
 import { generateJson, type GeminiConfig } from "./gemini-client";
 
 /** Concepts per story length — one concept per chapter. */

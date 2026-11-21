@@ -8,7 +8,7 @@
 import { getProviderCached, resetProviderCache } from "@/lib/ai/providers";
 import { parseProviderResult } from "@/lib/ai/output-parser";
 import type { AnalyzeMaterialRequest, AnalyzeMaterialResult } from "@/lib/ai/types";
-import type { MaterialBlueprintFromSchema } from "@/lib/ai/schemas/material.schema";
+import type { MaterialBlueprintFromSchema } from "@/lib/contracts/schemas/material.schema";
 
 /** Service result envelope. */
 export interface MaterialIntelligenceResult {

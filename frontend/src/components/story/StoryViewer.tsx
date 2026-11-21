@@ -28,7 +28,7 @@ import type { Scene, SceneContent } from "@/lib/types/scene";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
 import { loadPacing, savePacing, type Pacing } from "@/lib/story/pacing";
-import { stableHash } from "@/lib/ai/hash";
+import { stableHash } from "@/lib/contracts/hash";
 import {
   getOrCreateKnowledge,
   recordLearningExposure,

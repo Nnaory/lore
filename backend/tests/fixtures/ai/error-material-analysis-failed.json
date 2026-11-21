@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "MATERIAL_ANALYSIS_FAILED",
+    "message": "No teachable concepts were found in this material."
+  }
+}

@@ -80,15 +80,7 @@ export interface IMaterialIntelligenceProvider {
   healthCheck?(): Promise<{ healthy: boolean; detail?: string }>;
 }
 
-/** Request validation schema (Zod) — used by API route. */
-import { z } from "zod";
-import { MAX_MATERIAL_CHARS, MIN_MATERIAL_CHARS } from "@/lib/ingest/limits";
+/** Request validation schema (Zod) - defined in lib/contracts so the browser can share it. */
+import { AnalyzeMaterialRequestSchema } from "@/lib/contracts/ai-requests";
 
-export const AnalyzeMaterialRequestSchema = z.object({
-  material: z
-    .string()
-    .min(MIN_MATERIAL_CHARS, `material must be at least ${MIN_MATERIAL_CHARS} characters`)
-    .max(MAX_MATERIAL_CHARS, `material must be at most ${MAX_MATERIAL_CHARS} characters`),
-  context: z.record(z.unknown()).optional(),
-  genre: z.string().optional(),
-});
+export { AnalyzeMaterialRequestSchema };

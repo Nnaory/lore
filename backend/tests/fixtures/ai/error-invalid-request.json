@@ -1,0 +1,15 @@
+{
+  "ok": false,
+  "error": {
+    "code": "INVALID_REQUEST",
+    "message": "Invalid request body",
+    "detail": {
+      "formErrors": [],
+      "fieldErrors": {
+        "material": [
+          "Required"
+        ]
+      }
+    }
+  }
+}

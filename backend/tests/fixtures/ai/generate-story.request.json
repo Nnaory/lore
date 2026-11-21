@@ -1,0 +1,142 @@
+{
+  "campaign": {
+    "campaign_id": "campaign_001",
+    "title": "The Glass Lanterns",
+    "genre": "fantasy",
+    "tone": "hushed",
+    "premise": "Lanterns hold the night back, and each one burns on a rule about vectors.",
+    "main_conflict": "The lanterns are dying, and only measuring and adding vectors can relight them.",
+    "setting": "a lamplit harbour town",
+    "characters": [
+      {
+        "character_id": "char_01",
+        "name": "Maren",
+        "role": "Lamplighter",
+        "description": "Keeps the lanterns and tests every claim.",
+        "expressions": {
+          "neutral": "(-_-)",
+          "worried": "(>_<)",
+          "thinking": "(¬_¬)",
+          "surprised": "(O_O)",
+          "approving": "(^_^)",
+          "stern": "(ಠ_ಠ)"
+        }
+      },
+      {
+        "character_id": "char_02",
+        "name": "Tobi",
+        "role": "Apprentice",
+        "description": "Asks the questions the player should ask.",
+        "expressions": {
+          "neutral": "(-_-)",
+          "worried": "(>_<)",
+          "thinking": "(¬_¬)",
+          "surprised": "(O_O)",
+          "approving": "(^_^)",
+          "stern": "(ಠ_ಠ)"
+        }
+      }
+    ],
+    "world_rules": [
+      "A lantern only lights when its vector is measured correctly.",
+      "Directions never lie."
+    ],
+    "story_sequence": [
+      {
+        "story_id": "story_01",
+        "material_id": "material_1xfqqww",
+        "title": "First Light",
+        "purpose": "Learn what a vector is and how to add two.",
+        "main_conflict": "The harbour lantern needs the right heading.",
+        "required_knowledge": [],
+        "outcomes": [
+          {
+            "outcome_id": "outcome_story_01_success",
+            "description": "The story's central problem is fully resolved.",
+            "world_state_changes": {
+              "stability": 10
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "story": {
+    "story_id": "story_01",
+    "material_id": "material_1xfqqww",
+    "title": "First Light",
+    "purpose": "Learn what a vector is and how to add two.",
+    "main_conflict": "The harbour lantern needs the right heading.",
+    "required_knowledge": [],
+    "outcomes": [
+      {
+        "outcome_id": "outcome_story_01_success",
+        "description": "The story's central problem is fully resolved.",
+        "world_state_changes": {
+          "stability": 10
+        }
+      }
+    ]
+  },
+  "material": {
+    "material_id": "material_1xfqqww",
+    "title": "Vectors",
+    "summary": "Introduces vectors as quantities with magnitude and direction, and shows how to measure and add them.",
+    "learning_objectives": [
+      "Explain what a vector is",
+      "Compute the length of a two-dimensional vector",
+      "Add two vectors component by component"
+    ],
+    "concepts": [
+      {
+        "concept_id": "concept_1xfqqww_01",
+        "name": "Vector and magnitude",
+        "definition": "A vector is a quantity with a magnitude and a direction; its magnitude is written ‖v‖.",
+        "principles": [
+          "The magnitude of v = (a, b) is sqrt(a^2 + b^2)"
+        ],
+        "methods": [
+          "Square each component",
+          "Add the squares",
+          "Take the square root"
+        ],
+        "prerequisites": [],
+        "misconceptions": [
+          "A vector is just a number",
+          "The length of (3, 4) is 7"
+        ],
+        "source_evidence": [
+          "A vector has a magnitude and a direction."
+        ],
+        "notation": [
+          "‖v‖ = length of vector v"
+        ],
+        "examples": [
+          "v = (3, 4) gives ‖v‖ = 5"
+        ]
+      },
+      {
+        "concept_id": "concept_1xfqqww_02",
+        "name": "Vector addition",
+        "definition": "Adding vectors means adding their components one by one.",
+        "principles": [
+          "(a, b) + (c, d) = (a + c, b + d)"
+        ],
+        "methods": [
+          "Line up the components",
+          "Add each pair"
+        ],
+        "prerequisites": [
+          "concept_1xfqqww_01"
+        ],
+        "misconceptions": [
+          "Adding vectors adds their lengths"
+        ],
+        "source_evidence": []
+      }
+    ],
+    "scope_limitations": [
+      "Does not cover three-dimensional vectors or the dot product"
+    ]
+  }
+}

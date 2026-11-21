@@ -1,0 +1,19 @@
+{
+  "ok": false,
+  "error": {
+    "code": "PROVIDER_UNAVAILABLE",
+    "message": "The AI storyteller is unavailable right now. Try again in a moment.",
+    "detail": [
+      {
+        "model": "test-model",
+        "reason": "boom",
+        "status": 500
+      },
+      {
+        "model": "test-model",
+        "reason": "boom",
+        "status": 500
+      }
+    ]
+  }
+}

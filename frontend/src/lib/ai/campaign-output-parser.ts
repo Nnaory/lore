@@ -9,7 +9,7 @@
  * structured error codes, and non-blocking warnings.
  */
 
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
+import { CampaignBlueprintSchema } from "@/lib/contracts/schemas/campaign.schema";
 import { validatePlannedCampaign } from "@/lib/validation/planner-validator";
 import type { ValidationError } from "@/lib/validation/story-validator";
 import type { MaterialBlueprint } from "@/lib/types/material";

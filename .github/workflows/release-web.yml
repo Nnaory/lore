@@ -56,6 +56,10 @@ jobs:
         with:
           context: frontend
           push: true
+          # Repo variable NEXT_PUBLIC_AI_BACKEND (next|api) picks where the browser sends AI
+          # requests; unset means next. Rollback = set it back to next and re-run this workflow.
+          build-args: |
+            NEXT_PUBLIC_AI_BACKEND=${{ vars.NEXT_PUBLIC_AI_BACKEND || 'next' }}
           tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}

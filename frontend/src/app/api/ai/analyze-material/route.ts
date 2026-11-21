@@ -41,7 +41,7 @@ interface ErrorResponse {
 
 type ApiResponse = SuccessResponse | ErrorResponse;
 
-import { MaterialBlueprintFromSchema } from "@/lib/ai/schemas/material.schema";
+import { MaterialBlueprintFromSchema } from "@/lib/contracts/schemas/material.schema";
 
 /** POST /api/ai/analyze-material */
 export async function POST(request: NextRequest): Promise<NextResponse<ApiResponse>> {

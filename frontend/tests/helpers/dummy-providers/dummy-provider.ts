@@ -12,7 +12,7 @@ import {
   AnalyzeMaterialResult,
 } from "@/lib/ai/types";
 import { dummyMaterial } from "@/data/dummy-campaign";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
 import type { MaterialBlueprint } from "@/lib/types/material";
 
 /** Minimal valid blueprint for unknown materials. */

@@ -13,7 +13,7 @@ import { describe, it, expect, vi, afterEach, beforeEach } from "vitest";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import CreatePage from "@/app/create/page";
 import { MAX_MATERIAL_CHARS } from "@/lib/ingest/limits";
-import { BUILD_MESSAGES } from "@/lib/setup/request-campaign";
+import { BUILD_MESSAGES } from "@/lib/contracts/error-messages";
 import { loadProject } from "@/lib/state/project-store";
 import { setPendingMaterial, takePendingMaterial } from "@/lib/setup/pending-material";
 import { routeFetch } from "../fixtures/route-fetch";

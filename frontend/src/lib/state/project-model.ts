@@ -11,11 +11,11 @@
  */
 
 import { z } from "zod";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
-import { CampaignStateSchema } from "@/lib/ai/schemas/game.schema";
-import { DocumentFileTypeSchema } from "@/lib/ai/schemas/document.schema";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
+import { CampaignBlueprintSchema } from "@/lib/contracts/schemas/campaign.schema";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
+import { CampaignStateSchema } from "@/lib/contracts/schemas/game.schema";
+import { DocumentFileTypeSchema } from "@/lib/contracts/schemas/document.schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { CampaignState } from "@/lib/types/game";

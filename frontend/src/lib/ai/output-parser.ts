@@ -5,7 +5,7 @@
  * and runs semantic validation. Returns structured result.
  */
 
-import { MaterialBlueprintSchema, MaterialBlueprintFromSchema } from "@/lib/ai/schemas/material.schema";
+import { MaterialBlueprintSchema, MaterialBlueprintFromSchema } from "@/lib/contracts/schemas/material.schema";
 import type { AnalyzeMaterialResult, AIErrorCode, ProviderMeta } from "@/lib/ai/types";
 import type { ValidationError } from "@/lib/validation/story-validator";
 

@@ -23,7 +23,7 @@ import type {
 } from "@/lib/ai/story-generator-types";
 import { getStoryGeneratorProviderCached } from "@/lib/ai/providers";
 import { validateGeneratedStory } from "@/lib/validation/generator-validator";
-import { StoryBlueprintSchema } from "@/lib/ai/schemas/story.schema";
+import { StoryBlueprintSchema } from "@/lib/contracts/schemas/story.schema";
 import type { CampaignBlueprint, StorySummaryEntry } from "@/lib/types/campaign";
 import type { MaterialBlueprint } from "@/lib/types/material";
 import type { StoryBlueprint } from "@/lib/types/story";

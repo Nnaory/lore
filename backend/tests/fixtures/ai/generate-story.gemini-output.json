@@ -1,0 +1,135 @@
+{
+  "intro": {
+    "narration": "You step into the lamplit harbour. The night presses close.",
+    "guide_line": "Listen closely: every heading matters."
+  },
+  "concepts": [
+    {
+      "concept_id": "concept_1xfqqww_01",
+      "companion_line": "Let us be careful with Vector and magnitude.",
+      "lesson_steps": [
+        {
+          "title": "Vector and magnitude: the idea",
+          "body": "First, what Vector and magnitude means and why it matters in practice.",
+          "visual": {
+            "kind": "vectors",
+            "vectors": [
+              {
+                "from": [
+                  0,
+                  0
+                ],
+                "to": [
+                  3,
+                  4
+                ],
+                "label": "  v  ",
+                "tone": "primary"
+              }
+            ],
+            "caption": "The vector v = (3, 4)"
+          }
+        },
+        {
+          "title": "How it works",
+          "body": "Step by step: apply the rule to each component and keep the units.",
+          "visual": {
+            "kind": "table",
+            "headers": [
+              "Step",
+              "Value"
+            ],
+            "rows": [
+              [
+                "Square",
+                "9 + 16"
+              ],
+              [
+                "Root",
+                "5"
+              ]
+            ],
+            "highlight_rows": [
+              1
+            ]
+          },
+          "companion_line": "Wait, can you show that again?"
+        },
+        {
+          "title": "Worked example",
+          "body": "A new example, solved with every intermediate value written down.",
+          "visual": null
+        },
+        {
+          "title": "Watch out",
+          "body": "A common mistake is to add lengths instead of components.",
+          "companion_line": "I made that mistake before."
+        },
+        {
+          "title": "Fifth step is dropped",
+          "body": "Only four steps are kept."
+        }
+      ],
+      "puzzle": {
+        "narrative_context": "The lantern flickers; you must use Vector and magnitude correctly.",
+        "question": "Which statement about Vector and magnitude is correct?",
+        "correct_answer": "The statement that follows from the definition.",
+        "wrong_answers": [
+          "A plausible but wrong claim.",
+          "Another tempting mistake.",
+          "A third wrong idea."
+        ],
+        "explanation": "It follows directly from the definition given in the lesson.",
+        "correct_feedback": "Yes, that is right.",
+        "incorrect_feedback": "Re-read the second step."
+      },
+      "result_narration": "With Vector and magnitude understood, the lantern steadies.",
+      "guide_line": "Good. Vector and magnitude holds."
+    },
+    {
+      "concept_id": "concept_1xfqqww_02",
+      "companion_line": "Let us be careful with Vector addition.",
+      "puzzle": {
+        "narrative_context": "The lantern flickers; you must use Vector addition correctly.",
+        "question": "Which statement about Vector addition is correct?",
+        "correct_answer": "The statement that follows from the definition.",
+        "wrong_answers": [
+          "A plausible but wrong claim.",
+          "Another tempting mistake.",
+          "A third wrong idea."
+        ],
+        "explanation": "It follows directly from the definition given in the lesson.",
+        "correct_feedback": "Yes, that is right.",
+        "incorrect_feedback": "Re-read the second step."
+      },
+      "result_narration": "With Vector addition understood, the lantern steadies.",
+      "guide_line": "Good. Vector addition holds.",
+      "lesson_title": "Single lesson",
+      "lesson_body": "The older single-lesson form of the prompt.",
+      "lesson_visual": {
+        "kind": "table",
+        "headers": [
+          "Step",
+          "Value"
+        ],
+        "rows": [
+          [
+            "Square",
+            "9 + 16"
+          ],
+          [
+            "Root",
+            "5"
+          ]
+        ],
+        "highlight_rows": [
+          1
+        ]
+      }
+    }
+  ],
+  "ending": {
+    "title": "The Lanterns Burn",
+    "narration": "The harbour is safe. You remember every heading you measured."
+  }
+}

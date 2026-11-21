@@ -10,7 +10,7 @@
 import { describe, it, expect } from "vitest";
 import { extractPptx, resolvePartPath } from "@/lib/ingest/pptx";
 import { IngestError } from "@/lib/ingest/errors";
-import { ExtractedDocumentSchema } from "@/lib/ai/schemas/document.schema";
+import { ExtractedDocumentSchema } from "@/lib/contracts/schemas/document.schema";
 import { makeOleHeader, makePptx, toArrayBuffer } from "../fixtures/make-files";
 
 async function codeOf(promise: Promise<unknown>): Promise<string | undefined> {

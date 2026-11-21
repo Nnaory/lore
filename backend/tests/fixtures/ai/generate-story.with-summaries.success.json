@@ -1,0 +1,271 @@
+{
+  "ok": true,
+  "data": {
+    "blueprint": {
+      "story_id": "story_02",
+      "material_id": "material_2abcdef",
+      "title": "Locking the Beam",
+      "summary": "Use the dot product to align the beam. The story covers Dot product.",
+      "character_ids": [
+        "char_01",
+        "char_02"
+      ],
+      "chapters": [
+        {
+          "chapter_id": "chapter_story_02_01",
+          "title": "Locking the Beam",
+          "scenes": [
+            {
+              "scene_id": "scene_story_02_intro",
+              "type": "narrative",
+              "location": "a research frontier where theory decides survival",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "narration",
+                  "text": "You step into the lamplit harbour. The night presses close."
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_01",
+                  "expression": "worried",
+                  "text": "Listen closely: every heading matters."
+                },
+                {
+                  "type": "narration",
+                  "text": "What came before still shapes this moment: The story's central problem is fully resolved.."
+                }
+              ],
+              "next_scene_id": "scene_story_02_c01_learning"
+            },
+            {
+              "scene_id": "scene_story_02_c01_learning",
+              "type": "learning",
+              "location": "a research frontier where theory decides survival",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "dialogue",
+                  "character_id": "char_02",
+                  "expression": "neutral",
+                  "text": "Let us be careful with Dot product."
+                },
+                {
+                  "type": "learning_info",
+                  "title": "Dot product: the idea",
+                  "body": "First, what Dot product means and why it matters in practice.",
+                  "concept_ids": [
+                    "concept_2abcdef_01"
+                  ],
+                  "visual": {
+                    "kind": "vectors",
+                    "vectors": [
+                      {
+                        "from": [
+                          0,
+                          0
+                        ],
+                        "to": [
+                          3,
+                          4
+                        ],
+                        "label": "v",
+                        "tone": "primary"
+                      }
+                    ],
+                    "caption": "The vector v = (3, 4)"
+                  }
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_02",
+                  "expression": "neutral",
+                  "text": "Wait, can you show that again?"
+                },
+                {
+                  "type": "learning_info",
+                  "title": "How it works",
+                  "body": "Step by step: apply the rule to each component and keep the units.",
+                  "concept_ids": [
+                    "concept_2abcdef_01"
+                  ],
+                  "visual": {
+                    "kind": "table",
+                    "headers": [
+                      "Step",
+                      "Value"
+                    ],
+                    "rows": [
+                      [
+                        "Square",
+                        "9 + 16"
+                      ],
+                      [
+                        "Root",
+                        "5"
+                      ]
+                    ],
+                    "highlight_rows": [
+                      1
+                    ]
+                  }
+                },
+                {
+                  "type": "learning_info",
+                  "title": "Worked example",
+                  "body": "A new example, solved with every intermediate value written down.",
+                  "concept_ids": [
+                    "concept_2abcdef_01"
+                  ]
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_02",
+                  "expression": "neutral",
+                  "text": "I made that mistake before."
+                },
+                {
+                  "type": "learning_info",
+                  "title": "Watch out",
+                  "body": "A common mistake is to add lengths instead of components.",
+                  "concept_ids": [
+                    "concept_2abcdef_01"
+                  ]
+                }
+              ],
+              "next_scene_id": "scene_story_02_c01_puzzle"
+            },
+            {
+              "scene_id": "scene_story_02_c01_puzzle",
+              "type": "puzzle",
+              "location": "a research frontier where theory decides survival",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "puzzle_id": "puzzle_story_02_c01",
+              "next_scene_id": "scene_story_02_c01_result"
+            },
+            {
+              "scene_id": "scene_story_02_c01_result",
+              "type": "consequence",
+              "location": "a research frontier where theory decides survival",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "narration",
+                  "text": "With Dot product understood, the lantern steadies."
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_01",
+                  "expression": "approving",
+                  "text": "Good. Dot product holds."
+                }
+              ],
+              "next_scene_id": "scene_story_02_ending"
+            },
+            {
+              "scene_id": "scene_story_02_ending",
+              "type": "ending",
+              "location": "a research frontier where theory decides survival",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "ending_id": "ending_story_02_success"
+            }
+          ]
+        }
+      ],
+      "puzzles": [
+        {
+          "puzzle_id": "puzzle_story_02_c01",
+          "concept_ids": [
+            "concept_2abcdef_01"
+          ],
+          "narrative_context": "The lantern flickers; you must use Dot product correctly.",
+          "question": "Which statement about Dot product is correct?",
+          "choices": [
+            {
+              "choice_id": "choice_story_02_c01_a",
+              "text": "The statement that follows from the definition."
+            },
+            {
+              "choice_id": "puzzle_story_02_c01_w2",
+              "text": "Another tempting mistake."
+            },
+            {
+              "choice_id": "puzzle_story_02_c01_w3",
+              "text": "A third wrong idea."
+            },
+            {
+              "choice_id": "puzzle_story_02_c01_w1",
+              "text": "A plausible but wrong claim."
+            }
+          ],
+          "correct_choice_id": "choice_story_02_c01_a",
+          "explanation": "It follows directly from the definition given in the lesson.",
+          "incorrect_feedback": "Re-read the second step.",
+          "correct_feedback": "Yes, that is right.",
+          "retry_allowed": true
+        }
+      ],
+      "endings": [
+        {
+          "ending_id": "ending_story_02_success",
+          "type": "success",
+          "title": "The Lanterns Burn",
+          "narration": "The harbour is safe. You remember every heading you measured.",
+          "world_state_changes": {
+            "stability": 15
+          },
+          "relationship_changes": {
+            "char_01": 10,
+            "char_02": 10
+          }
+        }
+      ],
+      "continuity_summary": {
+        "story_id": "story_02",
+        "outcome_description": "The story's central problem is fully resolved.",
+        "key_decisions": [],
+        "world_state_snapshot": {
+          "stability": 15
+        },
+        "relationship_snapshot": {
+          "char_01": 10,
+          "char_02": 10
+        }
+      },
+      "knowledge_mapping": [
+        {
+          "concept_id": "concept_2abcdef_01",
+          "introduced_in_scene_id": "scene_story_02_c01_learning",
+          "tested_in_puzzle_id": "puzzle_story_02_c01"
+        }
+      ]
+    },
+    "meta": {
+      "provider": "google",
+      "model": "test-model",
+      "latencyMs": 1234,
+      "warnings": [
+        {
+          "code": "VISUAL_DROPPED",
+          "message": "Lesson illustrations were invalid and are shown as text for: concept_2abcdef_01.",
+          "path": "story"
+        }
+      ]
+    }
+  }
+}

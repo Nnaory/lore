@@ -14,7 +14,7 @@ import type {
   PlanCampaignResult,
 } from "@/lib/ai/campaign-planner-types";
 import { buildCampaignBlueprint } from "@/lib/ai/campaign-planner-engine";
-import { CampaignBlueprintSchema } from "@/lib/ai/schemas/campaign.schema";
+import { CampaignBlueprintSchema } from "@/lib/contracts/schemas/campaign.schema";
 
 export class DummyCampaignPlannerProvider implements ICampaignPlannerProvider {
   readonly id = "dummy" as const;

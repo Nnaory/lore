@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { seededShuffle, stableHash } from "@/lib/ai/hash";
+import { seededShuffle, stableHash } from "@/lib/contracts/hash";
 
 describe("stableHash", () => {
   it("is deterministic and differs for different input", () => {

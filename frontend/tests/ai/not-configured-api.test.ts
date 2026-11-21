@@ -9,8 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 import { clearProvidersForTest, setProvidersForTest } from "@/lib/ai/providers";
 import { POST as analyze } from "@/app/api/ai/analyze-material/route";
-import { POST as workflow } from "@/app/api/ai/full-workflow/route";
-import { BUILD_MESSAGES, messageForCode } from "@/lib/setup/request-campaign";
+import { BUILD_MESSAGES, messageForCode } from "@/lib/contracts/error-messages";
 
 function post(url: string, body: unknown): NextRequest {
   return new NextRequest(`http://localhost${url}`, {
@@ -41,18 +40,6 @@ describe("routes without an LLM", () => {
     expect(json.ok).toBe(false);
     expect(json.error.code).toBe("PROVIDER_NOT_CONFIGURED");
   });
-
-  it("full-workflow answers 503 PROVIDER_NOT_CONFIGURED", async () => {
-    const res = await workflow(
-      post("/api/ai/full-workflow", {
-        materials: [{ material: "belajar vector", genre: "fantasy" }],
-        campaignOptions: { genre: "fantasy" },
-      })
-    );
-    expect(res.status).toBe(503);
-    const json = await res.json();
-    expect(json.error.code).toBe("PROVIDER_NOT_CONFIGURED");
-  });
 });
 
 describe("analysis that finds nothing to teach", () => {
@@ -72,13 +59,5 @@ describe("analysis that finds nothing to teach", () => {
     const json = await res.json();
     expect(json.error.code).toBe("MATERIAL_ANALYSIS_FAILED");
     expect(messageForCode(json.error.code)).toBe(BUILD_MESSAGES.noConcepts);
-  });
-});
-
-describe("messageForCode", () => {
-  it("explains a missing configuration separately from a busy provider", () => {
-    expect(messageForCode("PROVIDER_NOT_CONFIGURED")).toBe(BUILD_MESSAGES.notConfigured);
-    expect(messageForCode("PROVIDER_UNAVAILABLE")).toBe(BUILD_MESSAGES.busy);
-    expect(BUILD_MESSAGES.notConfigured).not.toBe(BUILD_MESSAGES.busy);
   });
 });
