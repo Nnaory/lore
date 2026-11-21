@@ -55,7 +55,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 1 — Backend (PR 1; flag stays `idb`)
 
-- [ ] **T1 — Alembic migration** `[PG]`
+- [x] **T1 — Alembic migration** `[PG]`
   - **Satisfies:** FR-1.1–1.5, NFR-1.3; design "Data model (SQL DDL)".
   - **Files:** `backend/alembic/versions/<rev>_r13_persistence.py` (`down_revision = "4ee36ac0a0f8"`, hand-written SQL, additive only, a real `downgrade`), `backend/tests/test_projects_migration.py`, `backend/tests/test_db.py`.
   - **Test:**
