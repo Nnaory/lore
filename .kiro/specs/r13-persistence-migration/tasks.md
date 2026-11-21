@@ -239,7 +239,7 @@ The Kiroween deadline date used in planning has not been checked against the off
   - **Test:** the `docker` job in `ci.yml` builds the default image. Confirm the build still succeeds and the default stays `idb`. `release-web.yml` is **not** changed here (that is D5).
   - **Commit:** `feat(web): add the project store build argument, default idb`.
 
-- [ ] **F8 — Contract test against the shared fixture** `[CI]`
+- [x] **F8 — Contract test against the shared fixture** `[CI]`
   - **Satisfies:** NFR-3.7, AC 4.
   - **Files:** `frontend/tests/state/project-contract.test.ts`.
   - **Test:** read `backend/tests/fixtures/project.json` and assert that `ProjectSchema` and `CampaignStateSchema` accept it. The backend's T3 test already asserts the same file passes the envelope models, so a change on either side that breaks the shared shape fails a test.
