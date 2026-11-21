@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "PROVIDER_NOT_CONFIGURED",
+    "message": "No AI model is configured on this server (set AI_PROVIDER=google and GOOGLE_API_KEY)."
+  }
+}

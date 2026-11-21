@@ -1,0 +1,164 @@
+{
+  "campaign": {
+    "campaign_id": "campaign_001",
+    "title": "Signal Drift",
+    "genre": "science_fiction",
+    "tone": "wondrous",
+    "premise": "A research station loses its heading, and two chapters of vector maths bring it back.",
+    "main_conflict": "The campaign's central problem can only be resolved by mastering Dot product.",
+    "setting": "a research frontier where theory decides survival",
+    "characters": [
+      {
+        "character_id": "char_01",
+        "name": "Dr. Imani",
+        "role": "Chief navigator",
+        "description": "Rigorous and calm under pressure.",
+        "expressions": {
+          "neutral": "(-_-)",
+          "worried": "(>_<)",
+          "thinking": "(¬_¬)",
+          "surprised": "(O_O)",
+          "approving": "(^_^)",
+          "stern": "(ಠ_ಠ)"
+        }
+      },
+      {
+        "character_id": "char_02",
+        "name": "Kofi",
+        "role": "Engineer",
+        "description": "Turns formulas into working fixes.",
+        "expressions": {
+          "neutral": "(-_-)",
+          "worried": "(>_<)",
+          "thinking": "(¬_¬)",
+          "surprised": "(O_O)",
+          "approving": "(^_^)",
+          "stern": "(ಠ_ಠ)"
+        }
+      }
+    ],
+    "world_rules": [
+      "Technology follows the material's principles exactly; sloppy thinking has visible consequences.",
+      "Academic accuracy is never sacrificed for narrative flair."
+    ],
+    "story_sequence": [
+      {
+        "story_id": "story_01",
+        "material_id": "material_1xfqqww",
+        "title": "Reading the Drift",
+        "purpose": "Measure and add vectors.",
+        "main_conflict": "The station's core process is failing; only Vectors can stabilize it.",
+        "required_knowledge": [],
+        "outcomes": [
+          {
+            "outcome_id": "outcome_story_01_success",
+            "description": "The story's central problem is fully resolved.",
+            "world_state_changes": {
+              "stability": 10
+            }
+          }
+        ]
+      },
+      {
+        "story_id": "story_02",
+        "material_id": "material_2abcdef",
+        "title": "Locking the Beam",
+        "purpose": "Use the dot product to align the beam.",
+        "main_conflict": "The station's core process is failing; only Dot product can stabilize it.",
+        "required_knowledge": [
+          "concept_1xfqqww_01"
+        ],
+        "outcomes": [
+          {
+            "outcome_id": "outcome_story_02_success",
+            "description": "The story's central problem is fully resolved.",
+            "world_state_changes": {
+              "stability": 15
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "story": {
+    "story_id": "story_02",
+    "material_id": "material_2abcdef",
+    "title": "Locking the Beam",
+    "purpose": "Use the dot product to align the beam.",
+    "main_conflict": "The station's core process is failing; only Dot product can stabilize it.",
+    "required_knowledge": [
+      "concept_1xfqqww_01"
+    ],
+    "outcomes": [
+      {
+        "outcome_id": "outcome_story_02_success",
+        "description": "The story's central problem is fully resolved.",
+        "world_state_changes": {
+          "stability": 15
+        }
+      }
+    ]
+  },
+  "material": {
+    "material_id": "material_2abcdef",
+    "title": "Dot product",
+    "summary": "Introduces the dot product of two vectors.",
+    "learning_objectives": [
+      "Compute the dot product of two 2D vectors"
+    ],
+    "concepts": [
+      {
+        "concept_id": "concept_2abcdef_01",
+        "name": "Dot product",
+        "definition": "The dot product of (a, b) and (c, d) is a*c + b*d.",
+        "principles": [
+          "The dot product is a single number"
+        ],
+        "methods": [
+          "Multiply matching components",
+          "Add the products"
+        ],
+        "prerequisites": [
+          "concept_1xfqqww_01"
+        ],
+        "misconceptions": [
+          "The dot product is a vector"
+        ],
+        "source_evidence": [
+          "Multiply matching components, then add."
+        ]
+      }
+    ],
+    "scope_limitations": []
+  },
+  "previousSummaries": [
+    {
+      "story_id": "story_00",
+      "title": "The Cold Open",
+      "outcome_description": "The harbour was warned in time.",
+      "world_state_snapshot": {
+        "stability": 5
+      },
+      "relationship_snapshot": {
+        "char_01": 10
+      }
+    },
+    {
+      "story_id": "story_01",
+      "title": "First Light",
+      "outcome_description": "The story's central problem is fully resolved.",
+      "world_state_snapshot": {
+        "stability": 10,
+        "trust": 2.5
+      },
+      "relationship_snapshot": {
+        "char_01": 10,
+        "char_02": 10
+      }
+    }
+  ],
+  "options": {
+    "conceptsPerChapter": 1,
+    "customInstructions": "Keep it short."
+  }
+}

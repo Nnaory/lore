@@ -1,0 +1,73 @@
+{
+  "ok": true,
+  "data": {
+    "blueprint": {
+      "campaign_id": "campaign_001",
+      "title": "The Glass Lanterns",
+      "genre": "fantasy",
+      "tone": "hushed",
+      "premise": "Lanterns hold the night back, and each one burns on a rule about vectors.",
+      "main_conflict": "The lanterns are dying, and only measuring and adding vectors can relight them.",
+      "setting": "a lamplit harbour town",
+      "characters": [
+        {
+          "character_id": "char_01",
+          "name": "Maren",
+          "role": "Lamplighter",
+          "description": "Keeps the lanterns and tests every claim.",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "char_02",
+          "name": "Tobi",
+          "role": "Apprentice",
+          "description": "Asks the questions the player should ask.",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        }
+      ],
+      "world_rules": [
+        "A lantern only lights when its vector is measured correctly.",
+        "Directions never lie."
+      ],
+      "story_sequence": [
+        {
+          "story_id": "story_01",
+          "material_id": "material_1xfqqww",
+          "title": "First Light",
+          "purpose": "Learn what a vector is and how to add two.",
+          "main_conflict": "The harbour lantern needs the right heading.",
+          "required_knowledge": [],
+          "outcomes": [
+            {
+              "outcome_id": "outcome_story_01_success",
+              "description": "The story's central problem is fully resolved.",
+              "world_state_changes": {
+                "stability": 10
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "meta": {
+      "provider": "google",
+      "model": "test-model",
+      "latencyMs": 1234,
+      "warnings": []
+    }
+  }
+}

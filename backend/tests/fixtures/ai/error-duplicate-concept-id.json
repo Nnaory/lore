@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "DUPLICATE_CONCEPT_ID",
+    "message": "concept_id \"concept_1xfqqww_01\" is defined by both \"material_1xfqqww\" and \"material_2abcdef\". Concept IDs must be globally unique across all materials."
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "title": "Signal Drift",
+  "premise": "A research station loses its heading, and two chapters of vector maths bring it back.",
+  "characters": [
+    {
+      "name": "Dr. Imani",
+      "role": "Chief navigator",
+      "description": "Rigorous and calm under pressure."
+    },
+    {
+      "name": "Kofi",
+      "role": "Engineer",
+      "description": "Turns formulas into working fixes."
+    }
+  ],
+  "stories": [
+    {
+      "story_id": "story_01",
+      "title": "Reading the Drift",
+      "purpose": "Measure and add vectors."
+    },
+    {
+      "story_id": "story_02",
+      "title": "Locking the Beam",
+      "purpose": "Use the dot product to align the beam."
+    }
+  ]
+}

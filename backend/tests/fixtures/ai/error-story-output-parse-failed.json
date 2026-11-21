@@ -1,0 +1,17 @@
+{
+  "ok": false,
+  "error": {
+    "code": "OUTPUT_PARSE_FAILED",
+    "message": "The AI storyteller is unavailable right now. Try again in a moment.",
+    "detail": [
+      {
+        "model": "test-model",
+        "reason": "response was not valid JSON (finishReason: STOP)"
+      },
+      {
+        "model": "test-model",
+        "reason": "response was not valid JSON (finishReason: STOP)"
+      }
+    ]
+  }
+}

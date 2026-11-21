@@ -1,0 +1,8 @@
+{
+  "material": "[Page 1] Vectors\nA vector has a magnitude and a direction. We write the length of v as ‖v‖.\nExample: for v = (3, 4), ‖v‖ = sqrt(3^2 + 4^2) = 5.\n\n[Page 2] Adding vectors\nTo add two vectors, add their components: (a, b) + (c, d) = (a + c, b + d). Geometrically this is the tip-to-tail rule.",
+  "context": {
+    "language": "en",
+    "story_length": "short"
+  },
+  "genre": "fantasy"
+}

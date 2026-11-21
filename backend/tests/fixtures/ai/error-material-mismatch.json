@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "MATERIAL_MISMATCH",
+    "message": "Story \"story_01\" references material \"material_1xfqqww\" but material \"material_other\" was supplied."
+  }
+}

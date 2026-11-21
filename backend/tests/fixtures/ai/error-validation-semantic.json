@@ -1,0 +1,24 @@
+{
+  "ok": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Provider output failed planner semantic validation.",
+    "detail": [
+      {
+        "code": "DUPLICATE_OUTCOME_ID",
+        "message": "Duplicate outcome_id \"outcome_story_01_success\" in campaign \"campaign_001\".",
+        "path": "story_sequence[story_02].outcomes"
+      },
+      {
+        "code": "DUPLICATE_MATERIAL_STORY",
+        "message": "Material \"material_1xfqqww\" is referenced by 2 stories; the Campaign Planner requires exactly one story per material.",
+        "path": "story_sequence[material_id=material_1xfqqww]"
+      },
+      {
+        "code": "REQUIRED_KNOWLEDGE_ORDER",
+        "message": "Story \"story_02\" requires concept \"concept_missing\", which is not introduced by any earlier story. This prerequisite can never be demonstrated.",
+        "path": "story_sequence[story_02].required_knowledge"
+      }
+    ]
+  }
+}

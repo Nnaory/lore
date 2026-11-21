@@ -1,0 +1,276 @@
+{
+  "ok": true,
+  "data": {
+    "blueprint": {
+      "story_id": "story_01",
+      "material_id": "material_1xfqqww",
+      "title": "First Light",
+      "summary": "Learn what a vector is and how to add two. The story covers Vector and magnitude, Vector addition.",
+      "character_ids": [
+        "char_01",
+        "char_02"
+      ],
+      "chapters": [
+        {
+          "chapter_id": "chapter_story_01_01",
+          "title": "First Light",
+          "scenes": [
+            {
+              "scene_id": "scene_story_01_intro",
+              "type": "narrative",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "narration",
+                  "text": "In a lamplit harbour town, the tale of The Glass Lanterns continues. The struggle that defines \"First Light\" begins now: The harbour lantern needs the right heading."
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_01",
+                  "expression": "worried",
+                  "text": "We start here."
+                }
+              ],
+              "next_scene_id": "scene_story_01_c01_learning"
+            },
+            {
+              "scene_id": "scene_story_01_c01_learning",
+              "type": "learning",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "dialogue",
+                  "character_id": "char_02",
+                  "expression": "neutral",
+                  "text": "Before we go further, we need to be precise about Vector and magnitude."
+                },
+                {
+                  "type": "learning_info",
+                  "title": "Idea",
+                  "body": "A short but valid lesson body.",
+                  "concept_ids": [
+                    "concept_1xfqqww_01"
+                  ]
+                }
+              ],
+              "next_scene_id": "scene_story_01_c01_puzzle"
+            },
+            {
+              "scene_id": "scene_story_01_c01_puzzle",
+              "type": "puzzle",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "puzzle_id": "puzzle_story_01_c01",
+              "next_scene_id": "scene_story_01_c01_result"
+            },
+            {
+              "scene_id": "scene_story_01_c01_result",
+              "type": "consequence",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "narration",
+                  "text": "With Vector and magnitude understood, the obstacle before you gives way. The path through \"First Light\" opens a little further."
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_01",
+                  "expression": "approving",
+                  "text": "Good. Vector and magnitude is secure. We continue."
+                }
+              ],
+              "next_scene_id": "scene_story_01_c02_learning"
+            },
+            {
+              "scene_id": "scene_story_01_c02_learning",
+              "type": "learning",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "dialogue",
+                  "character_id": "char_02",
+                  "expression": "neutral",
+                  "text": "Before we go further, we need to be precise about Vector addition."
+                },
+                {
+                  "type": "learning_info",
+                  "title": "Vector addition",
+                  "body": "Adding vectors means adding their components one by one. (a, b) + (c, d) = (a + c, b + d)",
+                  "concept_ids": [
+                    "concept_1xfqqww_02"
+                  ]
+                }
+              ],
+              "next_scene_id": "scene_story_01_c02_puzzle"
+            },
+            {
+              "scene_id": "scene_story_01_c02_puzzle",
+              "type": "puzzle",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "puzzle_id": "puzzle_story_01_c02",
+              "next_scene_id": "scene_story_01_c02_result"
+            },
+            {
+              "scene_id": "scene_story_01_c02_result",
+              "type": "consequence",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "content": [
+                {
+                  "type": "narration",
+                  "text": "With Vector addition understood, the obstacle before you gives way. The path through \"First Light\" opens a little further."
+                },
+                {
+                  "type": "dialogue",
+                  "character_id": "char_01",
+                  "expression": "approving",
+                  "text": "Good. Vector addition is secure. We continue."
+                }
+              ],
+              "next_scene_id": "scene_story_01_ending"
+            },
+            {
+              "scene_id": "scene_story_01_ending",
+              "type": "ending",
+              "location": "a lamplit harbour town",
+              "characters_present": [
+                "char_01",
+                "char_02"
+              ],
+              "ending_id": "ending_story_01_success"
+            }
+          ]
+        }
+      ],
+      "puzzles": [
+        {
+          "puzzle_id": "puzzle_story_01_c01",
+          "concept_ids": [
+            "concept_1xfqqww_01"
+          ],
+          "narrative_context": "The harbour lantern needs the right heading. To move forward, Vector and magnitude must be applied correctly.",
+          "question": "Which statement correctly describes Vector and magnitude?",
+          "choices": [
+            {
+              "choice_id": "choice_story_01_c01_b",
+              "text": "A vector is just a number"
+            },
+            {
+              "choice_id": "choice_story_01_c01_a",
+              "text": "A vector is a quantity with a magnitude and a direction; its magnitude is written ‖v‖."
+            },
+            {
+              "choice_id": "choice_story_01_c01_c",
+              "text": "The length of (3, 4) is 7"
+            }
+          ],
+          "correct_choice_id": "choice_story_01_c01_a",
+          "explanation": "A vector is a quantity with a magnitude and a direction; its magnitude is written ‖v‖. This follows from: The magnitude of v = (a, b) is sqrt(a^2 + b^2)",
+          "incorrect_feedback": "That is a common misunderstanding. Re-read the material on Vector and magnitude and try again.",
+          "correct_feedback": "Correct. Vector and magnitude is exactly as stated, and the story can continue.",
+          "retry_allowed": true
+        },
+        {
+          "puzzle_id": "puzzle_story_01_c02",
+          "concept_ids": [
+            "concept_1xfqqww_02"
+          ],
+          "narrative_context": "The harbour lantern needs the right heading. To move forward, Vector addition must be applied correctly.",
+          "question": "Which statement correctly describes Vector addition?",
+          "choices": [
+            {
+              "choice_id": "choice_story_01_c02_a",
+              "text": "Adding vectors means adding their components one by one."
+            },
+            {
+              "choice_id": "choice_story_01_c02_b",
+              "text": "Adding vectors adds their lengths"
+            }
+          ],
+          "correct_choice_id": "choice_story_01_c02_a",
+          "explanation": "Adding vectors means adding their components one by one. This follows from: (a, b) + (c, d) = (a + c, b + d)",
+          "incorrect_feedback": "That is a common misunderstanding. Re-read the material on Vector addition and try again.",
+          "correct_feedback": "Correct. Vector addition is exactly as stated, and the story can continue.",
+          "retry_allowed": true
+        }
+      ],
+      "endings": [
+        {
+          "ending_id": "ending_story_01_success",
+          "type": "success",
+          "title": "The End",
+          "narration": "The conflict of \"First Light\" is settled: The story's central problem is fully resolved. The knowledge gained here will matter in what comes next.",
+          "world_state_changes": {
+            "stability": 10
+          },
+          "relationship_changes": {
+            "char_01": 10,
+            "char_02": 10
+          }
+        }
+      ],
+      "continuity_summary": {
+        "story_id": "story_01",
+        "outcome_description": "The story's central problem is fully resolved.",
+        "key_decisions": [],
+        "world_state_snapshot": {
+          "stability": 10
+        },
+        "relationship_snapshot": {
+          "char_01": 10,
+          "char_02": 10
+        }
+      },
+      "knowledge_mapping": [
+        {
+          "concept_id": "concept_1xfqqww_01",
+          "introduced_in_scene_id": "scene_story_01_c01_learning",
+          "tested_in_puzzle_id": "puzzle_story_01_c01"
+        },
+        {
+          "concept_id": "concept_1xfqqww_02",
+          "introduced_in_scene_id": "scene_story_01_c02_learning",
+          "tested_in_puzzle_id": "puzzle_story_01_c02"
+        }
+      ]
+    },
+    "meta": {
+      "provider": "google",
+      "model": "test-model",
+      "latencyMs": 1234,
+      "warnings": [
+        {
+          "code": "CONTENT_PARTIAL_FALLBACK",
+          "message": "Template text was kept for: intro.narration, puzzle:puzzle_story_01_c01, concept:concept_1xfqqww_02, ending.narration.",
+          "path": "story"
+        }
+      ]
+    }
+  }
+}

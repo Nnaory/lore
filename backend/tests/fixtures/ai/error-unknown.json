@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "error": {
+    "code": "UNKNOWN",
+    "message": "Internal server error"
+  }
+}
