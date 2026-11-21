@@ -213,7 +213,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - Delete removes the local copy first.
   - **Commits:** `feat(state): HttpRepository`, then `test(state): HttpRepository`.
 
-- [ ] **F4 — `syncCheck`** `[CI]`
+- [x] **F4 — `syncCheck`** `[CI]`
   - **Satisfies:** FR-5; design "Sync check".
   - **Files:** `frontend/src/lib/state/sync.ts`, `frontend/tests/state/sync.test.ts`.
   - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. Items in the import response's `rejected` list (invalid, or over a storage cap) are not retried within the run.
