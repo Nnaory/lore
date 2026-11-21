@@ -175,7 +175,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 2 — Caddy (PR 2)
 
-- [ ] **T12 — `request_body` limit on `/api/v1/*`** `[CI]` for validation, `[DEPLOYED]` for the effect
+- [x] **T12 — `request_body` limit on `/api/v1/*`** `[CI]` for validation, `[DEPLOYED]` for the effect
   - **Satisfies:** FR-7.1 (coarse limit that also covers chunked uploads); design "Body size limits".
   - **Files:** `deploy/web/Caddyfile` (add `request_body { max_size 5MB }` inside `handle /api/v1/*` only).
   - **Important:** `infra/compute.tf` embeds the Caddyfile in the web instance's `user_data` (`filebase64`), and `infra.yml` triggers on `deploy/**`. This change **replaces the web instance**: a few minutes of downtime, an `infra.yml` plan comment, and the `production` approval. No `terraform apply` or AWS change happens without an explicit instruction from the user. No instance size, IOPS, or retention changes, so the cost guardrails are unaffected.
