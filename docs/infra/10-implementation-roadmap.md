@@ -29,7 +29,7 @@ Status: R1–R12 selesai (2026-11-19); R13 siap berikutnya
 | R10 | RDS (`backup_retention_period=1`) dan wiring secret + Alembic | R9 | Selesai | Sekitar US$15 sampai 16 |
 | R11 | Timeout AI 5 menit (`300000`) dan audit hardening | R10 | Selesai (uji sleep 270s live & Dependabot dilewati sesuai kesepakatan) | Tidak ada |
 | R12 | Cek biaya baseline & laporan audit | R11 | Selesai (teardown destruktif dilewati atas persetujuan; biaya baseline di [07-cost-guardrails.md](./07-cost-guardrails.md)) | Tidak ada |
-| R13 | Migrasi persistensi aplikasi | R12, Q1, Q4, Q5 | Kode dan test selesai di branch (PR 1–4), belum di-merge dan belum di-deploy | Tidak ada |
+| R13 | Migrasi persistensi aplikasi | R12, Q1, Q4, Q5 | Backend dan frontend di-merge dan di-deploy (mode `idb`); apply Caddyfile menunggu approval; cutover `http` (D5) belum | Tidak ada |
 
 Angka biaya adalah perkiraan basis us-east-2 [belum diverifikasi], lihat [07-cost-guardrails.md](./07-cost-guardrails.md).
 
@@ -187,20 +187,21 @@ flowchart LR
 
 - **Tujuan.** Memindahkan penyimpanan project, story, dan campaign state dari IndexedDB ke FastAPI + PostgreSQL, dengan IndexedDB tetap sebagai cache lokal. Pipeline AI tidak termasuk (tetap di Next.js, lihat Q5).
 - **Panduan.** Spesifikasi di `.kiro/specs/r13-persistence-migration/` (`requirements.md`, `design.md`, `tasks.md`, ringkasan per task di `summaries/`). Hasil akhir diringkas di [06-app-changes.md](./06-app-changes.md) bagian 4 dan [04-database.md](./04-database.md) bagian 7-8.
-- **Status (21 Nov 2026).** Semua task kode dan test selesai dan di-push ke branch; belum ada yang di-merge ke `main` dan belum ada yang di-deploy.
+- **Status (21 Nov 2026).** PR 0 sampai 3 sudah di-merge ke `main`. Api (migrasi `7c1d9e4a52b8`) dan web (mode `idb`) sudah di-deploy. `GET /api/v1/projects` di production membalas `200 []` dan memasang cookie `lore_device`. Apply Caddyfile (PR 2) masih menunggu approval `production`, jadi batas 5 MB di Caddy belum aktif; batas per endpoint di FastAPI sudah berlaku.
 
-  | PR | Branch | Isi | Catatan saat merge |
+  | PR | Branch | Isi | Status |
   |---|---|---|---|
-  | 1 `feat(api)` | `feat/r13-api` | T0-T11: migrasi `7c1d9e4a52b8`, cookie, rate limiter, router, batas | `release-api.yml` menjalankan `migrate` lalu deploy api |
-  | 2 `feat(infra)` | `feat/r13-infra` | T12: `request_body max_size 5MB` di Caddyfile | **Mengganti instance web** (downtime singkat, butuh approval `production`) |
-  | 3 `feat(state)` | `feat/r13-state` | F1-F8: repository, `HttpRepository`, sync check, flag build | Flag tetap `idb`; perilaku pengguna tidak berubah |
-  | 4 `docs(infra)` | `feat/r13-docs` | D1: dokumen ini, Q4, Q5, roadmap | Tidak ada efek runtime |
-  | 5 `ci(release)` | belum dibuat | D5: build web dengan `NEXT_PUBLIC_PROJECT_STORE=http` | **Ini saklar ke production** |
+  | #34 `chore(kiro)` | `chore/kiro-config` | Konfigurasi Kiro, spec R13, perbaikan cache provider saat `next dev` | Di-merge; web di-deploy ulang |
+  | #35 `feat(api)` | `feat/r13-api` | T0-T11: migrasi `7c1d9e4a52b8`, cookie, rate limiter, router, batas | Di-merge; migrasi jalan, api di-deploy |
+  | #36 `feat(infra)` | `feat/r13-infra` | T12: `request_body max_size 5MB` di Caddyfile | Di-merge; **apply menunggu approval** (mengganti instance web) |
+  | #37 `feat(state)` | `feat/r13-state` | F1-F8: repository, `HttpRepository`, sync check, flag build | Di-merge; web dan api di-deploy ulang, flag tetap `idb` |
+  | PR 4 `docs(infra)` | `feat/r13-docs` | D1: dokumen ini, Q4, Q5, roadmap, steering | Dalam review |
+  | PR 5 `ci(release)` | belum dibuat | D5: build web dengan `NEXT_PUBLIC_PROJECT_STORE=http` | **Ini saklar ke production** |
 
 - **Pengujian.** Backend: pytest dengan Postgres 16 (108 test). Frontend: vitest (`tests/state/*` untuk repository, sync, mode http, banner error, dan contract test). Smoke test di lingkungan deploy (D3) dan cek perilaku Caddy (D4) dilakukan setelah PR 1 dan PR 2 di-deploy.
 - **Demo.** Setelah cutover (D5): project yang sudah ada di IndexedDB terimport otomatis saat beranda dibuka, progres tersimpan ke server, dan tetap bisa dibuka setelah IndexedDB dikosongkan.
 - **Biaya.** Tidak ada tambahan (tidak ada perubahan ukuran instance, IOPS, storage, atau retensi).
-- **Catatan.** Tiga test di `frontend/tests/ai/provider-cache.test.ts` (dari commit `85a997e` di `chore/kiro-config`) gagal karena perilaku yang diuji belum diimplementasikan; tidak terkait R13, tetapi membuat `ci/web` merah di semua branch R13 sampai diperbaiki.
+- **Catatan.** Snapshot RDS manual sebelum migrasi pertama dilewati atas keputusan pengguna (migrasinya hanya menambah tabel). Tiga test `provider-cache` yang sempat membuat `ci/web` merah sudah diperbaiki di #34.
 
 ## 4. Risiko dan mitigasi
 
