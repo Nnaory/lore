@@ -2,6 +2,11 @@
 	encode zstd gzip
 
 	handle /api/v1/* {
+		# Coarse body cap for the API (r13 T12). It also covers chunked uploads without
+		# Content-Length; FastAPI enforces tighter per-endpoint limits behind it.
+		request_body {
+			max_size 5MB
+		}
 		reverse_proxy {$API_UPSTREAM} {
 			flush_interval -1
 			transport http {
