@@ -8,13 +8,16 @@ application must not parse that header itself (the left-most entry is client-con
 
 from __future__ import annotations
 
+import enum
+import json
+import time
 import uuid
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
-from sqlalchemy import Engine, text
+from sqlalchemy import Connection, Engine, text
 
-from app.models import ProjectResponse, ProjectSummaryResponse
+from app.models import ProjectCreate, ProjectResponse, ProjectSummaryResponse
 from app.owner import get_owner_id
 from app.ratelimit import RateLimiter
 
@@ -120,6 +123,127 @@ _GET_SQL = text(
 _GET_STORIES_SQL = text("SELECT story_id, blueprint FROM project_stories WHERE project_id = :id")
 _DELETE_SQL = text("DELETE FROM projects WHERE id = :id AND owner_id = :owner_id")
 
+# Create/import upsert. The WHERE makes the update conditional on ownership and recency, so a
+# foreign or older row is left alone (no row returned). xmax = 0 marks a freshly inserted row.
+_UPSERT_PROJECT_SQL = text(
+    """
+    INSERT INTO projects (id, owner_id, created_at, updated_at, source, campaign, materials,
+                          title, genre, source_name, stories_total, stories_completed,
+                          schema_version)
+    VALUES (:id, :owner_id, :created_at, :updated_at, CAST(:source AS jsonb),
+            CAST(:campaign AS jsonb), CAST(:materials AS jsonb), :title, :genre, :source_name,
+            jsonb_array_length(CAST(:campaign AS jsonb) -> 'story_sequence'),
+            :stories_completed, 1)
+    ON CONFLICT (id) DO UPDATE
+    SET campaign = EXCLUDED.campaign,
+        materials = EXCLUDED.materials,
+        updated_at = EXCLUDED.updated_at,
+        source = EXCLUDED.source,
+        title = EXCLUDED.title,
+        genre = EXCLUDED.genre,
+        source_name = EXCLUDED.source_name,
+        stories_total = EXCLUDED.stories_total,
+        stories_completed = EXCLUDED.stories_completed
+    WHERE projects.owner_id = EXCLUDED.owner_id
+      AND projects.updated_at <= EXCLUDED.updated_at
+    RETURNING (xmax = 0) AS inserted
+    """
+)
+_OWNER_OF_SQL = text("SELECT owner_id FROM projects WHERE id = :id")
+_DELETE_STORIES_SQL = text("DELETE FROM project_stories WHERE project_id = :id")
+_INSERT_STORY_SQL = text(
+    "INSERT INTO project_stories (project_id, story_id, blueprint) "
+    "VALUES (:id, :story_id, CAST(:blueprint AS jsonb))"
+)
+# Same rule as PUT state: never overwrite newer stored progress.
+_UPSERT_STATE_SQL = text(
+    """
+    INSERT INTO project_state (project_id, campaign_state, updated_at)
+    VALUES (:id, CAST(:campaign_state AS jsonb), :updated_at)
+    ON CONFLICT (project_id) DO UPDATE
+    SET campaign_state = EXCLUDED.campaign_state, updated_at = EXCLUDED.updated_at
+    WHERE project_state.updated_at <= EXCLUDED.updated_at
+    """
+)
+
+
+class UpsertOutcome(enum.Enum):
+    INSERTED = "inserted"  # new row
+    UPDATED = "updated"  # caller's own row, incoming updated_at newer or equal
+    UNCHANGED = "unchanged"  # caller's own row, stored copy is newer (idempotent skip)
+    FOREIGN = "foreign"  # id belongs to another owner, or to a row without owner
+
+
+def _now_ms() -> int:
+    return time.time_ns() // 1_000_000
+
+
+def _dump(value: Any) -> str | None:
+    return None if value is None else json.dumps(value, ensure_ascii=False)
+
+
+def upsert_project(conn: Connection, body: ProjectCreate, owner_id: uuid.UUID) -> UpsertOutcome:
+    """Write one project, its stories and optional state inside the caller's transaction.
+
+    Returns the outcome and leaves the id in body.id. Raises nothing on a collision: the caller
+    maps FOREIGN to 409 (create) or to a skipped count (import).
+    """
+    now = _now_ms()
+    project_id = body.id or str(uuid.uuid4())
+    updated_at = body.updated_at if body.updated_at is not None else now
+    created_at = body.created_at if body.created_at is not None else updated_at
+    body.id, body.created_at, body.updated_at = project_id, created_at, updated_at
+    completed = body.campaign_state["completed_stories"] if body.campaign_state else []
+
+    row = conn.execute(
+        _UPSERT_PROJECT_SQL,
+        {
+            "id": project_id,
+            "owner_id": owner_id,
+            "created_at": created_at,
+            "updated_at": updated_at,
+            "source": _dump(body.source.model_dump()),
+            "campaign": _dump(body.campaign),
+            "materials": _dump(body.materials),
+            "title": body.campaign["title"],
+            "genre": body.campaign["genre"],
+            "source_name": body.source.file_name,
+            "stories_completed": len(completed),
+        },
+    ).first()
+
+    if row is None:
+        stored_owner = conn.execute(_OWNER_OF_SQL, {"id": project_id}).scalar_one_or_none()
+        return UpsertOutcome.UNCHANGED if stored_owner == owner_id else UpsertOutcome.FOREIGN
+
+    conn.execute(_DELETE_STORIES_SQL, {"id": project_id})
+    for story_id, blueprint in body.stories.items():
+        conn.execute(
+            _INSERT_STORY_SQL,
+            {"id": project_id, "story_id": story_id, "blueprint": _dump(blueprint)},
+        )
+    if body.campaign_state is not None:
+        conn.execute(
+            _UPSERT_STATE_SQL,
+            {
+                "id": project_id,
+                "campaign_state": _dump(body.campaign_state),
+                "updated_at": updated_at,
+            },
+        )
+    return UpsertOutcome.INSERTED if row.inserted else UpsertOutcome.UPDATED
+
+
+def _load_project(conn: Connection, project_id: str, owner_id: uuid.UUID) -> ProjectResponse | None:
+    row = conn.execute(_GET_SQL, {"id": project_id, "owner_id": owner_id}).mappings().first()
+    if row is None:
+        return None
+    stories = conn.execute(_GET_STORIES_SQL, {"id": project_id}).all()
+    return ProjectResponse(
+        **dict(row),
+        stories={story_id: blueprint for story_id, blueprint in stories},
+    )
+
 
 @router.get("", dependencies=_READ)
 def list_projects(engine: EngineDep, owner_id: OwnerDep) -> list[ProjectSummaryResponse]:
@@ -130,8 +254,24 @@ def list_projects(engine: EngineDep, owner_id: OwnerDep) -> list[ProjectSummaryR
 
 
 @router.post("", dependencies=_CREATE, status_code=status.HTTP_201_CREATED)
-def create_project(engine: EngineDep, owner_id: OwnerDep) -> None:
-    raise _not_implemented()
+def create_project(
+    body: ProjectCreate, response: Response, engine: EngineDep, owner_id: OwnerDep
+) -> ProjectResponse:
+    """201 for a new row; 200 with the stored project when the caller already owns the id."""
+    with engine.begin() as conn:
+        outcome = upsert_project(conn, body, owner_id)
+        if outcome is UpsertOutcome.FOREIGN:
+            # Raised inside the block, so the transaction rolls back. Nothing about the
+            # other owner goes into the body.
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail="project id already in use"
+            )
+        assert body.id is not None
+        project = _load_project(conn, body.id, owner_id)
+    assert project is not None
+    if outcome is not UpsertOutcome.INSERTED:
+        response.status_code = status.HTTP_200_OK
+    return project
 
 
 @router.post("/import", dependencies=_IMPORT)
@@ -143,14 +283,10 @@ def import_projects(engine: EngineDep, owner_id: OwnerDep) -> None:
 def get_project(project_id: str, engine: EngineDep, owner_id: OwnerDep) -> ProjectResponse:
     """Full project; campaign_state is returned as stored, the client's Zod decides on it."""
     with engine.connect() as conn:
-        row = conn.execute(_GET_SQL, {"id": project_id, "owner_id": owner_id}).mappings().first()
-        if row is None:
-            raise _not_found()
-        stories = conn.execute(_GET_STORIES_SQL, {"id": project_id}).all()
-    return ProjectResponse(
-        **dict(row),
-        stories={story_id: blueprint for story_id, blueprint in stories},
-    )
+        project = _load_project(conn, project_id, owner_id)
+    if project is None:
+        raise _not_found()
+    return project
 
 
 @router.delete("/{project_id}", dependencies=_WRITE, status_code=status.HTTP_204_NO_CONTENT)
