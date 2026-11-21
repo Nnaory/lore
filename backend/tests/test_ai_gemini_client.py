@@ -362,3 +362,25 @@ def test_creates_and_closes_own_async_client(monkeypatch: pytest.MonkeyPatch) ->
     assert isinstance(result, GeminiOk)
     assert len(created) == 1
     assert created[0].is_closed
+
+
+def test_key_that_is_not_a_valid_header_is_fatal_and_not_echoed() -> None:
+    # A real client (no mock) refuses to build the request, so nothing is sent.
+    bad_key = " not-a-header-key\r"
+
+    async def go() -> GeminiResult:
+        async with httpx2.AsyncClient() as client:
+            return await generate_json(
+                REQUEST, make_config(api_key=bad_key), client=client, sleep=_no_sleep
+            )
+
+    result = asyncio.run(go())
+    assert isinstance(result, GeminiFailure)
+    assert result.code == "PROVIDER_UNAVAILABLE"
+    assert len(result.detail) == 1  # fatal: no retry, no next model
+    assert "valid header value" in result.detail[0]["reason"]
+    assert "not-a-header-key" not in repr(result)
+
+
+async def _no_sleep(_seconds: float) -> None:
+    return None

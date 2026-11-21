@@ -100,3 +100,10 @@ def test_terraform_placeholder_counts_as_no_key() -> None:
     # "not ready" instead of silently using a different key.
     mixed = {"GOOGLE_API_KEY": "__SET_ME__", "GEMINI_API_KEY": "real"}
     assert gemini_config_from_env(mixed) is None
+
+
+def test_key_whitespace_is_stripped() -> None:
+    config = gemini_config_from_env({"GOOGLE_API_KEY": "  k-123\r\n"})
+    assert config is not None
+    assert config.api_key == "k-123"
+    assert gemini_config_from_env({"GOOGLE_API_KEY": "   "}) is None
