@@ -45,7 +45,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 0 — Numbers the design depends on
 
-- [ ] **T0 — Measure a real project's JSON size** `[LOCAL]`
+- [x] **T0 — Measure a real project's JSON size** `[LOCAL]`
   - **Satisfies:** FR-7.1, design "Body size limits". The "~170 KB per project" figure is an estimate from schema shapes. It has not been measured, and the 2 MB, 4 MB, 500 KB, and 50 MB limits all rest on it.
   - **How:** run the dev server with a real `GOOGLE_API_KEY` (never committed). Generate one `short` (3 chapter) and one `medium` (5 chapter) project from a real document, and one `medium` project from the largest allowed input (80,000 characters). Finish at least one story in each. In browser devtools, read the `lore` database, store `projects`, and record `new Blob([JSON.stringify(record)]).size` for the whole record, `campaign`, each story, `materials`, and `campaign_state`.
   - **Files:** `design.md` (replace the "~170 KB" estimate with the measured table), `requirements.md` FR-7 if a limit changes.
@@ -55,7 +55,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Phase 1 — Backend (PR 1; flag stays `idb`)
 
-- [ ] **T1 — Alembic migration** `[PG]`
+- [x] **T1 — Alembic migration** `[PG]`
   - **Satisfies:** FR-1.1–1.5, NFR-1.3; design "Data model (SQL DDL)".
   - **Files:** `backend/alembic/versions/<rev>_r13_persistence.py` (`down_revision = "4ee36ac0a0f8"`, hand-written SQL, additive only, a real `downgrade`), `backend/tests/test_projects_migration.py`, `backend/tests/test_db.py`.
   - **Test:**
@@ -65,7 +65,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - `test_live_postgres_alembic_upgrade_and_downgrade` in `tests/test_db.py` currently asserts that the head revision equals `4ee36ac0a0f8`. It must be updated to the new head (read it from Alembic's `ScriptDirectory` rather than hard-coding it).
   - **Commits:** `feat(db): add projects, project_stories and project_state tables`, then `test(db): cover the r13 migration and update the expected head`. The first commit leaves `test_db.py` red until the second.
 
-- [ ] **T2 — Device-token middleware** `[CI]` **tests first**
+- [x] **T2 — Device-token middleware** `[CI]` **tests first**
   - **Satisfies:** FR-2 "Owner filtering" and "Device token cookie", OQ-1; design "Device token middleware".
   - **Files:** `backend/tests/test_owner.py`, then `backend/app/owner.py` (middleware plus `get_owner_id` dependency).
   - **Test:** build a small app in the test with the middleware and a throwaway route under `/api/v1/projects/` that can raise `HTTPException`.
@@ -78,7 +78,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - An unhandled exception is **not** asserted to carry a cookie. Starlette builds that 500 outside user middleware (see the note in design.md).
   - **Commits:** `test(api): device token middleware`, then `feat(api): device token middleware`.
 
-- [ ] **T3 — Envelope models and validators** `[CI]`
+- [x] **T3 — Envelope models and validators** `[CI]`
   - **Satisfies:** FR-1.6, NFR-3.3; design "Pydantic envelope models + NOT NULL validation".
   - **Files:** `backend/app/models.py`, `backend/tests/test_models.py`, `backend/tests/fixtures/project.json` (one shared fixture, generated once from the frontend's `linear-story` fixture and committed; the provenance goes in a one-line comment in the test).
   - **Test:**
@@ -89,7 +89,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - `campaign`, `stories`, `campaign_state`, and `materials` round-trip as equal dicts, so nothing is truncated or reordered.
   - **Commits:** `feat(api): project envelope models`, then `test(api): project envelope models`.
 
-- [ ] **T4 — Rate limiter** `[CI]` **tests first**
+- [x] **T4 — Rate limiter** `[CI]` **tests first**
   - **Satisfies:** FR-7.2; design "Rate limiting".
   - **Files:** `backend/tests/test_ratelimit.py`, then `backend/app/ratelimit.py`.
   - **Test** (injected monotonic and wall clocks):
@@ -102,14 +102,14 @@ The Kiroween deadline date used in planning has not been checked against the off
     - Several threads calling at once never admit more than the limit.
   - **Commits:** `test(api): rate limiter behaviour`, then `feat(api): in-memory rate limiter`.
 
-- [ ] **T5 — Router skeleton and wiring** `[CI]`
+- [x] **T5 — Router skeleton and wiring** `[CI]`
   - **Satisfies:** FR-2 (routing, owner dependency), FR-7.2 (limit order); design "FastAPI router".
   - **Files:** `backend/app/projects.py` (router, engine dependency, limiter dependencies), `backend/app/main.py` (register the middleware, include the router, keep one `RateLimiter` on `app.state` so tests can inject clocks), `backend/tests/test_projects_wiring.py`.
   - **Behavior:** the client address is `request.client.host`. Do not parse `X-Forwarded-For` in application code. Limit order is per-IP, then per-owner (or import), then the daily quota. A refused limit returns `429` with `Retry-After: 60`.
   - **Test:** without a configured DB every route returns `503`. A fake limiter shows the order of checks and the `429` plus `Retry-After`. The existing `/health*` and `/api/v1/health` tests stay green.
   - **Commits:** `feat(api): projects router skeleton and rate-limit wiring`, then `test(api): projects router wiring`.
 
-- [ ] **T6 — Ownership and isolation tests** `[PG]` **tests first**
+- [x] **T6 — Ownership and isolation tests** `[PG]` **tests first**
   - **Satisfies:** FR-2 "Owner filtering", endpoints 2–6, AC 11, review items on cross-owner access and id collisions.
   - **Files:** `backend/tests/test_projects_ownership.py`. These tests are red until T7–T10.
   - **Test** (two clients with different cookies, A and B):
@@ -122,16 +122,16 @@ The Kiroween deadline date used in planning has not been checked against the off
     - A row with `owner_id IS NULL` is invisible to everyone, and a create with its id returns 409.
   - **Commit:** `test(api): owner isolation and ownership-first behaviour`.
 
-- [ ] **T7 — List, get, delete** `[PG]`
+- [x] **T7 — List, get, delete** `[PG]`
   - **Satisfies:** FR-2 endpoints 1, 3, 4; NFR-2.1; design "Get", "Delete".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py` (CRUD portion).
   - **Test:** list order is `updated_at` descending. The list query selects only summary columns (capture SQL with a SQLAlchemy event listener and assert `campaign` and `blueprint` are absent). `GET` assembles `stories` from `project_stories` and returns `campaign_state` as stored. `DELETE` cascades. T6 cases for these three endpoints turn green.
   - **Commits:** `feat(api): list, get and delete projects`, then `test(api): list, get and delete projects`.
 
-- [ ] **T8 — Create** `[PG]`
+- [x] **T8 — Create** `[PG]`
   - **Satisfies:** FR-2 endpoint 2, FR-1.6; design "Create / import: id collision handling".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
-  - **Behavior:** one transaction runs the project upsert (`ON CONFLICT (id) DO UPDATE ... WHERE owner_id = EXCLUDED.owner_id AND updated_at <= EXCLUDED.updated_at`), the story replacement, and, when `campaign_state` is present, the `project_state` upsert. `stories_completed` comes from the state. A foreign id gives 409.
+  - **Behavior:** one transaction runs the project upsert (`ON CONFLICT (id) DO UPDATE ... WHERE owner_id = EXCLUDED.owner_id AND updated_at < EXCLUDED.updated_at`), the story replacement, and, when `campaign_state` is present, the `project_state` upsert. `stories_completed` is derived from the stored state afterwards. A foreign id gives 409. (Revised 20 Nov 2026: `<` instead of `<=`, and `stories_completed` from the stored state instead of the request.)
   - **Test:**
     - create then get round-trips every opaque field, including nested and non-ASCII values.
     - A create with `campaign_state` is returned by get, and `stories_completed` appears in the list.
@@ -142,14 +142,14 @@ The Kiroween deadline date used in planning has not been checked against the off
     - **Atomicity:** force the story insert to fail and assert the project row was rolled back.
   - **Commits:** `feat(api): create project`, then `test(api): create project`.
 
-- [ ] **T9 — Save state** `[PG]`
+- [x] **T9 — Save state** `[PG]`
   - **Satisfies:** FR-2 endpoint 5, FR-4.2, review items on ownership-first and atomic conflict detection; design "Put state".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
   - **Behavior:** check ownership first (404). Then run a single `INSERT ... ON CONFLICT (project_id) DO UPDATE ... WHERE project_state.updated_at <= EXCLUDED.updated_at` and read the row count. A row count of 1 updates `projects.stories_completed` and `updated_at` in the same transaction. A row count of 0 returns 409 with `stored_updated_at` and leaves `projects` untouched.
   - **Test:** the first save creates the row. Equal `updated_at` is accepted. A stale one gives 409 with the stored value and writes nothing. A missing or non-array `completed_stories` gives 422. **Race:** two requests with different `updated_at` sent from two connections end with the newer state stored, whichever arrives first.
   - **Commits:** `feat(api): save campaign state with atomic conflict check`, then `test(api): save campaign state`.
 
-- [ ] **T10 — Import** `[PG]`
+- [x] **T10 — Import** `[PG]`
   - **Satisfies:** FR-2 endpoint 6, FR-5.3, AC 5; design "Create / import".
   - **Files:** `backend/app/projects.py`, `backend/tests/test_projects.py`.
   - **Test:**
@@ -161,7 +161,7 @@ The Kiroween deadline date used in planning has not been checked against the off
     - The behavior for an invalid item is the one chosen in "Open details", item 2.
   - **Commits:** `feat(api): import projects with campaign state`, then `test(api): import projects`.
 
-- [ ] **T11 — Size limits, storage caps, daily quota** `[PG]`
+- [x] **T11 — Size limits, storage caps, daily quota** `[PG]`
   - **Satisfies:** FR-7.1, FR-7.3, AC 10; design "Body size limits", "Storage caps".
   - **Files:** `backend/app/projects.py` (body-cap dependency, cap queries), `backend/tests/test_projects_limits.py`. Limits are constants on a small settings object, overridable in tests.
   - **Test:**
@@ -216,7 +216,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 - [ ] **F4 — `syncCheck`** `[CI]`
   - **Satisfies:** FR-5; design "Sync check".
   - **Files:** `frontend/src/lib/state/sync.ts`, `frontend/tests/state/sync.test.ts`.
-  - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. A `422` (a cap) is not retried within the run.
+  - **Behavior:** one run at a time (a module-level in-flight promise, so repeated effects under `cacheComponents` cannot overlap). Unsynced projects are batched **by serialized size, at most 4 MB per request**, never one request per project, so the 5 requests per minute import limit is not hit. A `429` stops the run until the next load. Items in the import response's `rejected` list (invalid, or over a storage cap) are not retried within the run.
   - **Test:** a project missing on the server is imported with its `campaign_state` in the body. Several small projects go in one request, and projects totalling more than 4 MB split into several. A newer local copy triggers one PUT. A newer or equal server copy triggers nothing. An empty IndexedDB makes no request. Offline does nothing and does not throw. **Cleared cookies:** an empty server list re-imports everything. Concurrent calls share one run.
   - **Commits:** `feat(state): sync local projects to the server`, then `test(state): sync local projects to the server`.
 
@@ -296,7 +296,7 @@ The Kiroween deadline date used in planning has not been checked against the off
 
 ## Open details to settle before the task that needs them
 
-1. **T8, idempotent create.** `POST /projects` with an id the caller already owns, and an older `updated_at`: the design says "skip" but not the response. Proposed: `200` with the stored project (and `201` only for a new row).
-2. **T10, one invalid item in an import batch.** The design validates the whole `ImportRequest`, so one bad project returns 422 for the batch and blocks every other project in it, on every load. Proposed: validate each item on its own, skip invalid ones, and return them in a `rejected` list next to `imported` and `skipped`. This changes `ImportRequest` in design.md and FR-2 endpoint 6.
+1. **T8, idempotent create.** `POST /projects` with an id the caller already owns, and an older `updated_at`: the design says "skip" but not the response. Proposed: `200` with the stored project (and `201` only for a new row). **Decided (user, 20 Nov 2026): as proposed.** A same-owner re-post that replaces the row also returns `200`.
+2. **T10, one invalid item in an import batch.** The design validates the whole `ImportRequest`, so one bad project returns 422 for the batch and blocks every other project in it, on every load. Proposed: validate each item on its own, skip invalid ones, and return them in a `rejected` list next to `imported` and `skipped`. This changes `ImportRequest` in design.md and FR-2 endpoint 6. **Decided (user, 20 Nov 2026): as proposed.** design.md and FR-2 endpoint 6 were updated in the T10 code commit.
 3. **F3, write-through on server reads.** Design.md does not say whether `loadProject` and `listProjects` copy server data into IndexedDB. Proposed: no (YAGNI), with the consequence that a rollback to `idb` mode hides projects that exist only on the server. The data stays on the server and is not lost.
 4. **PR 1 size.** T1–T11 is one large backend PR. It can be split after T4 (foundation: migration, owner, models, limiter) and T11 (router) if review load is a concern.

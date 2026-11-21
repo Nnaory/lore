@@ -254,11 +254,19 @@ class CampaignStateUpdate(BaseModel):
         return state
 
 class ImportRequest(BaseModel):
-    projects: list[ProjectCreate]
+    # Items are validated one by one in the endpoint (decision on "Open details" item 2):
+    # one invalid project is reported in `rejected` instead of failing the batch with 422.
+    projects: list[Any]
+
+class ImportRejection(BaseModel):
+    index: int             # position in the request's `projects` array
+    id: str | None = None  # the item's id, when it had a string id
+    error: str             # validation messages, the storage-cap message, or "invalid data"
 
 class ImportResponse(BaseModel):
-    imported: int
-    skipped: int
+    imported: int   # rows written: new, or the caller's own row replaced by a strictly newer copy
+    skipped: int    # not written: stored copy newer or same version, or id of another owner
+    rejected: list[ImportRejection] = []  # invalid, over a storage cap, or refused by the DB
 
 class StateConflictResponse(BaseModel):
     detail: str
@@ -289,7 +297,7 @@ The id is a global PK chosen by the client. `INSERT ... ON CONFLICT (id) DO UPDA
 INSERT INTO projects (id, owner_id, created_at, updated_at, source, campaign, materials,
                       title, genre, source_name, stories_total, stories_completed, schema_version)
 VALUES (:id, :owner_id, :created_at, :updated_at, :source, :campaign, :materials,
-        :title, :genre, :source_name, :stories_total, :stories_completed, 1)
+        :title, :genre, :source_name, :stories_total, 0, 1)
 ON CONFLICT (id) DO UPDATE
 SET campaign = EXCLUDED.campaign,
     materials = EXCLUDED.materials,
@@ -298,17 +306,24 @@ SET campaign = EXCLUDED.campaign,
     title = EXCLUDED.title,
     genre = EXCLUDED.genre,
     source_name = EXCLUDED.source_name,
-    stories_total = EXCLUDED.stories_total,
-    stories_completed = EXCLUDED.stories_completed
+    stories_total = EXCLUDED.stories_total
 WHERE projects.owner_id = EXCLUDED.owner_id
-  AND projects.updated_at <= EXCLUDED.updated_at
+  AND projects.updated_at < EXCLUDED.updated_at
 ```
 
-`:stories_completed` is computed in Python: `len(body.campaign_state.get("completed_stories", [])) if body.campaign_state else 0`. This preserves player progress on import — without it, `stories_completed` is always 0 and `campaign_state` is lost.
+Only a strictly newer copy replaces the row. An equal `updated_at` is the same version, so it is left alone and counted as skipped; this makes a repeated import a true no-op (revised 20 Nov 2026; the first draft used `<=`).
 
-- `rowcount = 1`: either a new INSERT or an UPDATE of the caller's own project (newer `updated_at`).
-- `rowcount = 0`: the row exists but either (a) same owner with older `updated_at` (idempotent skip) or (b) different owner (id collision). To distinguish, `SELECT owner_id FROM projects WHERE id = :id`:
-  - Same owner → skip (idempotent, older version).
+`stories_completed` is not taken from the request. After the state step below, it is derived from whatever state is stored, so the list's progress count always matches `project_state` (revised 20 Nov 2026: copying it from the request set it to 0 on a re-post without `campaign_state`, while the stored progress remained):
+```sql
+UPDATE projects SET stories_completed = coalesce(
+    (SELECT jsonb_array_length(campaign_state -> 'completed_stories')
+     FROM project_state WHERE project_id = :id), 0)
+WHERE id = :id
+```
+
+- `rowcount = 1`: either a new INSERT or an UPDATE of the caller's own project (strictly newer `updated_at`).
+- `rowcount = 0`: the row exists but either (a) same owner with an older or equal `updated_at` (idempotent skip) or (b) different owner (id collision). To distinguish, `SELECT owner_id FROM projects WHERE id = :id`:
+  - Same owner → skip (idempotent, older or same version).
   - Different owner → `409 Conflict` (create endpoint) or count as `skipped` (import endpoint).
 
 After the project row, insert stories and — if `campaign_state` is present — upsert `project_state`, all in the same transaction:
@@ -372,9 +387,12 @@ WHERE project_state.updated_at <= EXCLUDED.updated_at
 -- Step 3a (success): update denormalized fields on projects
 UPDATE projects SET
     stories_completed = jsonb_array_length(:state->'completed_stories'),
-    updated_at = :client_updated_at
+    updated_at = GREATEST(updated_at, :client_updated_at)
 WHERE id = :id AND owner_id = :owner_id
 -- Commit, return 200 with { updated_at: client_updated_at }
+-- GREATEST (revised 20 Nov 2026): projects.updated_at orders the list and feeds the client's
+-- sync check, so it must never move backwards, e.g. when a first state save carries an older
+-- timestamp than the project itself.
 
 -- Step 3b (conflict): get stored updated_at for the 409 response
 SELECT updated_at FROM project_state WHERE project_id = :id
@@ -511,10 +529,26 @@ handle /api/v1/* {
 
 | Endpoint | Limit | Rationale |
 |---|---|---|
-| `POST /projects` | 2 MB | Typical full project ~170 KB (estimated from schema field sizes and typical content lengths; should be verified during implementation by logging `JSON.stringify(project).length` in a test). 2 MB is ~12× headroom. |
-| `POST /import` | 5 MB | Client batches by byte size, not count: max 4 MB per request (1 MB headroom under Caddy's 5 MB). At ~170 KB per project, that is ~23 projects per batch. No hard count cap — size is the binding constraint. |
-| `PUT /state` | 500 KB | CampaignState ~10 KB; 500 KB is ~50× headroom. |
+| `POST /projects` | 2 MB | Measured largest project 41.7 KB (T0 below); 2 MB is ~48× headroom. |
+| `POST /import` | 5 MB | Client batches by byte size, not count: max 4 MB per request (1 MB headroom under Caddy's 5 MB). At the measured 25–42 KB per project, that is ~95–155 projects per batch. No hard count cap — size is the binding constraint. |
+| `PUT /state` | 500 KB | Measured CampaignState after one finished story: 1.3–1.9 KB (body ≤ 2 KB); 500 KB is ~250× headroom and leaves room for state that grows over many stories. |
 
+**T0 measurement (20 Nov 2026, Gemini, models `gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.5-flash`).**
+Script: `t0/measure-project-size.test.ts` in this spec folder. It runs the staged pipeline of `/create` (analyze → plan → stories with `previousSummaries`) through the real route handlers, builds the record like `createProject` + `saveCampaignState`, plays story 1 with the `StoryViewer` recipe (puzzles correct, good ending), and measures with `new Blob([JSON.stringify(x)]).size`. It reproduces the IndexedDB record in-process instead of reading it in browser devtools; IndexedDB stores the same object.
+
+| Input (real repo documents) | Input chars | Concepts / stories / chapters | Record | campaign | stories | materials | campaign_state | PUT state body |
+|---|---|---|---|---|---|---|---|---|
+| short, `docs/DOCS.md` | 22,197 | 3 / 1 / 3 | 27,325 B | 2,379 B | 17,663 B | 5,742 B | 1,338 B | 1,384 B |
+| medium, `docs/DESIGN.md` | 12,542 | 5 / 1 / 5 | 41,681 B | 2,200 B | 29,960 B | 7,407 B | 1,909 B | 1,955 B |
+| medium, `docs/infra/*.md` cut at 80,000 (largest input) | 80,000 | 3 / 1 / 3 | 25,261 B | 2,497 B | 16,497 B | 4,733 B | 1,325 B | 1,371 B |
+
+Findings:
+- A project is about 25–42 KB, a quarter of the ~170 KB estimate. Size follows the number of concepts (one chapter per concept), not the input length: the 80,000-char input produced the smallest record because the model returned 3 concepts for `medium`.
+- Every campaign had one story, so finishing story 1 completes the campaign; `campaign_state` is its final size for these projects.
+- T0's thresholds (medium > 1 MB, largest > 2 MB) are far from reached, so **all limits stay as they are**. Per owner, 100 projects × 42 KB ≈ 4.2 MB, well under the 50 MB cap.
+- One sample per case and one provider; a model that writes longer scenes would grow the stories part, which is ~70% of the record.
+
+A dummy-provider run gave ~8.1 KB for every input (1 concept, 1 story, 1 chapter); it is not representative.
 Oversized → `413 Payload Too Large`.
 
 ## Frontend design
@@ -816,7 +850,7 @@ async function sendImportBatch(projects: Project[]): Promise<void> {
 
 If the user clears cookies, they get a new owner_id. The server list is empty (new owner). All IndexedDB projects are "not on server" → imported. No flag to interfere.
 
-**Batching:** imports are batched by byte size (max 4 MB per request) to stay under Caddy's 5 MB limit. At ~170 KB per project, each batch holds ~23 projects. State syncs are sent individually (PUT per project) — they are small and infrequent.
+**Batching:** imports are batched by byte size (max 4 MB per request) to stay under Caddy's 5 MB limit. At the measured 25–42 KB per project (T0), each batch holds ~95–155 projects. State syncs are sent individually (PUT per project) — they are small and infrequent.
 
 ### project-store.ts delegation
 

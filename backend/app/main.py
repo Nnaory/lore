@@ -10,6 +10,9 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import Engine
 
 from app.db import check_db_health, create_db_engine
+from app.owner import device_token_middleware
+from app.projects import router as projects_router
+from app.ratelimit import RateLimiter
 
 _ENGINE_UNSET = object()
 
@@ -50,6 +53,8 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
     """Build and configure the FastAPI application instance."""
     application = FastAPI(title="LORE API", version="0.1.0", lifespan=_lifespan)
     application.state.db_engine = db_engine
+    application.state.rate_limiter = RateLimiter()
+    application.middleware("http")(device_token_middleware)
 
     @application.get("/health", include_in_schema=False)
     def health() -> JSONResponse:
@@ -76,6 +81,8 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
     def api_health() -> JSONResponse:
         """Public liveness probe routed behind Caddy."""
         return _no_store_json({"status": "ok"}, status.HTTP_200_OK)
+
+    application.include_router(projects_router)
 
     return application
 
