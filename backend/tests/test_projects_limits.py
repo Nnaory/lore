@@ -154,14 +154,20 @@ def test_global_cap_is_422(app: FastAPI, engine: Engine, client: TestClient) -> 
     assert "server project limit" in response.json()["detail"]
 
 
-def test_import_stops_with_422_at_the_cap_and_keeps_earlier_items(
+def test_import_rejects_items_over_the_cap_and_processes_the_rest(
     app: FastAPI, engine: Engine, client: TestClient
 ) -> None:
     app.state.limits = Limits(owner_max_projects=2)
-    batch = {"projects": [_payload("p_1"), _payload("p_2"), _payload("p_3")]}
+    assert client.post(BASE, json=_payload("p_1")).status_code == 201
+    newer_own = _payload("p_1")
+    newer_own["updated_at"] += 1
+    batch = {"projects": [_payload("p_2"), _payload("p_3"), newer_own, _payload("p_4")]}
     response = client.post(f"{BASE}/import", json=batch)
-    assert response.status_code == 422
-    assert "project limit" in response.json()["detail"]
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["imported"], body["skipped"]) == (2, 0)  # p_2 and the newer p_1
+    assert [(r["index"], r["id"]) for r in body["rejected"]] == [(1, "p_3"), (3, "p_4")]
+    assert all("project limit" in r["error"] for r in body["rejected"])
     assert {p["id"] for p in client.get(BASE).json()} == {"p_1", "p_2"}
 
 

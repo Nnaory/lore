@@ -352,8 +352,8 @@ def test_second_identical_import_changes_nothing(client: TestClient) -> None:
     _import(client, body)
     before = _snapshot(client)
     result = _import(client, body)
-    # Equal updated_at rewrites the same data (design uses <=), so it counts as imported.
-    assert result == {"imported": 1, "skipped": 0, "rejected": []}
+    # Equal updated_at is the same version: not rewritten, counted as skipped.
+    assert result == {"imported": 0, "skipped": 1, "rejected": []}
     assert _snapshot(client) == before
 
 
@@ -406,3 +406,49 @@ def test_mixed_batch_counts_and_rejects_invalid_items(engine: Engine, client: Te
     ids = {p["id"] for p in client.get(BASE).json()}
     assert ids == {"p_mine", "p_new_1", "p_new_2"}
     assert client.get(f"{BASE}/p_mine").json()["updated_at"] == 5000
+
+
+# ---------------------------------------------------------------- consistency fixes
+
+
+def test_newer_repost_without_state_keeps_the_progress_count(client: TestClient) -> None:
+    body = _create_payload(updated_at=5000)
+    client.post(BASE, json=body)
+    newer = _create_payload(updated_at=6000)
+    newer["campaign_state"] = None
+    assert client.post(BASE, json=newer).status_code == 200
+    assert client.get(BASE).json()[0]["stories_completed"] == 1
+    assert client.get(f"{BASE}/{body['id']}").json()["campaign_state"] == body["campaign_state"]
+
+
+def test_progress_count_follows_the_stored_state_after_a_newer_save(client: TestClient) -> None:
+    body = _create_payload(updated_at=5000)
+    client.post(BASE, json=body)
+    state = {**body["campaign_state"], "completed_stories": ["story_01", "story_02"]}
+    client.put(f"{BASE}/{body['id']}/state", json={"campaign_state": state, "updated_at": 7000})
+    newer = _create_payload(updated_at=8000)
+    newer["campaign_state"] = None
+    client.post(BASE, json=newer)
+    assert client.get(BASE).json()[0]["stories_completed"] == 2
+
+
+def test_equal_updated_at_repost_returns_200_and_changes_nothing(client: TestClient) -> None:
+    stored = client.post(BASE, json=_create_payload(updated_at=5000)).json()
+    same = _create_payload(updated_at=5000)
+    same["campaign"]["title"] = "Same version, other title"
+    response = client.post(BASE, json=same)
+    assert response.status_code == 200
+    assert response.json() == stored
+
+
+def test_older_first_state_save_does_not_move_project_updated_at_back(
+    engine: Engine, client: TestClient
+) -> None:
+    insert_project(engine, "p1", OWNER, updated_at=5000)
+    body = {"campaign_state": _state("s1"), "updated_at": 3000}
+    response = client.put(f"{BASE}/p1/state", json=body)
+    assert response.status_code == 200
+    assert response.json() == {"updated_at": 3000}
+    summary = client.get(BASE).json()[0]
+    assert (summary["updated_at"], summary["stories_completed"]) == (5000, 1)
+    assert _stored_state(engine, "p1") == (body["campaign_state"], 3000)
