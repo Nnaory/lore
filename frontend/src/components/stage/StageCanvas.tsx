@@ -89,12 +89,11 @@ export function StageCanvas({ scene, sceneKey, pacing, children, playerRef, bare
     <div
       data-testid="stage-canvas"
       data-canvas-kind={scene.kind}
-      className={bare ? "relative mx-auto overflow-hidden" : "relative mx-auto overflow-hidden rounded-panel"}
+      className={bare ? "relative mx-auto overflow-hidden" : "relative mx-auto overflow-hidden border border-smoke"}
       style={{
         aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
         // Fill the width, but never overflow the height of a size container.
         width: `min(100%, calc(100cqh * ${CANVAS_WIDTH} / ${CANVAS_HEIGHT}))`,
-        ...(bare ? {} : { border: "1px solid var(--glass-edge)", boxShadow: "var(--glass-shadow)" }),
       }}
     >
       {isClient ? (
@@ -121,7 +120,7 @@ export function StageCanvas({ scene, sceneKey, pacing, children, playerRef, bare
         acknowledgeRemotionLicense
       />
       ) : (
-        <div className="absolute inset-0" style={{ backgroundColor: bare ? "var(--color-ink)" : "var(--background)" }} aria-hidden="true" />
+        <div className="absolute inset-0 bg-ink" aria-hidden="true" />
       )}
       {children && <div className="absolute inset-0">{children}</div>}
     </div>

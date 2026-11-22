@@ -353,6 +353,45 @@ describe("StoryViewer — exit functionality", () => {
     fireEvent.click(dialog.querySelector("button:first-of-type")!); // Cancel
     expect(onExit).not.toHaveBeenCalled();
   });
+
+  it("places initial focus on Cancel in exit-confirm-dialog and closes on Escape (task 15.3)", () => {
+    const onExit = vi.fn();
+    const view = render(
+      <StoryViewer story={linearStory} characters={characters} onExit={onExit} />
+    );
+
+    fireEvent.click(view.getByTestId("sidebar-exit-button"));
+    const dialog = view.getByTestId("exit-confirm-dialog");
+    expect(dialog.getAttribute("role")).toBe("dialog");
+    expect(dialog.getAttribute("aria-modal")).toBe("true");
+    expect(dialog.getAttribute("aria-labelledby")).toBe("exit-confirm-title");
+
+    const cancelBtn = view.getByTestId("exit-confirm-cancel");
+    expect(document.activeElement).toBe(cancelBtn);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(view.queryByTestId("exit-confirm-dialog")).toBeNull();
+    expect(onExit).not.toHaveBeenCalled();
+  });
+
+  it("renders story-viewer-error with role=alert and ErrorLine on navigation failure (task 15.3)", () => {
+    const badStory: StoryBlueprint = JSON.parse(JSON.stringify(linearStory));
+    const firstScene = badStory.chapters[0].scenes[0] as Extract<Scene, { type: "narrative" }>;
+    firstScene.next_scene_id = "scene_MISSING";
+
+    const view = render(<StoryViewer story={badStory} characters={characters} />);
+    for (let i = 0; i < 10; i++) {
+      if (view.queryByTestId("story-viewer-error")) break;
+      clickToAdvance(view);
+    }
+
+    const err = view.getByTestId("story-viewer-error");
+    expect(err.getAttribute("role")).toBe("alert");
+    expect(err.getAttribute("aria-live")).toBe("assertive");
+    expect(err.textContent).toContain("Navigation Error");
+    expect(err.textContent).toContain("ERROR");
+    expect(err.textContent).toContain("scene_MISSING");
+  });
 });
 
 // ── 11. Right sidebar progress ───────────────────────────────────────────────

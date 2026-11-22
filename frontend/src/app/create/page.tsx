@@ -154,8 +154,7 @@ export default function CreatePage() {
         <div
           role="alert"
           data-testid="create-save-error"
-          className="fixed top-0 inset-x-0 z-[60] px-4 py-2 text-xs text-center"
-          style={{ backgroundColor: "var(--danger-bg)", color: "var(--danger)" }}
+          className="fixed inset-x-0 top-0 z-[60] flex min-h-[44px] items-center justify-center bg-ember px-4 py-2 text-center font-mono text-[12px] font-bold text-ink"
         >
           {built.saveError} This story will be lost when you leave the page.
         </div>

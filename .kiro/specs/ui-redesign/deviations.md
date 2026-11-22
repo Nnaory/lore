@@ -461,3 +461,218 @@ Ringkasan penyimpangan untuk task 19 (lima tokoh Kit di backend campaign planner
 - Golden: 40/40.
 - Build: berhasil.
 - Smoke AI: tidak dijalankan (tidak ada key).
+
+## Task 10
+
+Ringkasan penyimpangan untuk task 10 (CampaignPlayer). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Pembungkus cabang
+- Tiga cabang (`CampaignSummary`, `CampaignLobby`, `StoryViewer` dengan `key={activeStory.story_id}`) dipertahankan tanpa teks atau elemen UI tambahan.
+- Cabang `CampaignLobby` dan `CampaignSummary` dibungkus dalam `<div className="lore-grid-lines min-h-dvh overflow-y-auto">`.
+- Cabang `StoryViewer` dirender langsung karena `ScaledBoard` di dalamnya sudah mengisi viewport (`fixed inset-0`), menggantikan pembungkus `h-screen overflow-hidden` lama.
+
+### Test
+- Semua test yang sudah ada di `tests/campaign/campaign-player.test.tsx` tetap utuh.
+- Ditambahkan 2 test pemilihan cabang di `tests/campaign/campaign-player.test.tsx` (render lobby dan summary di dalam wadah `min-h-dvh` `lore-grid-lines`, serta remount `StoryViewer`).
+
+### Hasil 10.4
+- Lint 0, `tsc` ok, Vitest 79 file / 898 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: stage mengisi viewport via `ScaledBoard`, lobby di dalam wadah `min-h-dvh` `lore-grid-lines` (kolom 680px di desktop, penuh 390px di phone), dan backdrop labu beranimasi aktif.
+
+### Penyimpangan
+1. Wadah lobby dan summary memakai `lore-grid-lines` (garis grid 24px tanpa isi `ink` opak) sebagai ganti `lore-grid-bg` di teks rancangan 6.5, mengikuti keputusan user bahwa permukaan layar transparan agar `PumpkinBackdrop` beranimasi tetap terlihat.
+
+## Task 11
+
+Ringkasan penyimpangan untuk task 11 (CampaignSummary). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Layout CampaignSummary (Pola K)
+- Kolom 680px transparan (`max-w-[680px]`, padding 20px di phone), baris atas 44px desktop / 56px phone dengan `LORE`, eyebrow `EPILOGUE`, H1 judul kampanye.
+- Epilog per cerita (`epilogue-<id>`): judul ending 17/700 `gold`, narasi paragraf `muted` tanpa miring.
+- Evaluasi pembelajaran (`learning-evaluation`): `SectionLabel` `01 WHAT YOU LEARNED`, `evaluation-headline`, daftar konsep (`concept-result-<id>`, `data-outcome`) dipisah garis 1px `smoke` dengan penanda `●` (`gold`), `◐` (`cream`), `○` (`ember`), `·` (`muted`), serta `Recap:` dan `Watch out for:` untuk `developing` dan `practice`.
+- Tombol bawah memakai `Button` (`Back to your stories` primer 48px/52px, `Create a new story` outline 44px, `Campaign lobby` outline 44px).
+
+### Test
+- Semua test lama di `tests/campaign/campaign-summary.test.tsx` dipertahankan tanpa ubahan asersi.
+- Ditambahkan 2 test komponen di `tests/campaign/campaign-summary.test.tsx` untuk keempat status konsep (`mastered`, `developing`, `practice`, `unseen`) dan kalimat kosong `"No concepts were tested in this campaign."`.
+
+### Hasil 11.4
+- Lint 0, `tsc` ok, Vitest 79 file / 900 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: kolom 680px di x=380 (desktop) dan 390px penuh (phone), tombol primer 48px (desktop) / 52px (phone) dan outline 44px, backdrop labu beranimasi terlihat di belakang permukaan transparan.
+
+### Penyimpangan
+Tidak ada.
+
+## Task 12
+
+Ringkasan penyimpangan untuk task 12 (EndingDisplay). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Layout EndingDisplay (Pola P)
+- Panel `ending-display` (`role="region"`, `aria-label="Story ending: {title}"`): border 2px `smoke`, latar `ink`, lebar maks 720px di desktop dan 366px di phone, tinggi maks 600px dengan `overflow-y-auto`.
+- Badge tipe ending (`ending-type-badge`) memakai `StatusBadge`: `success` → `Success` (`done`), `failure` → `Failed` (`locked`), `partial_success` → `Partial Success` (`available`).
+- Judul H2 display 700 20px (desktop) / 18px (phone) `gold`, garis pemisah 1px `smoke`, narasi 15px/1.5 `muted` rata tengah (`whitespace-pre-line` agar jeda baris narasi tetap terjaga).
+
+### Test
+- Semua test lama tetap lulus tanpa ubahan asersi.
+- Baru: `tests/story/ending-display.test.tsx` (4 test untuk tiga varian badge, `role="region"`, `aria-label`, dan panel scroll).
+
+### Hasil 12.4
+- Lint 0, `tsc` ok, Vitest 80 file / 904 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: panel ending tampil di atas Stage dengan `StatusBadge` `done`.
+
+### Penyimpangan
+Tidak ada.
+
+## Task 13
+
+Ringkasan penyimpangan untuk task 13 (StoryComplete). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Layout StoryComplete (Pola P)
+- Panel `story-complete-screen` (`role="region"`, `aria-label="Story complete: {title}"` / `"Campaign complete: {title}"`): border 2px `smoke`, latar `ink`, lebar maks 720px di desktop dan 366px di phone.
+- Badge `Story Complete` atau `Campaign Complete` (`StatusBadge` `done`), judul `story-complete-title` (17/700 `cream`), pesan (`campaign-complete-message` saat kampanye selesai).
+- Tombol memakai `Button`: `view-results-button` (primer), `continue-campaign-button` (primer), dan `exit-button` (outline), lebar penuh di phone dan 320px di desktop.
+
+### Test
+- Semua test lama tetap lulus tanpa ubahan asersi.
+- Baru: `tests/story/story-complete.test.tsx` (2 test untuk kondisi kampanye belum selesai dan sudah selesai).
+
+### Hasil 13.4
+- Lint 0, `tsc` ok, Vitest 81 file / 906 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: panel penyelesaian cerita dan tombol 320px (desktop) / penuh (phone) sesuai rancangan 6.8.
+
+### Penyimpangan
+Tidak ada.
+
+## Task 14
+
+Ringkasan penyimpangan untuk task 14 (StoryFailure). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Layout StoryFailure (Pola P)
+- Panel `story-failure` (`role="alert"`, `aria-live="assertive"`): border 2px `smoke`, latar `ink`, lebar maks 560px di desktop dan 366px di phone, tanpa warna bahaya.
+- Badge `Story Failed` (`StatusBadge` `locked` dengan teks `cream`), judul `story-failure-title` (17/700 `cream`), teks `"You have run out of HP."` dan `story-failure-hp` (`"HP: 0 / 5"`), penjelasan mono 12 `muted`, tombol `retry-button` (`Button` primer selebar penuh).
+
+### Test
+- Semua test lama di `tests/story/hp-failure-retry.test.tsx` tetap lulus tanpa ubahan asersi.
+- Baru: `tests/story/story-failure.test.tsx` (2 test untuk `role="alert"`, teks `HP: 0 / 5`, dan callback `onRetry`).
+
+### Hasil 14.4
+- Lint 0, `tsc` ok, Vitest 82 file / 908 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: panel kegagalan 560px (desktop) / 358px (phone) dengan tombol `Retry Story` minimal 44px.
+
+### Penyimpangan
+Tidak ada.
+
+## Task 15
+
+Ringkasan penyimpangan untuk task 15 (StoryViewer overlay galat dan dialog keluar). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Overlay dan Dialog (Pola P dan Pola M)
+- `stage-overlay` memakai `bg-ink/90` dan `items-start` (rata atas, memperbaiki terpotongnya bagian atas panel ending+complete saat bersama-sama).
+- `story-viewer-error` (`role="alert"`, `aria-live="assertive"`) memakai panel Pola P dengan judul `Navigation Error` (`gold`) dan `ErrorLine`.
+- `scene-error` (puzzle/ending tidak ditemukan) memakai `ErrorLine` (`role="alert"`).
+- `bad-branch-return-btn` dan `bad-ending-return-btn` memakai `Button` varian `outline` (44px) dengan `<Icon name="back" size={16} />` dan teks `"Try a different choice"`.
+- `exit-confirm-dialog` memakai `Modal` (`md:max-w-[480px]`, `aria-labelledby="exit-confirm-title"`), tombol `Cancel` (outline, fokus awal) dan `Exit Anyway` (primer).
+
+### Test
+- Semua test lama di `tests/story/story-viewer.test.tsx`, `bad-branch.test.tsx`, dan `campaign-progression.test.tsx` tetap lulus.
+- Ditambahkan 2 test di `tests/story/story-viewer.test.tsx` (fokus awal pada `Cancel` & tutup dengan `Escape` di `exit-confirm-dialog`, serta `story-viewer-error` dengan `role="alert"` dan `ErrorLine`).
+
+### Hasil 15.4
+- Lint 0, `tsc` ok, Vitest 82 file / 910 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: modal keluar 480px di desktop / layar penuh di phone, fokus awal pada `Cancel`, dan panel ending+complete rata atas tanpa terpotong.
+
+### Penyimpangan
+Tidak ada.
+
+## Task 16
+
+Ringkasan penyimpangan untuk task 16 (PlayProject dan pita galat simpan). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Layout PlayProject (Pola K ringkas)
+- `PlayLoading` (`play-loading`): wadah `min-h-dvh` `lore-grid-lines`, kotak `ember` 8px (`h-2 w-2 bg-ember`) dan teks `"Opening your story…"` mono 14 `cream` tanpa animasi.
+- `play-missing`: Pola K ringkas (kolom 680px transparan, baris atas 44px/56px dengan `LORE`, eyebrow `NOT FOUND`, H2 17/700 `"This story isn't saved in this browser."`, paragraf 15 `muted`, tombol `Button` primer `"Back to your stories"` ke `"/"`).
+- `play-save-error` (di `PlayProject.tsx`) dan `create-save-error` (di `app/create/page.tsx`): pita tetap di atas (`fixed inset-x-0 top-0 z-[60]`), tinggi minimal 44px, latar `ember`, teks `ink` mono 12/700 rata tengah, `role="alert"`.
+
+### Test
+- Semua test lama di `tests/state/play-and-home.test.tsx` dan `tests/state/play-save-error.test.tsx` tetap lulus.
+- Ditambahkan 2 test di `tests/state/play-and-home.test.tsx` untuk `PlayLoading`, `play-missing`, dan `play-save-error`.
+
+### Hasil 16.4
+- Lint 0, `tsc` ok, Vitest 82 file / 912 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: layar `play-missing` di kolom 680px (desktop) / penuh (phone) dengan tombol 48px / 52px, serta backdrop beranimasi aktif.
+
+### Penyimpangan
+1. Wadah `play-loading` dan `play-missing` memakai `lore-grid-lines` transparan (bukan isi `ink` opak) agar `PumpkinBackdrop` beranimasi tetap terlihat sesuai keputusan user.
+
+## Task 17
+
+Ringkasan penyimpangan untuk task 17 (Mode dua karakter di Stage). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Pilihan ukuran karakter
+- Memakai rekomendasi rancangan 6.12: figur penuh (`renderCharacter(castId, 'calm')`) pada sel 8px (211x384) di tengah slot `CanvasFrame` `(694, 47)` dengan opacity 40% (`0.4`) pada desktop saat beat tanpa canvas (`ambient`).
+
+### Implementasi
+- `pickOtherCharacter(presentIds, activeId, chars)` ditambahkan di `lib/cast/cast-mapping.ts` (murni, total, tanpa throw).
+- `StageSprite` memakai kotak `OTHER_SPRITE_DESKTOP` (`x: 694, y: 47, width: 211, height: 384, fontPx: 8`) dan `zIndex: 5` saat `role === "other"` di desktop.
+- `StoryViewer` memanggil `pickOtherCharacter` dan `visibleSprites(layout, activeId, !framed ? otherId : null)` sehingga karakter kedua hanya digambar pada desktop saat beat `ambient`, dan tidak pernah digambar di phone atau saat ada `CanvasFrame`.
+- Didokumentasikan di `docs/DESIGN-SYSTEM.md` §8.2 (`StageSprite`).
+
+### Test
+- Property 5 ditambahkan di `tests/cast/cast-mapping.test.ts` (150 iterasi `fast-check`); Property 4 di `tests/stage/phone-single-sprite.property.test.ts` dan `tests/stage/stage-boxes.test.ts` tetap hijau.
+- Baru: `tests/stage/two-character.test.tsx` (3 test untuk opacity 100% dan 40%, label aksesibel `{Nama}, calm`, ketiadaan karakter kedua saat ada canvas atau pada phone).
+
+### Hasil 17.6
+- Lint 0, `tsc` ok, Vitest 83 file / 916 test, golden 40/40, build ok.
+- Terukur dengan Playwright pada 1440x900 dan 390x844: pada desktop beat `ambient` dua karakter, `stage-character` (317x576, opacity 1) dan `stage-character-other` (211x384 di 694,47, opacity 0.4) tampil bersamaan; pada phone hanya 1 sprite (`stage-character`).
+
+### Penyimpangan
+Tidak ada.
+
+## Task 18
+
+Ringkasan penyimpangan untuk task 18 (Penutup, hapus gaya lama, dan perbarui steering). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Keputusan gerbang 18.1
+- **Layar yang belum selesai:** Tidak ada (seluruh layar task 0 sampai 17 dan 19 sudah selesai dan terverifikasi).
+- **OQ-11 (`product.md`, `ai-pipeline.md`, `game-engine.md`):** Ditolak oleh user ("Tolak — jangan ubah steering product, ai-pipeline, dan game-engine (hanya ubah theme-halloween, conventions, tech, dan structure)"). Sub-task 18.10 dilewati dan ketiga file steering tersebut tidak diubah (0 baris diff terhadap `dev`).
+- **Nama file steering `theme-halloween.md`:** Tetap bernama `.kiro/steering/theme-halloween.md` dan isinya diganti penuh dengan aturan Black Cat Gold Kit.
+- **Folder `lore-design-kit/`:** User memilih "Biarkan jika ada" (folder tidak ada di working tree lokal karena tidak dilacak git).
+
+### Hasil pencarian pemakai & penghapusan file lama (18.2)
+- `frontend/src/components/backdrop/GlassFilter.tsx`: 0 pemakai di luar `layout.tsx` (yang sudah dibersihkan). **Dihapus.**
+- `frontend/src/components/home/PumpkinMark.tsx`: 0 pemakai di `frontend/src` dan `frontend/tests`. **Dihapus.**
+- `LIQUID_GLASS_CHECK` di `frontend/src/app/layout.tsx`: 0 pemakai di luar `layout.tsx`. **Dihapus dari `layout.tsx`.**
+- `frontend/src/components/backdrop/PumpkinBackdrop.tsx` dan `frontend/src/lib/ascii-field/*`: **Dipertahankan** sesuai keputusan user (labu ASCII beranimasi tetap di semua layar). Komentar rujukan ke `GlassFilter` dan `globals.css` lama di `PumpkinBackdrop.tsx` diperbarui, dan `.lore-ascii-field` dipertahankan di `globals.css` dengan token Kit (`var(--color-ink)`, `var(--font-mono)`).
+- Tidak ada file tes yang dihapus pada task 18.
+
+### Pembersihan `globals.css`, warna literal, dan `lucide-react` (18.3)
+- `frontend/src/app/globals.css` diganti dengan `@import "tailwindcss";`, `@import "./lore-tokens.css";`, latar `body` transparan, dan `.lore-ascii-field`. Seluruh variabel `--hw-*`, `--glass-*`, `--accent-gold`, `--background-panel`, `--foreground-muted`, kelas `lore-glass*`, dan aturan `liquid` dihapus.
+- Sisa impor `lucide-react` dan warna literal di komponen cadangan/warisan (`components/home/HomeComposer.tsx`, `components/stage/StageCanvas.tsx`, `components/stage/StagePuzzle.tsx`) diganti dengan komponen `Icon` dan kelas token Kit (`bg-ink`, `text-cream`, `text-gold`, `text-ember`, `text-muted`, `border-smoke`, `bg-candle`).
+- Pencarian `--hw-`, `--glass-`, `--background-panel`, `--accent-gold`, `--foreground-muted`, `liquid` di `frontend/src` dan `frontend/tests`: **0 kecocokan.**
+- `lucide-react`: 0 impor tersisa di seluruh `frontend/src` dan `frontend/tests`; paket dibiarkan di `frontend/package.json` sebagai dependensi tak terpakai agar `package.json` dan `package-lock.json` tetap byte-identik.
+
+### Tes baru & pembaruan steering (18.4 – 18.9)
+- Baru: `frontend/tests/ui/style-guard.test.ts` (4 tes pagar statis: larangan hex/rgb/hsl/warna Tailwind bawaan di `src/components` dan `src/app` di luar `lore-tokens.css`; larangan `rounded-*`, `shadow-*`, `backdrop-*`, `blur`, gradient, emoji; larangan `font-family` selain dua font Kit; wajib komentar header di file baru dan `'use client'` pada komponen pengguna API browser).
+- Baru: `frontend/tests/lib/pure-functions-total.test.ts` (Property 19: `computeBoardScale`, `selectLayout`, `hpSquares`, `revealedCount`, `revealPrefix`, `chapterSquares`, `lengthForChapters`, `validateHomeFile` tidak pernah melempar). `computeBoardScale` diperketat agar menolak skala yang mengalami underflow float (`scale <= 0`) dengan `{ ok: false, reason: "invalid_viewport" }`.
+- Steering diperbarui: `.kiro/steering/theme-halloween.md`, `.kiro/steering/conventions.md`, `.kiro/steering/tech.md` (85 file / 922 tes), dan `.kiro/steering/structure.md`.
+
+### Hasil 18.8 & 18.11
+- `npm run lint`: 0 error, 0 warning.
+- `npx next typegen` & `npx tsc --noEmit`: 0 error.
+- `npx vitest run --testTimeout=60000`: **85 file / 922 test lulus** (`tests/ascii-golden.test.ts` 40/40 hijau).
+- `npm run build` (tanpa env AI): sukses.
+- `git diff --name-only dev -- backend/`: kosong (0 baris diff terhadap `dev`).
+- `git diff dev -- frontend/src/lib/contracts frontend/src/lib/state/project-store.ts backend/app/ai/contracts`: kosong (0 baris diff).
+- `git diff dev -- frontend/package.json frontend/package-lock.json`: kosong (byte-identik).
+
+### Penyimpangan
+1. `.lore-ascii-field` dan `body { background-color: transparent; }` tetap dipertahankan di `frontend/src/app/globals.css` di bawah `@import "tailwindcss";` dan `@import "./lore-tokens.css";` sesuai instruksi 18.2 dan keputusan user agar `PumpkinBackdrop` beranimasi tetap tampil di semua layar.
+2. Sub-task 18.10 (`product.md`, `ai-pipeline.md`, `game-engine.md`) dilewati sesuai keputusan user pada gerbang 18.1 (OQ-11 ditolak).
+
+
+
+
+
+
+
+

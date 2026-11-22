@@ -368,197 +368,197 @@ Bahasa implementasi: TypeScript (Next 16, React 19, Vitest 3), mengikuti design.
     - Bandingkan secara tertulis dengan rancangan 6.4; catat komponen baru `StatusBadge`.
     - _Requirements: 5.7, 5.8, 5.11_
 
-- [ ] 10. Task 10: CampaignPlayer (tanpa frame canvas)
+- [x] 10. Task 10: CampaignPlayer (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, design.md bagian 6.5. Canvas_Frame_File: tidak ada. File: `components/campaign/CampaignPlayer.tsx`.
-  - [~] 10.1 Gerbang: persetujuan rancangan 6.5
+  - [x] 10.1 Gerbang: persetujuan rancangan 6.5
     - Tampilkan rancangan 6.5 (tanpa UI sendiri; lobby dan summary dalam wadah `min-h-dvh` berlatar `lore-grid-bg` yang menggulir, stage dalam `ScaledBoard`) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `CampaignPlayer.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 10.2 Implementasikan pembungkus
+  - [x] 10.2 Implementasikan pembungkus
     - Tiga cabang (`CampaignSummary`, `CampaignLobby`, `StoryViewer` dengan `key` `story_id`) tetap. Ganti `h-screen` dan overflow lama sesuai rancangan. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12_
-  - [~] 10.3 Tulis tes pemilihan cabang
+  - [x] 10.3 Tulis tes pemilihan cabang
     - jsdom: cabang yang benar dirender untuk status kampanye, `StoryViewer` di-remount saat `story_id` berganti.
     - _Requirements: 14.3_
-  - [~] 10.4 Verifikasi
+  - [x] 10.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 10.5 Ringkasan_Penyimpangan task 10
+  - [x] 10.5 Ringkasan_Penyimpangan task 10
     - Bandingkan secara tertulis dengan rancangan 6.5. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 11. Task 11: CampaignSummary (tanpa frame canvas)
+- [x] 11. Task 11: CampaignSummary (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola K di design.md bagian 6.6. Canvas_Frame_File: tidak ada. File: `components/campaign/CampaignSummary.tsx`.
-  - [~] 11.1 Gerbang: persetujuan rancangan 6.6
+  - [x] 11.1 Gerbang: persetujuan rancangan 6.6
     - Tampilkan rancangan 6.6 (eyebrow `EPILOGUE`, epilog per cerita, `01 WHAT YOU LEARNED`, penanda hasil per konsep, tombol bawah) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `CampaignSummary.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 11.2 Implementasikan dari token Kit
+  - [x] 11.2 Implementasikan dari token Kit
     - Pertahankan `campaign-summary`, `epilogue-<id>`, `learning-evaluation`, `evaluation-headline`, `concept-result-<id>` dengan `data-outcome`. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12_
-  - [~] 11.3 Tulis tes komponen
+  - [x] 11.3 Tulis tes komponen
     - jsdom: ringkasan `mastered`, `developing`, `practice`, `unseen`; kalimat "No concepts were tested in this campaign.".
     - _Requirements: 14.3_
-  - [~] 11.4 Verifikasi
+  - [x] 11.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 11.5 Ringkasan_Penyimpangan task 11
+  - [x] 11.5 Ringkasan_Penyimpangan task 11
     - Bandingkan secara tertulis dengan rancangan 6.6. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 12. Task 12: EndingDisplay (tanpa frame canvas)
+- [x] 12. Task 12: EndingDisplay (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola P di design.md bagian 6.7. Canvas_Frame_File: tidak ada. File: `components/story/EndingDisplay.tsx`.
-  - [~] 12.1 Gerbang: persetujuan rancangan 6.7
+  - [x] 12.1 Gerbang: persetujuan rancangan 6.7
     - Tampilkan rancangan 6.7 (panel di atas papan Stage, badge `Success`/`Failed`/`Partial Success`, judul, narasi dengan scroll di dalam panel) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `EndingDisplay.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 12.2 Implementasikan dari token Kit
+  - [x] 12.2 Implementasikan dari token Kit
     - Pertahankan `ending-display`, `ending-type-badge`, `role="region"` dan `aria-label`. Panel rata atas dan menggulir di dalam. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12_
-  - [~] 12.3 Tulis tes komponen
+  - [x] 12.3 Tulis tes komponen
     - jsdom: badge per tipe ending dan label aksesibel.
     - _Requirements: 14.3_
-  - [~] 12.4 Verifikasi
+  - [x] 12.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 12.5 Ringkasan_Penyimpangan task 12
+  - [x] 12.5 Ringkasan_Penyimpangan task 12
     - Bandingkan secara tertulis dengan rancangan 6.7. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 13. Task 13: StoryComplete (tanpa frame canvas)
+- [x] 13. Task 13: StoryComplete (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola P di design.md bagian 6.8. Canvas_Frame_File: tidak ada. File: `components/story/StoryComplete.tsx`.
-  - [~] 13.1 Gerbang: persetujuan rancangan 6.8
+  - [x] 13.1 Gerbang: persetujuan rancangan 6.8
     - Tampilkan rancangan 6.8 (badge `Story Complete`/`Campaign Complete`, pesan, tombol `See your results →`, `Continue Campaign →`, `Exit Story`/`Return to Lobby`) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `StoryComplete.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 13.2 Implementasikan dari token Kit
+  - [x] 13.2 Implementasikan dari token Kit
     - Pertahankan `story-complete-screen`, `story-complete-title`, `campaign-complete-message`, `view-results-button`, `continue-campaign-button`, `exit-button`. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12_
-  - [~] 13.3 Tulis tes komponen
+  - [x] 13.3 Tulis tes komponen
     - jsdom: tombol yang muncul untuk kampanye selesai dan belum selesai.
     - _Requirements: 14.3_
-  - [~] 13.4 Verifikasi
+  - [x] 13.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 13.5 Ringkasan_Penyimpangan task 13
+  - [x] 13.5 Ringkasan_Penyimpangan task 13
     - Bandingkan secara tertulis dengan rancangan 6.8. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 14. Task 14: StoryFailure (tanpa frame canvas)
+- [x] 14. Task 14: StoryFailure (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola P di design.md bagian 6.9. Canvas_Frame_File: tidak ada. File: `components/story/StoryFailure.tsx`.
-  - [~] 14.1 Gerbang: persetujuan rancangan 6.9
+  - [x] 14.1 Gerbang: persetujuan rancangan 6.9
     - Tampilkan rancangan 6.9 (badge `Story Failed`, `HP: 0 / 5` tetap berformat lama, penjelasan, tombol `Retry Story`) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `StoryFailure.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 14.2 Implementasikan dari token Kit
+  - [x] 14.2 Implementasikan dari token Kit
     - Pertahankan `story-failure`, `story-failure-title`, `story-failure-hp` (teks `HP: 0 / 5`), `retry-button`, `role="alert"`. Tanpa warna bahaya. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12, 3.1_
-  - [~] 14.3 Tulis tes komponen
+  - [x] 14.3 Tulis tes komponen
     - jsdom: `retry-button` memanggil callback retry, teks HP tetap.
     - _Requirements: 14.3_
-  - [~] 14.4 Verifikasi
+  - [x] 14.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 14.5 Ringkasan_Penyimpangan task 14
+  - [x] 14.5 Ringkasan_Penyimpangan task 14
     - Bandingkan secara tertulis dengan rancangan 6.9. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 15. Task 15: StoryViewer, overlay galat dan dialog keluar (tanpa frame canvas)
+- [x] 15. Task 15: StoryViewer, overlay galat dan dialog keluar (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola P dan M di design.md bagian 6.10. Canvas_Frame_File: tidak ada. File: `components/story/StoryViewer.tsx`. Stage-nya sendiri dikerjakan di task 1 dan 2.
-  - [~] 15.1 Gerbang: persetujuan rancangan 6.10
+  - [x] 15.1 Gerbang: persetujuan rancangan 6.10
     - Tampilkan rancangan 6.10 (galat navigasi, `scene-error`, dialog keluar `Exit Story?` dengan `Cancel` dan `Exit Anyway`, tombol `↩ Try a different choice`) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, bagian ini dari `StoryViewer.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 15.2 Implementasikan overlay dan dialog dari token Kit
+  - [x] 15.2 Implementasikan overlay dan dialog dari token Kit
     - Galat navigasi (`story-viewer-error`, `role="alert"`, `aria-live="assertive"`), `scene-error` dengan `ErrorLine`, `exit-confirm-dialog` memakai `Modal` (`role="dialog"`, `aria-modal`, `aria-labelledby="exit-confirm-title"`, fokus awal ke `Cancel`), `bad-branch-return-btn` dan `bad-ending-return-btn` sebagai tombol outline 44 dengan ikon `back`. Ganti sisa gaya lama di file. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12, 3.1_
-  - [~] 15.3 Tulis tes komponen
+  - [x] 15.3 Tulis tes komponen
     - jsdom: dialog keluar (fokus awal `Cancel`, `Exit Anyway` memanggil callback keluar), `story-viewer-error` dengan `role="alert"`.
     - _Requirements: 14.3_
-  - [~] 15.4 Verifikasi
+  - [x] 15.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 15.5 Ringkasan_Penyimpangan task 15
+  - [x] 15.5 Ringkasan_Penyimpangan task 15
     - Bandingkan secara tertulis dengan rancangan 6.10. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 16. Task 16: PlayProject (tanpa frame canvas)
+- [x] 16. Task 16: PlayProject (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8, Pola K ringkas di design.md bagian 6.11. Canvas_Frame_File: tidak ada. File: `components/play/PlayProject.tsx` dan pita galat simpan di `/create`.
-  - [~] 16.1 Gerbang: persetujuan rancangan 6.11
+  - [x] 16.1 Gerbang: persetujuan rancangan 6.11
     - Tampilkan rancangan 6.11 (`play-loading`, `play-missing`, pita `play-save-error` dan `create-save-error` berlatar `ember`) dan tunggu persetujuan eksplisit user. Tanpa persetujuan, `PlayProject.tsx` tidak diubah dan task ini dilewati.
     - _Requirements: 12.3, 12.4, 12.5_
-  - [~] 16.2 Implementasikan dari token Kit
+  - [x] 16.2 Implementasikan dari token Kit
     - `play-loading` (juga ekspor `PlayLoading`) tanpa animasi, `play-missing` dengan tombol `Back to your stories` (`href="/"`), pita galat simpan tinggi 44 (`ember`/`ink`, `role="alert"`). Validasi Zod data tersimpan tidak berubah. Perbarui tes yang ada tanpa mengubah asersi `data-testid` atau perilaku.
     - _Requirements: 12.1, 12.12, 13.4, 13.5, 13.10_
-  - [~] 16.3 Tulis tes komponen
+  - [x] 16.3 Tulis tes komponen
     - jsdom: `play-missing` untuk project tidak ada, `play-save-error` saat simpan gagal.
     - _Requirements: 14.3_
-  - [~] 16.4 Verifikasi
+  - [x] 16.4 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 16.5 Ringkasan_Penyimpangan task 16
+  - [x] 16.5 Ringkasan_Penyimpangan task 16
     - Bandingkan secara tertulis dengan rancangan 6.11. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 5.7, 5.8_
 
-- [ ] 17. Task 17: Mode dua karakter di Stage (tanpa frame canvas)
+- [x] 17. Task 17: Mode dua karakter di Stage (tanpa frame canvas)
   - Rujukan: DESIGN-SYSTEM §6, §4.1, §4.2, design.md bagian 6.12. Canvas_Frame_File: `Cast.dc.html` hanya untuk cast; tidak ada frame Stage dua karakter.
-  - [~] 17.1 Gerbang: persetujuan rancangan 6.12
+  - [x] 17.1 Gerbang: persetujuan rancangan 6.12
     - Tampilkan rancangan 6.12 (karakter lain 40% di slot `CanvasFrame` pada desktop, tidak digambar di phone) dan alternatif ukuran: figur penuh 8 px (rekomendasi design) atau bust 9 px. Tunggu persetujuan eksplisit user. Tanpa persetujuan, Stage tetap satu karakter dan task ini dilewati.
     - _Requirements: 12.4, 12.5, 12.9_
-  - [~] 17.2 Tambah `pickOtherCharacter` dan perluas `visibleSprites`
+  - [x] 17.2 Tambah `pickOtherCharacter` dan perluas `visibleSprites`
     - `pickOtherCharacter(presentIds, activeId, chars)` di `lib/cast/cast-mapping.ts` mengembalikan karakter lain yang hadir atau `null`. `visibleSprites('desktop', ...)` memuat karakter lain paling banyak sekali, `visibleSprites('phone', ...)` tetap satu.
     - _Requirements: 12.6, 12.7, 12.8, 13.3_
-  - [~] 17.3 Tulis property test untuk karakter lain
+  - [x] 17.3 Tulis property test untuk karakter lain
     - **Property 5: Karakter lain berbeda dari penutur aktif**
     - File: `frontend/tests/cast/cast-mapping.test.ts`. Jalankan ulang Property 4 di `tests/stage/stage-boxes.test.ts` untuk memastikan perluasan `visibleSprites` tidak merusaknya.
     - **Validates: Requirements 12.6, 12.7**
-  - [~] 17.4 Render karakter lain di Stage
+  - [x] 17.4 Render karakter lain di Stage
     - Desktop, beat tanpa canvas (scene `ambient`): `renderCharacter(castId, 'calm')` sel 8 px di (694, 47), opacity 40%, `role="img"` dengan label `{nama}, calm`; sprite aktif opacity 100%. Beat dengan canvas: karakter lain tidak digambar. Phone: tidak digambar. Tanpa teks baru.
     - _Requirements: 12.6, 12.7, 12.8, 6.8_
-  - [~] 17.5 Tulis tes Stage dua karakter
+  - [x] 17.5 Tulis tes Stage dua karakter
     - `frontend/tests/stage/two-character.test.tsx` (jsdom): opacity 100% dan 40%, label aksesibel, tidak ada karakter lain di phone atau saat ada canvas.
     - _Requirements: 12.6, 12.7, 12.8, 14.3_
-  - [~] 17.6 Verifikasi
+  - [x] 17.6 Verifikasi
     - Jalankan Verifikasi_Task penuh dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 17.7 Ringkasan_Penyimpangan task 17
+  - [x] 17.7 Ringkasan_Penyimpangan task 17
     - Bandingkan secara tertulis dengan rancangan 6.12 dan DESIGN-SYSTEM §6. Catat pilihan ukuran karakter.
     - _Requirements: 5.7, 5.8_
 
-- [ ] 18. Task 18: Penutup, hapus gaya lama dan perbarui steering
+- [x] 18. Task 18: Penutup, hapus gaya lama dan perbarui steering
   - Rujukan: DESIGN-SYSTEM §1 sampai §3 dan §8; design.md bagian "Rencana penghapusan gaya lama" dan "Pembaruan steering". Canvas_Frame_File: tidak ada.
-  - [~] 18.1 Gerbang: OQ-11, folder Kit, dan layar yang belum selesai
+  - [x] 18.1 Gerbang: OQ-11, folder Kit, dan layar yang belum selesai
     - Tampilkan layar yang gerbangnya belum disetujui atau belum selesai. Penghapusan file lama yang masih dipakai layar itu ditunda dan task ini ditandai belum selesai (Requirement 4.3).
     - Minta persetujuan atas OQ-11 (memperbarui fakta komponen yang dihapus di steering `product`, `ai-pipeline`, `game-engine` dengan perubahan minimal) dan tanyakan apakah folder `lore-design-kit/` (belum dilacak git, di luar path Requirement 1.5) boleh dihapus. Tanyakan juga apakah steering `theme-halloween` tetap bernama itu.
     - BERHENTI sampai user menjawab.
     - _Requirements: 1.6, 4.3_
-  - [~] 18.2 Cari pemakai dan hapus file lama
+  - [x] 18.2 Cari pemakai dan hapus file lama
     - Untuk `components/backdrop/GlassFilter.tsx`, `components/home/PumpkinMark.tsx`, dan skrip `LIQUID_GLASS_CHECK` di `layout.tsx`: cari pemakai di `frontend/src` dan `frontend/tests`, catat hasil per file. Hapus hanya yang pemakainya 0. Bila masih ada pemakai, cantumkan path dan nomor baris, jangan hapus, dan tandai task belum selesai. `components/backdrop/PumpkinBackdrop.tsx` dan `lib/ascii-field/*` TIDAK dihapus (keputusan user 2026-11-21: labu ASCII beranimasi tetap di semua layar; pengecualian resmi dari "gaya lama" karena berupa animasi ASCII). Pastikan `PumpkinBackdrop` tidak bergantung pada `GlassFilter` atau `LIQUID_GLASS_CHECK` (hasil pemeriksaan: tidak bergantung), tetap dipasang di `layout.tsx`, dan kelas `.lore-ascii-field` di `globals.css` tetap dipertahankan di 18.3. Hapus atau perbarui tes yang hanya menguji file yang dihapus dan catat nama tes dan alasannya.
     - _Requirements: 4.2, 4.3, 4.4, 14.2_
-  - [~] 18.3 Bersihkan `globals.css`, warna literal, dan ikon lama
+  - [x] 18.3 Bersihkan `globals.css`, warna literal, dan ikon lama
     - Ganti isi `app/globals.css` dengan `@import "tailwindcss";` dan `@import "./lore-tokens.css";`. Hapus variabel dan kelas lama (`--hw-*`, `--glass-*`, `--accent-gold`, `--background-panel`, `--foreground-muted`, `lore-glass*`, `liquid`, dan sisanya di design.md). Hapus warna literal tersisa di `components` dan `app` di luar `CAST`. Pastikan tidak ada impor `lucide-react` tersisa; paketnya dibiarkan di `package.json` dan dilaporkan sebagai dependensi tak terpakai.
     - Pencarian `--hw-`, `--glass-`, `--background-panel`, `--accent-gold`, `--foreground-muted`, `liquid` di `frontend/src` dan `frontend/tests` harus 0 kecocokan.
     - _Requirements: 3.1, 3.3, 3.4, 4.1_
-  - [~] 18.4 Tulis tes pagar statis
+  - [x] 18.4 Tulis tes pagar statis
     - `frontend/tests/ui/style-guard.test.ts`: tanpa hex, `rgb()`, `hsl()`, kelas warna bawaan Tailwind di `src/components` dan `src/app` di luar `CAST`; tanpa `rounded-`, `shadow-` (kecuali `.lore-dialog`), `backdrop-`, `blur`, gradient (kecuali `.lore-grid-bg`), emoji; tanpa `font-family` selain dua font; komentar header di baris pertama file baru; `'use client'` pada komponen yang memakai API browser.
     - _Requirements: 3.1, 3.2, 3.3, 13.9, 15.5_
-  - [~] 18.5 Tulis property test untuk fungsi murni yang tidak melempar
+  - [x] 18.5 Tulis property test untuk fungsi murni yang tidak melempar
     - **Property 19: Fungsi murni baru tidak pernah melempar**
     - File: `frontend/tests/lib/pure-functions-total.test.ts`, mencakup `computeBoardScale`, `selectLayout`, `hpSquares`, `revealedCount`, `revealPrefix`, `chapterSquares`, `lengthForChapters`, `validateHomeFile`.
     - **Validates: Requirements 13.3**
-  - [~] 18.6 Ganti isi steering `theme-halloween`
+  - [x] 18.6 Ganti isi steering `theme-halloween`
     - Ganti seluruh isi dengan aturan Kit (token, tipografi, bentuk, ASCII, larangan) dan rujukan ke `AGENTS.md` dan `docs/DESIGN-SYSTEM.md`. `--hw-`, `--glass-`, `liquid`, dan `Halloween` tidak muncul sebagai aturan gaya. Nama file mengikuti jawaban 18.1.
     - _Requirements: 4.5_
-  - [~] 18.7 Perbarui steering `conventions`
+  - [x] 18.7 Perbarui steering `conventions`
     - Ganti hanya butir gaya (CSS variable lewat `style` inline) dengan aturan token Tailwind Kit dan rujukan ke `AGENTS.md` dan Design_System. Butir lain identik dengan versi sebelumnya.
     - _Requirements: 4.6_
-  - [~] 18.8 Verifikasi
+  - [x] 18.8 Verifikasi
     - Jalankan Verifikasi_Task penuh, catat jumlah file dan jumlah tes Vitest terakhir, dan pastikan Golden_Test 40 dari 40.
     - _Requirements: 4.4, 5.3, 5.4, 5.5, 14.7, 14.8_
-  - [~] 18.9 Perbarui steering `tech` dan `structure`
+  - [x] 18.9 Perbarui steering `tech` dan `structure`
     - `tech`: font (Space Grotesk dan JetBrains Mono lewat `next/font`), folder `components/ascii` dan `lib/ascii`, jumlah file dan tes dari 18.8, `fast-check` bila disetujui, versi Zod hanya bila user memutuskannya. `structure`: tambah `ascii`, `ui` di `components/`; tambah `ascii`, `cast`, `stage`, `dialogue`, `prep`, `home`, `schemas` di `lib/`, pertahankan `backdrop` (hanya `PumpkinBackdrop`) dan `ascii-field`. Baris lain tidak berubah.
     - _Requirements: 4.7_
-  - [~] 18.10 Perbarui steering `product`, `ai-pipeline`, `game-engine` (hanya bila OQ-11 disetujui)
+  - [x] 18.10 Perbarui steering `product`, `ai-pipeline`, `game-engine` (hanya bila OQ-11 disetujui)
     - Perbarui hanya fakta yang berubah: deskripsi Home, stage (sprite ASCII Kit, `DialogueBox`), dan catatan glass. Bila ditolak, lewati dan catat.
     - _Requirements: 4.5_
-  - [~] 18.11 Pemeriksaan akhir
+  - [x] 18.11 Pemeriksaan akhir
     - `git diff --name-only dev -- backend/` kosong (atau hanya path task 19), 0 baris diff pada `lib/contracts`, `project-store.ts`, dan `backend/app/ai/contracts`, `frontend/package.json` dan `package-lock.json` byte-identik (kecuali `fast-check` yang disetujui), pencarian pola lama 0 kecocokan, dan folder `lore-design-kit/` dihapus hanya bila disetujui di 18.1.
     - _Requirements: 1.4, 1.7, 4.1, 13.1, 13.6, 13.10, 14.9_
-  - [~] 18.12 Ringkasan_Penyimpangan task 18
+  - [x] 18.12 Ringkasan_Penyimpangan task 18
     - Catat hasil pencarian per file yang dihapus, tes yang dihapus atau diperbarui beserta penggantinya, layar yang belum selesai, `lucide-react` sebagai dependensi tak terpakai, keputusan OQ-11, dan nasib folder `lore-design-kit/`. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 4.2, 4.3, 4.4, 5.8_
 
