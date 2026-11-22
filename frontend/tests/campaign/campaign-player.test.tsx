@@ -85,10 +85,10 @@ describe("CampaignPlayer — Continue Campaign transition", () => {
   it("restores full HP for the next story", () => {
     const view = render(<CampaignPlayer campaign={dummyCampaign} stories={STORIES} />);
     playToStoryComplete(view, { wrongFirst: true });
-    expect(view.getByTestId("hp-value").textContent).toContain("4 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
 
     continueCampaign(view);
-    expect(view.getByTestId("hp-value").textContent).toContain("5 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
   });
 
   it("reaches campaign complete only after both stories are played", () => {

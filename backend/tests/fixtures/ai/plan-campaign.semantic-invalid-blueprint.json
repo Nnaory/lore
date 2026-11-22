@@ -8,9 +8,9 @@
   "setting": "a lamplit harbour town",
   "characters": [
     {
-      "character_id": "char_01",
-      "name": "Maren",
-      "role": "Lamplighter",
+      "character_id": "eldric",
+      "name": "Eldric",
+      "role": "Keeper of the Beacon",
       "description": "Keeps the lanterns and tests every claim.",
       "expressions": {
         "neutral": "(-_-)",
@@ -22,9 +22,9 @@
       }
     },
     {
-      "character_id": "char_02",
-      "name": "Tobi",
-      "role": "Apprentice",
+      "character_id": "mira",
+      "name": "Mira",
+      "role": "Apprentice Cartographer",
       "description": "Asks the questions the player should ask.",
       "expressions": {
         "neutral": "(-_-)",

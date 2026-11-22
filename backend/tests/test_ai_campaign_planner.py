@@ -27,7 +27,7 @@ from app.ai.campaign_planner_engine import (
     build_campaign_blueprint,
     js_replace_first,
 )
-from app.ai.campaign_templates import GENRE_TEMPLATES
+from app.ai.campaign_templates import CAST_IDS, GENRE_TEMPLATES
 from app.ai.contracts.campaign import CampaignBlueprint
 from app.ai.contracts.material import MaterialBlueprint
 from app.ai.contracts.requests import CampaignPlannerOptions, PlanCampaignRequest
@@ -289,7 +289,14 @@ def test_material_fields_map_into_the_story() -> None:
 
 def test_character_ids_are_stable_and_carry_the_expressions() -> None:
     characters = plan([M1]).blueprint["characters"]
-    assert [c["character_id"] for c in characters] == ["char_01", "char_02"]
+    assert [c["character_id"] for c in characters] == list(CAST_IDS)
+    assert [(c["name"], c["role"]) for c in characters] == [
+        ("Eldric", "Keeper of the Beacon"),
+        ("Mira", "Apprentice Cartographer"),
+        ("Hazel", "Witch of the Ember Marsh"),
+        ("Varr", "Warden of the Outer Gate"),
+        ("Nyx", "The Hollow Voice"),
+    ]
     assert characters[0]["expressions"]["thinking"] == "(\u00ac_\u00ac)"
     assert characters[0]["expressions"]["stern"] == "(\u0ca0_\u0ca0)"
     assert "(campaign campaign_001)" in characters[0]["description"]
@@ -459,12 +466,12 @@ def test_every_genre_builds_a_schema_valid_campaign(genre: str) -> None:
     parsed = CampaignBlueprint.model_validate(result.blueprint)
     assert parsed.genre == genre
     assert parsed.tone == GENRE_TEMPLATES[genre].tone
-    assert len(parsed.characters) == 2
+    assert [c.character_id for c in parsed.characters] == list(CAST_IDS)
 
 
 def test_title_premise_and_conflict_text() -> None:
     blueprint = plan([M2, M1]).blueprint
-    assert blueprint["title"] == "The Keeper's Campaign: Title of m1"
+    assert blueprint["title"] == "Eldric's Campaign: Title of m1"
     assert blueprint["premise"].endswith(" The journey spans: Title of m1 \u2192 Title of m2.")
     assert blueprint["main_conflict"] == (
         "The campaign's central problem can only be resolved by mastering Title of m2."
@@ -570,6 +577,30 @@ def test_duplicate_story_character_and_outcome_ids() -> None:
     broken = campaign.model_copy(update={"story_sequence": stories, "characters": characters})
     errors = validate_planned_campaign(broken, [M1, M3])
     assert codes(errors) == ["DUPLICATE_STORY_ID", "DUPLICATE_CHARACTER_ID", "DUPLICATE_OUTCOME_ID"]
+
+
+def test_character_outside_the_kit_cast_is_rejected() -> None:
+    campaign = planned([M1])
+    stranger = campaign.characters[0].model_copy(update={"character_id": "char_01"})
+    broken = campaign.model_copy(update={"characters": [stranger, *campaign.characters[1:]]})
+    errors = validate_planned_campaign(broken, [M1])
+    assert codes(errors) == ["INVALID_CAST_CHARACTER"]
+    assert errors[0]["path"] == "characters[char_01]"
+    assert errors[0]["message"] == (
+        'character_id "char_01" in campaign "campaign_001" is not one of the Kit cast '
+        "(eldric, mira, hazel, varr, nyx)."
+    )
+
+
+def test_legacy_char_ids_stay_valid_on_the_story_path() -> None:
+    # Old campaigns (char_01/char_02) are only rejected when planning; the legacy campaign
+    # validator used before story generation still accepts them.
+    campaign = planned([M1])
+    old = [
+        c.model_copy(update={"character_id": f"char_{i + 1:02d}"})
+        for i, c in enumerate(campaign.characters[:2])
+    ]
+    assert validate_campaign(campaign.model_copy(update={"characters": old}), [M1]) == []
 
 
 # --- legacy campaign validator (campaign-validator.test.ts) -----------------------------------
@@ -755,14 +786,16 @@ def test_merge_overlays_creative_text_and_leaves_structure_alone() -> None:
     assert merged["tone"] == "hushed"
     assert merged["setting"] == skeleton["setting"]
     assert merged["world_rules"] == ["One", "Two"]
-    first, second = merged["characters"]
+    first = merged["characters"][0]
+    # name and role are the Kit cast's and stay locked; only the description is overlaid
     assert (first["character_id"], first["name"], first["role"]) == (
-        "char_01",
-        "Maren",
-        "Lamplighter",
+        "eldric",
+        "Eldric",
+        "Keeper of the Beacon",
     )
+    assert first["description"] == "Keeps it."
     assert first["expressions"] == skeleton["characters"][0]["expressions"]
-    assert second == skeleton["characters"][1]  # no creative text for it
+    assert merged["characters"][1:] == skeleton["characters"][1:]  # no creative text for them
     story = merged["story_sequence"][0]
     assert story["title"] == "First Light"
     assert story["purpose"] == skeleton["story_sequence"][0]["purpose"]
@@ -806,19 +839,28 @@ def test_prompt_matches_the_typescript_text_exactly() -> None:
             "    ]",
             "  }",
             "]",
-            "Characters: exactly 2. Character 1 is a Guide who frames challenges; "
-            "character 2 is a Companion who learns alongside the player.",
+            "Characters: exactly 5, the fixed cast, in this order: "
+            "eldric (Eldric, Keeper of the Beacon); mira (Mira, Apprentice Cartographer); "
+            "hazel (Hazel, Witch of the Ember Marsh); varr (Varr, Warden of the Outer Gate); "
+            "nyx (Nyx, The Hollow Voice). "
+            "Do not rename them or change their roles, and do not add other characters. "
+            "Eldric is the guide who explains and gives hints; Mira is a peer who asks questions "
+            "(sometimes wrong); Hazel turns theory into practice; Varr is the examiner who tests "
+            "before the player passes; Nyx is the rival who plants misconceptions. Write each "
+            "description to fit that role.",
             "Return JSON with this shape:",
             '{"title": string, "premise": string (2-3 sentences), "setting": string '
             '(one phrase), "tone": string (one or two words),',
             ' "main_conflict": string (one sentence), "world_rules": string[] (2-4 rules; '
             "the world's logic must match the material),",
-            ' "characters": [{"name": string, "role": string, "description": string}],',
+            ' "characters": [{"description": string (one per cast member, same order)}],',
             ' "stories": [{"story_id": string (copy from above), "title": string, '
             '"purpose": string (one sentence), "main_conflict": string (one sentence, '
             "where the concepts are needed to solve it)}]}",
             "Rules: the learning content must stay academically correct; the world only "
-            "frames it. Keep names original (no existing franchises).",
+            "frames it. Keep names original (no existing franchises). The five cast members "
+            "are the only named characters: when any field mentions one, use the exact name "
+            "given above, and do not invent other named people.",
         ]
     )
 

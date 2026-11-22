@@ -1,15 +1,17 @@
 /**
  * MaterialInput
  *
- * Step 01 before a document is chosen: a drop zone / file picker for
- * PDF, DOCX, PPTX, TXT or MD. A file is required; text cannot be pasted as
- * material (typed text only guides the story, in the options below).
+ * Step 01 before a document is chosen (DESIGN-SYSTEM §4.5, Prep.dc.html): a 128px
+ * drop zone with a 2px dashed smoke border (solid gold while a file is dragged over
+ * it). A <label> wraps the native file input so the whole zone opens the picker.
+ * A file is required; text cannot be pasted as material (typed text only guides the
+ * story, in the options below). Accepted types and the size limit come from lib/ingest.
  */
 
 "use client";
 
 import { useState, type DragEvent } from "react";
-import { FileUp } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 
@@ -35,20 +37,16 @@ export function MaterialInput({ onFile }: MaterialInputProps) {
   }
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col md:mt-3.5">
       <label
         data-testid="material-dropzone"
         onDragEnter={(e) => handleDrag(e, true)}
         onDragOver={(e) => handleDrag(e, true)}
         onDragLeave={(e) => handleDrag(e, false)}
         onDrop={handleDrop}
-        className="lore-well flex flex-col items-center gap-3 rounded-panel px-6 py-10 text-center cursor-pointer transition-colors focus-within:outline focus-within:outline-2 focus-within:outline-offset-2"
-        style={{
-          borderStyle: "dashed",
-          borderColor: dragActive ? "var(--accent-gold)" : "var(--border)",
-          backgroundColor: dragActive ? "rgba(246, 200, 78, 0.08)" : undefined,
-          outlineColor: "var(--accent-gold)",
-        }}
+        className={`box-border flex cursor-pointer flex-col items-stretch gap-3 border-2 p-4 focus-within:outline focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-cream md:h-32 md:flex-row md:items-center md:justify-between md:gap-6 md:px-7 md:py-0 ${
+          dragActive ? "border-solid border-gold" : "border-dashed border-smoke"
+        }`}
       >
         <input
           type="file"
@@ -61,16 +59,24 @@ export function MaterialInput({ onFile }: MaterialInputProps) {
             e.target.value = ""; // allow choosing the same file again
           }}
         />
-        <FileUp size={28} strokeWidth={1.25} aria-hidden="true" style={{ color: "var(--accent-gold-dim)" }} />
-        <span className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
-          Drop your document here
+        <div className="flex items-center gap-3 md:gap-[18px]">
+          <Icon name="file-up" size={28} className="h-6 w-6 shrink-0 text-ember md:h-7 md:w-7" />
+          <div className="flex flex-col gap-1 md:gap-1.5">
+            <span className="text-[15px] font-bold leading-[1.3] text-cream md:text-[17px]">Drop your document here</span>
+            <span className="font-mono text-[11px] leading-[1.32] text-muted md:text-[12px]">
+              PDF · DOCX · PPTX · TXT · MD — up to {MAX_MB} MB
+            </span>
+          </div>
+        </div>
+        {/* Visual button only: a real <button> inside a <label> would not open the picker. */}
+        <span
+          aria-hidden="true"
+          className="flex h-11 w-full shrink-0 items-center justify-center bg-cream font-mono md:inline-flex md:w-auto md:px-5 text-[13px] font-bold text-ink"
+        >
+          Choose a file
         </span>
-        <span className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-          PDF · DOCX · PPTX · TXT · MD — up to {MAX_MB} MB
-        </span>
-        <span className="lore-pill lore-pill-sm lore-pill-accent mt-1">Choose a file</span>
       </label>
-      <p className="text-xs text-center" style={{ color: "var(--foreground-faint)" }}>
+      <p className="mb-0 mt-2 font-mono text-[11px] leading-[1.45] text-muted md:mt-2.5 md:leading-[1.27]">
         Your file is read on this device; only the text you select is sent.
       </p>
     </div>

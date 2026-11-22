@@ -16,9 +16,37 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class TemplateCharacter:
+    character_id: str
     name: str
     role: str
     description: str
+
+
+# Kit cast (docs/DESIGN-SYSTEM.md section 6). The first two are genre-flavoured in each template
+# below; the other three are the same in every genre. Order is fixed: eldric, mira, hazel, varr, nyx.
+# Layer 3 (the story engine) only uses characters[0] (guide) and characters[1] (companion).
+CAST_IDS: tuple[str, ...] = ("eldric", "mira", "hazel", "varr", "nyx")
+
+EXTRA_CAST: tuple[TemplateCharacter, ...] = (
+    TemplateCharacter(
+        character_id="hazel",
+        name="Hazel",
+        role="Witch of the Ember Marsh",
+        description="A practical experimenter who turns theory into experiments the player can try.",
+    ),
+    TemplateCharacter(
+        character_id="varr",
+        name="Varr",
+        role="Warden of the Outer Gate",
+        description="A stern examiner who tests understanding before letting the player pass.",
+    ),
+    TemplateCharacter(
+        character_id="nyx",
+        name="Nyx",
+        role="The Hollow Voice",
+        description="A rival voice that plants plausible misconceptions for the player to catch.",
+    ),
+)
 
 
 @dataclass(frozen=True)
@@ -63,15 +91,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Keeper",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A patient guardian of the old knowledge who tests understanding rather than obedience.",
             ),
             TemplateCharacter(
-                name="The Apprentice",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A curious learner who voices the questions the player should be asking.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "modern": GenreTemplate(
@@ -85,15 +116,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Mentor",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="An experienced professional who frames problems in practical terms.",
             ),
             TemplateCharacter(
-                name="The Colleague",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A sharp colleague who works through ideas out loud.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "science_fiction": GenreTemplate(
@@ -107,15 +141,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Chief Scientist",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A rigorous researcher who values correct reasoning over instinct.",
             ),
             TemplateCharacter(
-                name="The Engineer",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A hands-on engineer who turns theory into working solutions.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "mystery": GenreTemplate(
@@ -129,15 +166,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Detective",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A methodical investigator who models careful reasoning.",
             ),
             TemplateCharacter(
-                name="The Witness",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="An observant witness who notices what others miss.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "historical": GenreTemplate(
@@ -151,15 +191,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Archivist",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A keeper of records who connects ideas across time.",
             ),
             TemplateCharacter(
-                name="The Traveler",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A curious newcomer who asks the questions history forgot.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "survival": GenreTemplate(
@@ -173,15 +216,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Scout",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A pragmatic survivor who plans before acting.",
             ),
             TemplateCharacter(
-                name="The Medic",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A careful caretaker who values precision under pressure.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "horror": GenreTemplate(
@@ -195,15 +241,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Warden",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A wary figure who knows the rules and enforces them quietly.",
             ),
             TemplateCharacter(
-                name="The Sensitive",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A perceptive companion who senses what the rules imply.",
             ),
+            *EXTRA_CAST,
         ),
     ),
     "custom": GenreTemplate(
@@ -217,15 +266,18 @@ GENRE_TEMPLATES: dict[str, GenreTemplate] = {
         ),
         characters=(
             TemplateCharacter(
-                name="The Guide",
-                role="Guide",
+                character_id="eldric",
+                name="Eldric",
+                role="Keeper of the Beacon",
                 description="A steady presence who frames each challenge.",
             ),
             TemplateCharacter(
-                name="The Companion",
-                role="Companion",
+                character_id="mira",
+                name="Mira",
+                role="Apprentice Cartographer",
                 description="A loyal companion who helps the player reason through problems.",
             ),
+            *EXTRA_CAST,
         ),
     ),
 }

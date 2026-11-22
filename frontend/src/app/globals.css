@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./lore-tokens.css";
 
 /* ─────────────────────────────────────────────────────────────────────────
    LORE Design Tokens — Halloween ("Trick-or-Treat" palette) + liquid glass
@@ -43,8 +44,8 @@
   --glass-shadow:   0 16px 48px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
 
   /* Typography */
-  --font-sans: var(--font-geist-sans, "Arial", sans-serif);
-  --font-mono: var(--font-geist-mono, "Courier New", monospace);
+  --font-sans: var(--font-space-grotesk, "Arial", sans-serif);
+  --font-mono: var(--font-jetbrains-mono, "Courier New", monospace);
 
   color-scheme: dark;
 }
@@ -82,7 +83,8 @@ html {
 
 body {
   min-height: 100%;
-  background-color: var(--background);
+  /* Transparent: html (lore-tokens.css) paints the ink, and the fixed ASCII canvas (z-index -1) must show through. */
+  background-color: transparent;
   color: var(--foreground);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;

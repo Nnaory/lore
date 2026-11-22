@@ -32,7 +32,7 @@ def build_campaign_prompt(skeleton: dict[str, Any], request: PlanCampaignRequest
     options = request.options
     language = "Indonesian" if options.language == "id" else "English"
     genre = skeleton["genre"]
-    characters = len(skeleton["characters"])
+    cast = [f"{c['character_id']} ({c['name']}, {c['role']})" for c in skeleton["characters"]]
     lines = [
         "Design the world for an interactive learning story. "
         f"Genre: {GENRE_LABEL.get(genre, genre)}.",
@@ -46,20 +46,26 @@ def build_campaign_prompt(skeleton: dict[str, Any], request: PlanCampaignRequest
         "Stories (one per learning material, in this order):",
         json.dumps(stories, indent=2, ensure_ascii=False),
         "",
-        f"Characters: exactly {characters}. Character 1 is a Guide who frames challenges; "
-        "character 2 is a Companion who learns alongside the player.",
+        f"Characters: exactly {len(cast)}, the fixed cast, in this order: {'; '.join(cast)}. "
+        "Do not rename them or change their roles, and do not add other characters. "
+        "Eldric is the guide who explains and gives hints; Mira is a peer who asks questions "
+        "(sometimes wrong); Hazel turns theory into practice; Varr is the examiner who tests "
+        "before the player passes; Nyx is the rival who plants misconceptions. Write each "
+        "description to fit that role.",
         "",
         "Return JSON with this shape:",
         '{"title": string, "premise": string (2-3 sentences), "setting": string (one phrase), '
         '"tone": string (one or two words),',
         ' "main_conflict": string (one sentence), "world_rules": string[] (2-4 rules; '
         "the world's logic must match the material),",
-        ' "characters": [{"name": string, "role": string, "description": string}],',
+        ' "characters": [{"description": string (one per cast member, same order)}],',
         ' "stories": [{"story_id": string (copy from above), "title": string, '
         '"purpose": string (one sentence), "main_conflict": string (one sentence, '
         "where the concepts are needed to solve it)}]}",
         "",
         "Rules: the learning content must stay academically correct; the world only frames it. "
-        "Keep names original (no existing franchises).",
+        "Keep names original (no existing franchises). The five cast members are the only named "
+        "characters: when any field mentions one, use the exact name given above, and do not "
+        "invent other named people.",
     ]
     return "\n".join(line for line in lines if line != "")

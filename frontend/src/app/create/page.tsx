@@ -3,11 +3,11 @@
  *
  * 01 Material: upload a PDF/DOCX/PPTX/TXT/MD (read in the browser), then
  *    choose which sections to use. A file is required; typed text is only
- *    extra instructions (step 02), never material.
- * 02 World: pick a genre and optional preferences.
+ *    extra instructions (under Advanced options), never material.
+ * 02 World: pick a genre. 03 Chapters: story length plus advanced options.
  * A file attached on the home page (with any instructions typed there) arrives here already chosen
  * (lib/setup/pending-material) and is read as if it were added in step 01.
- * "Build the world" opens the staged generation screen (concepts → the
+ * "Build the world" (80px action bar) opens the staged generation screen (concepts → the
  * player's review → world → story). The finished campaign is saved to
  * the browser (IndexedDB) and opened at /play/[id]. If saving fails (e.g. storage is
  * full) it is played in memory with a warning.
@@ -15,11 +15,9 @@
 
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { createProject } from "@/lib/state/project-store";
-import { ArrowLeft } from "lucide-react";
 import { extractDocument, type ExtractResult } from "@/lib/ingest";
 import {
   buildWorkflowRequest,
@@ -35,8 +33,11 @@ import { takePendingMaterial } from "@/lib/setup/pending-material";
 import { GenerationScreen } from "@/components/setup/GenerationScreen";
 import { MaterialInput } from "@/components/setup/MaterialInput";
 import { DocumentCard } from "@/components/setup/DocumentCard";
-import { GenrePicker } from "@/components/setup/GenrePicker";
+import { GenrePicker, GENRE_CHOICES } from "@/components/setup/GenrePicker";
+import { PrepColumn } from "@/components/setup/PrepColumn";
+import { ChaptersSection } from "@/components/setup/ChaptersSection";
 import { AdvancedOptions } from "@/components/setup/AdvancedOptions";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { CampaignPlayer } from "@/components/campaign/CampaignPlayer";
 
 const BLOCKER_HINT: Record<SubmitBlocker, string> = {
@@ -47,19 +48,6 @@ const BLOCKER_HINT: Record<SubmitBlocker, string> = {
   too_long: "The selected text is over the limit — deselect some sections.",
   no_genre: "Choose a world for your story.",
 };
-
-function StepHeading({ id, index, title }: { id: string; index: string; title: string }) {
-  return (
-    <h2 id={id} className="flex items-baseline gap-3 mb-4">
-      <span className="font-mono text-xs" style={{ color: "var(--accent-gold-dim)" }}>
-        {index}
-      </span>
-      <span className="text-xs font-semibold tracking-[0.25em] uppercase" style={{ color: "var(--foreground)" }}>
-        {title}
-      </span>
-    </h2>
-  );
-}
 
 type BuiltCampaign = Pick<GenerationResult, "campaign" | "stories"> & { saveError: string };
 
@@ -189,39 +177,16 @@ export default function CreatePage() {
     );
   }
 
+  const worldLabel = GENRE_CHOICES.find((c) => c.genre === state.genre)?.label ?? "";
+  const chapters = state.length === "medium" ? 5 : 3;
+  const status = blocker ? BLOCKER_HINT[blocker] : `Ready · ${chapters} chapters · ${worldLabel}`;
+
   return (
-    <div className="min-h-screen flex flex-col" data-testid="create-page">
-      <header className="w-full max-w-2xl mx-auto px-5 pt-6 flex items-center justify-between">
-        <Link
-          href="/"
-          className="lore-glass lore-glass-panel rounded-pill h-8 pl-3 pr-4 flex items-center gap-1.5 text-xs tracking-wide"
-          style={{ color: "var(--foreground-muted)" }}
-        >
-          <ArrowLeft size={14} aria-hidden="true" />
-          Back
-        </Link>
-        <span className="lore-halo text-xs font-semibold tracking-[0.3em]" style={{ color: "var(--accent-gold)" }}>
-          LORE
-        </span>
-      </header>
-
-      <main className="flex-1 w-full max-w-2xl mx-auto px-5 pt-8 pb-6">
-        <div className="lore-glass lore-glass-panel rounded-card p-6 sm:p-8 flex flex-col gap-10">
-          <div>
-            <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--foreground-faint)" }}>
-              New story
-            </p>
-            <h1 className="text-2xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
-              Turn your material into a story
-            </h1>
-            <p className="text-sm mt-2 leading-6" style={{ color: "var(--foreground-muted)" }}>
-              Upload lecture notes, a chapter, or a slide deck. LORE builds a world around it where every
-              challenge is solved with what you learn.
-            </p>
-          </div>
-
-          <section aria-labelledby="step-material">
-            <StepHeading id="step-material" index="01" title="Material" />
+    <div data-testid="create-page">
+      <PrepColumn>
+        <section className="mt-[22px] md:mt-[34px]" data-testid="material-section">
+          <SectionLabel number="01" title="MATERIAL" />
+          <div className="mt-3 md:mt-3.5">
             {state.doc.status === "empty" ? (
               <MaterialInput onFile={handleFile} />
             ) : (
@@ -233,47 +198,54 @@ export default function CreatePage() {
                 onSetAll={(selected) => dispatch({ type: "all_sections_set", selected })}
               />
             )}
-          </section>
+          </div>
+        </section>
 
-          <section aria-labelledby="step-world" className="flex flex-col gap-5">
-            <div>
-              <StepHeading id="step-world" index="02" title="World" />
-              <GenrePicker value={state.genre} onChange={(genre) => dispatch({ type: "genre_set", genre })} />
-            </div>
+        <section className="mt-[22px] md:mt-[30px]" data-testid="world-section">
+          <SectionLabel number="02" title="WORLD" />
+          <div className="mt-3 md:mt-3.5">
+            <GenrePicker value={state.genre} onChange={(genre) => dispatch({ type: "genre_set", genre })} />
+          </div>
+        </section>
+
+        <ChaptersSection
+          length={state.length}
+          onLengthChange={(length) => dispatch({ type: "length_set", length })}
+          advanced={
             <AdvancedOptions
-              length={state.length}
               language={state.language}
               customInstructions={state.customInstructions}
-              onLengthChange={(length) => dispatch({ type: "length_set", length })}
               onLanguageChange={(language) => dispatch({ type: "language_set", language })}
               onInstructionsChange={(text) => dispatch({ type: "instructions_set", text })}
             />
-          </section>
-        </div>
-      </main>
+          }
+        />
 
-      <footer className="sticky bottom-0 w-full px-5 pb-5 pt-2">
-        <div className="lore-glass lore-glass-panel rounded-card max-w-2xl mx-auto px-5 py-3.5 flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between">
-          <p
-            className="text-xs"
+        <div aria-hidden="true" className="h-8 shrink-0" />
+        <div
+          data-testid="prep-action-bar"
+          className="sticky bottom-0 -mx-5 mt-auto flex flex-col items-stretch gap-2 border-t border-smoke bg-ink px-4 pb-5 pt-3 md:-mx-12 md:h-20 md:flex-row md:items-center md:justify-between md:gap-4 md:px-12 md:pb-0 md:pt-0"
+        >
+          <span
+            className={`font-mono text-[11px] md:text-xs ${blocker ? "text-muted" : "text-cream"}`}
             aria-live="polite"
             data-testid="submit-hint"
-            style={{ color: "var(--foreground-faint)" }}
           >
-            {blocker ? BLOCKER_HINT[blocker] : "Ready when you are."}
-          </p>
+            {status}
+          </span>
           <button
             type="button"
             data-testid="build-button"
             onClick={handleSubmit}
             disabled={blocker !== null}
             aria-disabled={blocker !== null}
-            className="lore-pill lore-pill-lg lore-pill-primary"
+            className={`h-[52px] w-full shrink-0 border-none px-6 font-mono text-sm font-bold md:h-12 md:w-auto ${
+              blocker ? "cursor-not-allowed bg-smoke text-muted" : "cursor-pointer bg-ember text-ink"
+            }`}
           >
             Build the world →
           </button>
-        </div>
-      </footer>
+        </div>      </PrepColumn>
     </div>
   );
 }

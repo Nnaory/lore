@@ -2,14 +2,15 @@
  * SavedStories
  *
  * Lists campaigns saved in this browser (IndexedDB) with progress, a
- * link to continue, and a two-step delete. Renders nothing until mounted
+ * link to continue, and a two-step delete. Flat Kit layout (no card): rows\n * split by 1px smoke lines on a transparent surface so the backdrop shows. Renders nothing until mounted
  * (storage is browser-only) and nothing when there are no saved stories.
  */
 
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/Button";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import { deleteProject, listProjects, type ProjectSummary } from "@/lib/state/project-store";
 
 const GENRE_LABEL: Record<string, string> = {
@@ -43,55 +44,49 @@ export function SavedStories() {
 
   return (
     <section
-      className="lore-glass lore-glass-panel rounded-panel w-full flex flex-col gap-3 p-4 text-left"
-      aria-labelledby="saved-stories-heading"
+      className="flex w-full flex-col gap-3 text-left"
+      aria-label="Your stories"
       data-testid="saved-stories"
     >
-      <h2 id="saved-stories-heading" className="lore-eyebrow">
-        Your stories
-      </h2>
-      <ul className="flex flex-col gap-2">
+      <SectionLabel number="01" title="YOUR STORIES" />
+      <ul className="flex flex-col">
         {projects.map((p) => {
           const done = p.stories_completed >= p.stories_total;
           return (
-            <li key={p.id} data-testid={`saved-story-${p.id}`} className="lore-tile rounded-tip p-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate" style={{ color: "var(--foreground)" }}>
-                  {p.title}
-                </p>
-                <p className="text-xs truncate" style={{ color: "var(--foreground-faint)" }}>
+            <li
+              key={p.id}
+              data-testid={`saved-story-${p.id}`}
+              className="flex flex-col gap-3 border-b border-smoke py-4 md:flex-row md:items-center md:gap-4"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15px] font-bold text-cream">{p.title}</p>
+                <p className="truncate font-mono text-[12px] text-muted">
                   {GENRE_LABEL[p.genre] ?? p.genre} · {p.source_name} ·{" "}
                   {done ? "Completed" : `${p.stories_completed}/${p.stories_total} stories`}
                 </p>
               </div>
               {confirming === p.id ? (
-                <div className="flex gap-2 flex-shrink-0">
-                  <button
-                    type="button"
-                    data-testid={`confirm-delete-${p.id}`}
-                    onClick={() => remove(p.id)}
-                    className="lore-pill lore-pill-sm lore-pill-danger"
-                  >
+                <div className="flex shrink-0 gap-2 [&>*]:flex-1 md:[&>*]:flex-none">
+                  <Button variant="primary" data-testid={`confirm-delete-${p.id}`} onClick={() => remove(p.id)}>
                     Delete
-                  </button>
-                  <button type="button" onClick={() => setConfirming(null)} className="lore-pill lore-pill-sm">
+                  </Button>
+                  <Button variant="outline" onClick={() => setConfirming(null)}>
                     Keep
-                  </button>
+                  </Button>
                 </div>
               ) : (
-                <div className="flex gap-2 flex-shrink-0">
-                  <Link href={`/play/${p.id}`} data-testid={`continue-${p.id}`} className="lore-pill lore-pill-sm lore-pill-primary">
+                <div className="flex shrink-0 gap-2 [&>*]:flex-1 md:[&>*]:flex-none">
+                  <Button variant="primary" href={`/play/${p.id}`} data-testid={`continue-${p.id}`}>
                     {done ? "Replay" : "Continue"}
-                  </Link>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="outline"
                     data-testid={`delete-${p.id}`}
                     onClick={() => setConfirming(p.id)}
                     aria-label={`Delete ${p.title}`}
-                    className="lore-pill lore-pill-sm"
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               )}
             </li>

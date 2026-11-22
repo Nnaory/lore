@@ -2,12 +2,17 @@
  * ChatLog — everything said and taught so far in this story run
  * (opened from the "log chat" button), so the player can re-read a
  * lesson before answering a puzzle.
+ *
+ * Why: restyled to the Black Cat Gold Kit (design 6.2). Dialog behaviour
+ * (focus, Escape, scrim click, role/aria) lives in `ui/Modal`; this file only
+ * lays out the header and the entry list and keeps `chat-log` as the panel hook.
  */
 
 "use client";
 
 import { useEffect, useRef } from "react";
-import type { ChatEntry } from "./ChatBox";
+import { Modal } from "@/components/ui/Modal";
+import type { ChatEntry } from "./chat-entry";
 
 type ChatLogProps = {
   entries: ChatEntry[];
@@ -15,70 +20,60 @@ type ChatLogProps = {
 };
 
 export function ChatLog({ entries, onClose }: ChatLogProps) {
-  const closeRef = useRef<HTMLButtonElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    closeRef.current?.focus();
-    endRef.current?.scrollIntoView();
+    endRef.current?.scrollIntoView?.();
   }, []);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ backgroundColor: "rgba(34, 34, 34, 0.7)" }}
-      onClick={onClose}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
+    <Modal
+      onClose={onClose}
+      labelledBy="chat-log-title"
+      data-testid="chat-log"
+      className="md:max-w-[720px] h-full md:h-auto"
     >
-      <div
-        data-testid="chat-log"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="chat-log-title"
-        onClick={(e) => e.stopPropagation()}
-        className="lore-glass lore-glass-panel rounded-panel w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden"
-      >
-        <div className="flex items-center justify-between px-5 py-3 border-b" style={{ borderBottomColor: "var(--border-dim)" }}>
-          <h2 id="chat-log-title" className="text-xs tracking-[0.25em] uppercase" style={{ color: "var(--foreground)" }}>
-            Story log
-          </h2>
-          <button ref={closeRef} type="button" onClick={onClose} className="lore-pill lore-pill-sm">
-            Close
-          </button>
-        </div>
-        <ol className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-3">
-          {entries.length === 0 && (
-            <li className="text-sm" style={{ color: "var(--foreground-faint)" }}>
-              Nothing yet.
-            </li>
-          )}
-          {entries.map((entry, i) => (
-            <li key={i} className="text-sm leading-6">
-              {entry.kind === "dialogue" && (
-                <>
-                  <span className="font-semibold mr-2" style={{ color: "var(--accent-gold)" }}>
-                    {entry.name}
-                  </span>
-                  <span style={{ color: "var(--foreground)" }}>{entry.text}</span>
-                </>
-              )}
-              {entry.kind === "narration" && (
-                <span className="italic" style={{ color: "var(--foreground-muted)" }}>
-                  {entry.text}
-                </span>
-              )}
-              {entry.kind === "lesson" && (
-                <div className="lore-tile rounded-tip p-3" style={{ borderLeft: "3px solid var(--accent-gold)" }}>
-                  <p className="text-xs font-semibold tracking-widest uppercase mb-1" style={{ color: "var(--accent-gold)" }}>
-                    Lesson · {entry.title}
-                  </p>
-                  <p style={{ color: "var(--foreground)" }}>{entry.text}</p>
-                </div>
-              )}
-            </li>
-          ))}
-          <div ref={endRef} />
-        </ol>
+      <div className="flex items-center justify-between px-5 min-h-[56px] border-b border-smoke">
+        <h2
+          id="chat-log-title"
+          className="font-mono text-[12px] font-bold tracking-[0.24em] uppercase text-cream"
+        >
+          Story log
+        </h2>
+        <button
+          type="button"
+          data-autofocus
+          data-testid="chat-log-close"
+          onClick={onClose}
+          className="font-mono text-[13px] font-bold min-h-[44px] min-w-[44px] px-4 border-2 border-cream text-cream bg-transparent cursor-pointer"
+        >
+          Close
+        </button>
       </div>
-    </div>
+      <ol className="flex-1 min-h-0 overflow-y-auto px-5 py-4 flex flex-col gap-3 list-none">
+        {entries.length === 0 && (
+          <li className="text-[15px] leading-normal text-muted">Nothing yet.</li>
+        )}
+        {entries.map((entry, i) => (
+          <li key={i} className="text-[15px] leading-normal">
+            {entry.kind === "dialogue" && (
+              <>
+                <span className="font-mono text-[12px] font-bold mr-2 text-gold">{entry.name}</span>
+                <span className="text-cream">{entry.text}</span>
+              </>
+            )}
+            {entry.kind === "narration" && <span className="text-muted">{entry.text}</span>}
+            {entry.kind === "lesson" && (
+              <div className="pl-3 border-l-2 border-gold">
+                <p className="font-mono text-[11px] font-bold tracking-[0.12em] uppercase mb-1 text-gold">
+                  Lesson · {entry.title}
+                </p>
+                <p className="text-cream">{entry.text}</p>
+              </div>
+            )}
+          </li>
+        ))}
+        <div ref={endRef} />
+      </ol>
+    </Modal>
   );
 }

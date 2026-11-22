@@ -1,18 +1,14 @@
+/**
+ * Root layout. Loads the LORE fonts (Space Grotesk + JetBrains Mono, declared in
+ * ./fonts) as CSS variables on <html>, mounts the shared backdrop once, and sets
+ * the liquid-glass class before first paint. GlassFilter, PumpkinBackdrop and
+ * the LIQUID_GLASS_CHECK script stay until the ui-redesign cleanup (task 18).
+ */
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { GlassFilter } from "@/components/backdrop/GlassFilter";
 import { PumpkinBackdrop } from "@/components/backdrop/PumpkinBackdrop";
+import { jetbrainsMono, spaceGrotesk } from "./fonts";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "LORE — Interactive Learning Visual Novel",
@@ -32,7 +28,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     // suppressHydrationWarning: the script in <head> adds a class to <html> before React hydrates it.
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>

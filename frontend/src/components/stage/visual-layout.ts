@@ -11,10 +11,11 @@ export type Area = { x: number; y: number; w: number; h: number };
 export type Point = { x: number; y: number };
 
 export const TONE_COLORS: Record<VisualTone, string> = {
-  primary: "#f6c84e", // Candy Corn Yellow
-  secondary: "#b084e0", // Grape Purple, lifted to read on the dark
-  result: "#f68928", // Bright Pumpkin
-  muted: "#9a948c",
+  // Kit tokens (OQ-9): gold, cream, ember, muted.
+  primary: "var(--color-gold)",
+  secondary: "var(--color-cream)",
+  result: "var(--color-ember)",
+  muted: "var(--color-muted)",
 };
 
 /** Default tone of the i-th arrow or series when the spec gives none. */

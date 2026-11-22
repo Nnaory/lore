@@ -4,7 +4,8 @@ Why: port of `frontend/src/lib/ai/campaign-planner.ts` and
 `providers/gemini-campaign-planner-provider.ts`. Structure comes from the engine
 (`build_campaign_blueprint`: story order, IDs, required_knowledge, outcomes). Gemini only
 rewrites the creative fields: campaign title, premise, setting, tone, world rules, character
-names and descriptions, and each story's title, purpose and conflict. If Gemini fails or answers
+descriptions (names and roles are the fixed Kit cast), and each story's title, purpose and
+conflict. If Gemini fails or answers
 with something unusable, the engine's template text is kept and a `CREATIVE_FALLBACK` warning is
 added, so planning never fails because of the creative step (model reported as
 "deterministic-template"). `plan_campaign` returns `AiOk | AiError` for the shared pipeline.
@@ -52,8 +53,9 @@ Text60 = _bounded(60)
 
 
 class CreativeCharacter(ZodModel):
-    name: Text60
-    role: Text60
+    # name and role are accepted but ignored: the Kit cast's are locked in merge_creative_fields
+    name: Text60 | None = None
+    role: Text60 | None = None
     description: Text600
 
 
@@ -93,8 +95,7 @@ def merge_creative_fields(skeleton: dict[str, Any], creative: Creative) -> dict[
             if written is None
             else {
                 **character,
-                "name": written.name,
-                "role": written.role,
+                # name and role are the Kit cast's and stay locked; only the text is creative
                 "description": written.description,
             }
         )
