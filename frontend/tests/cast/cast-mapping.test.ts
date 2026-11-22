@@ -255,3 +255,49 @@ describe("Property 9: campaign cast allocation is total, deterministic, and coll
     );
   });
 });
+
+/**
+ * Task 19.4: the backend now emits the five Kit ids (eldric, mira, hazel, varr,
+ * nyx). Each must map to itself with mapped:true, while legacy campaigns
+ * (char_01, char_02, lyra) still resolve through the deterministic fallback.
+ */
+describe("Backend Kit ids and legacy ids", () => {
+  const mk = (character_id: string, name: string, role: string): Character => ({
+    character_id,
+    name,
+    role,
+    description: "",
+    expressions: {},
+  });
+
+  it("maps the five Kit ids to themselves with mapped:true", () => {
+    const chars = [
+      mk("eldric", "Eldric", "mentor"),
+      mk("mira", "Mira", "guide"),
+      mk("hazel", "Hazel", "skeptic"),
+      mk("varr", "Varr", "rival"),
+      mk("nyx", "Nyx", "trickster"),
+    ];
+    for (const c of chars) {
+      expect(mapCharacter(c)).toEqual({ ok: true, castId: c.character_id, matchedBy: "id" });
+    }
+    const result = resolveCampaignCast(chars);
+    for (const c of chars) {
+      expect(result.get(c.character_id)).toEqual({ castId: c.character_id, mapped: true });
+    }
+  });
+
+  it("keeps resolving legacy ids char_01, char_02 and lyra through the fallback", () => {
+    const legacy = [mk("char_01", "Professor Ash", "mentor"), mk("char_02", "Kit", "guide"), mk("lyra", "Lyra", "guide")];
+    for (const c of legacy) expect(mapCharacter(c).ok).toBe(false);
+    const result = resolveCampaignCast(legacy);
+    expect(result.size).toBe(3);
+    const casts = legacy.map((c) => result.get(c.character_id)!);
+    for (const a of casts) {
+      expect(a.mapped).toBe(false);
+      expect(CAST_ORDER).toContain(a.castId);
+    }
+    expect(new Set(casts.map((a) => a.castId)).size).toBe(3);
+    expect([...resolveCampaignCast(legacy).entries()]).toEqual([...result.entries()]);
+  });
+});

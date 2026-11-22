@@ -11,9 +11,9 @@
       "setting": "a lamplit harbour town",
       "characters": [
         {
-          "character_id": "char_01",
-          "name": "Maren",
-          "role": "Lamplighter",
+          "character_id": "eldric",
+          "name": "Eldric",
+          "role": "Keeper of the Beacon",
           "description": "Keeps the lanterns and tests every claim.",
           "expressions": {
             "neutral": "(-_-)",
@@ -25,10 +25,52 @@
           }
         },
         {
-          "character_id": "char_02",
-          "name": "Tobi",
-          "role": "Apprentice",
+          "character_id": "mira",
+          "name": "Mira",
+          "role": "Apprentice Cartographer",
           "description": "Asks the questions the player should ask.",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "hazel",
+          "name": "Hazel",
+          "role": "Witch of the Ember Marsh",
+          "description": "A practical experimenter who turns theory into experiments the player can try. (campaign campaign_001)",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "varr",
+          "name": "Varr",
+          "role": "Warden of the Outer Gate",
+          "description": "A stern examiner who tests understanding before letting the player pass. (campaign campaign_001)",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "nyx",
+          "name": "Nyx",
+          "role": "The Hollow Voice",
+          "description": "A rival voice that plants plausible misconceptions for the player to catch. (campaign campaign_001)",
           "expressions": {
             "neutral": "(-_-)",
             "worried": "(>_<)",

@@ -130,7 +130,10 @@ def test_partial_creative_output_keeps_template_text_for_the_rest(
     assert data["meta"]["warnings"] == []
     assert data["blueprint"]["title"] == "Only a title"
     assert data["blueprint"]["setting"] == GENRE_TEMPLATES["fantasy"].setting
-    assert data["blueprint"]["characters"][0]["name"] == "The Keeper"
+    cast = data["blueprint"]["characters"]
+    assert [c["character_id"] for c in cast] == ["eldric", "mira", "hazel", "varr", "nyx"]
+    assert [c["name"] for c in cast] == ["Eldric", "Mira", "Hazel", "Varr", "Nyx"]
+    assert cast[0]["role"] == "Keeper of the Beacon"
 
 
 # --- creative step failures never fail the request --------------------------------------------
@@ -160,7 +163,7 @@ def test_gemini_failure_keeps_the_template_campaign_with_a_warning(
             "path": "campaign",
         }
     ]
-    assert data["blueprint"]["title"].startswith("The Keeper's Campaign: Vectors")
+    assert data["blueprint"]["title"].startswith("Eldric's Campaign: Vectors")
     assert data["blueprint"]["story_sequence"][0]["story_id"] == "story_01"
     assert limiter.in_flight() == 0
 
