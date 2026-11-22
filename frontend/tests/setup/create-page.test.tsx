@@ -72,6 +72,8 @@ describe("/create — material sent from the home page", () => {
     });
     render(<CreatePage />);
     await screen.findByTestId("document-stats", {}, { timeout: 10_000 });
+    // The instructions live behind the "Advanced options" link of the CHAPTERS section.
+    fireEvent.click(screen.getByTestId("advanced-toggle"));
 
     expect((screen.getByLabelText("Instructions for the storyteller") as HTMLTextAreaElement).value).toBe(
       "belajar vector, fokus ke dot product"
@@ -346,5 +348,111 @@ describe("/create — returning after a story was built", () => {
     view.rerender(page("hidden"));
     view.rerender(page("visible"));
     expect(screen.getByTestId("document-name").textContent).toBe("notes.txt");
+  });
+});
+
+describe("/create — phone and desktop are the same page", () => {
+  const WIDTHS = { phone: 390, desktop: 1440 } as const;
+
+  /** Pretend the window is `width` px wide. The page has one tree; only CSS (md:) differs. */
+  function setViewport(width: number) {
+    Object.defineProperty(window, "innerWidth", { configurable: true, writable: true, value: width });
+    vi.stubGlobal(
+      "matchMedia",
+      (query: string) => {
+        const min = /min-width:\s*(\d+)px/.exec(query);
+        const max = /max-width:\s*(\d+)px/.exec(query);
+        const matches = (min ? width >= Number(min[1]) : true) && (max ? width <= Number(max[1]) : true);
+        return {
+          matches,
+          media: query,
+          onchange: null,
+          addEventListener: () => {},
+          removeEventListener: () => {},
+          addListener: () => {},
+          removeListener: () => {},
+          dispatchEvent: () => false,
+        };
+      }
+    );
+  }
+
+  const testIds = (root: HTMLElement) =>
+    Array.from(root.querySelectorAll("[data-testid]"), (el) => el.getAttribute("data-testid")).sort();
+
+  /** Same input at a given width: record the DOM ids, validation hints, and the request sent. */
+  async function runFlow(width: number) {
+    setViewport(width);
+    const route = backendFetch();
+    vi.stubGlobal("fetch", route.fetchImpl);
+    const view = render(<CreatePage />);
+
+    const hints = [screen.getByTestId("submit-hint").textContent];
+    const emptyDisabled = (screen.getByTestId("build-button") as HTMLButtonElement).disabled;
+    const emptyIds = testIds(view.container);
+
+    await uploadMaterial(NOTES);
+    hints.push(screen.getByTestId("submit-hint").textContent);
+    chooseGenre("fantasy");
+    hints.push(screen.getByTestId("submit-hint").textContent);
+    const readyEnabled = (screen.getByTestId("build-button") as HTMLButtonElement).disabled === false;
+    const readyIds = testIds(view.container);
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("build-button"));
+    });
+    await screen.findByTestId("concept-review");
+    const payload = route.calls[0];
+    view.unmount();
+    return { hints, emptyDisabled, emptyIds, readyEnabled, readyIds, payload };
+  }
+
+  it("gives identical DOM, validation results and payload at phone and desktop widths", async () => {
+    const phone = await runFlow(WIDTHS.phone);
+    takePendingMaterial();
+    const desktop = await runFlow(WIDTHS.desktop);
+
+    expect(phone.emptyIds).toEqual(desktop.emptyIds);
+    expect(phone.readyIds).toEqual(desktop.readyIds);
+    expect(phone.hints).toEqual(desktop.hints);
+    expect(phone.hints[0]).toBe("Upload a material file to begin.");
+    expect(phone.emptyDisabled).toBe(true);
+    expect(desktop.emptyDisabled).toBe(true);
+    expect(phone.readyEnabled).toBe(true);
+    expect(desktop.readyEnabled).toBe(true);
+    expect(phone.payload).toEqual(desktop.payload);
+  });
+
+  it.each(Object.entries(WIDTHS))("keeps the build button disabled without a file at %s width", (_name, width) => {
+    setViewport(width);
+    render(<CreatePage />);
+    const button = screen.getByTestId("build-button");
+    expect(button).toBeDisabled();
+    expect(button.getAttribute("aria-disabled")).toBe("true");
+    expect(screen.getByTestId("submit-hint").textContent).toBe("Upload a material file to begin.");
+    chooseGenre("fantasy"); // a world alone does not unlock the build
+    expect(button).toBeDisabled();
+  });
+
+  it.each(Object.entries(WIDTHS))("does not reset the form when the back link is used at %s width", async (_name, width) => {
+    setViewport(width);
+    render(<CreatePage />);
+    await uploadMaterial(NOTES);
+    chooseGenre("science_fiction");
+    fireEvent.click(screen.getByTestId("advanced-toggle"));
+    fireEvent.change(screen.getByLabelText("Instructions for the storyteller"), {
+      target: { value: "focus on dot product" },
+    });
+
+    const back = screen.getByTestId("prep-back");
+    expect(back.getAttribute("href")).toBe("/");
+    fireEvent.click(back);
+
+    expect(screen.getByTestId("document-name").textContent).toBe("notes.txt");
+    expect(screen.getByTestId("genre-science_fiction").querySelector("input")).toBeChecked();
+    expect((screen.getByLabelText("Instructions for the storyteller") as HTMLTextAreaElement).value).toBe(
+      "focus on dot product"
+    );
+    expect(screen.getByTestId("build-button")).toBeEnabled();
   });
 });

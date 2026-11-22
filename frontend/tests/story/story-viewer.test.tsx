@@ -98,7 +98,9 @@ describe("StoryViewer — basic render", () => {
   it("should lay out the stage: character, canvas, and chat box", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("stage-character").dataset.characterId).toBe("eldric");
-    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("ambient");
+    // OQ-12: a beat without lesson, visual or puzzle shows the ambient scene and no CanvasFrame.
+    expect(screen.getByTestId("stage-scene")).toBeTruthy();
+    expect(screen.queryByTestId("stage-canvas")).toBeNull();
     expect(screen.getByTestId("story-main")).toBeTruthy();
     expect(screen.getByTestId("pacing-toggle")).toBeTruthy();
   });
@@ -171,10 +173,10 @@ describe("StoryViewer — dialogue", () => {
   it("should show the character expression in the dialogue bubble", () => {
     const view = render(<StoryViewer story={linearStory} characters={characters} />);
     clickToAdvance(view);
-    const expressions = screen.getAllByTestId("character-expression");
-    expect(expressions.length).toBeGreaterThan(0);
-    const expTexts = expressions.map((e) => e.textContent);
-    expect(expTexts.some((t) => t && t.length > 0)).toBe(true);
+    // The expression is drawn on the sprite: data-expression and the canvas aria-label.
+    const sprite = screen.getByTestId("stage-character");
+    expect(sprite.dataset.expression).toBe("worried");
+    expect(sprite.querySelector("[role=img]")?.getAttribute("aria-label")).toMatch(/eldric, worried/i);
   });
 });
 
@@ -219,16 +221,21 @@ describe("StoryViewer — click-to-advance interaction", () => {
     window.localStorage.removeItem("lore:pacing");
   });
 
-  it("should show click hint when not at puzzle/ending", () => {
+  it("should show the keyboard hints (SPACE, F, L) without the removed ask hint", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
-    const hint = screen.getByText("Click anywhere to continue");
-    expect(hint).toBeTruthy();
+    const hints = screen.getByTestId("key-hints").textContent ?? "";
+    expect(hints).toContain("SPACE next line");
+    expect(hints).toContain("F fast/animate");
+    expect(hints).toContain("L log chat");
+    expect(hints).not.toContain("/ ask");
   });
 
-  it("should not show click hint during puzzle", () => {
+  it("should not advance the story with SPACE during a puzzle", () => {
     const view = advanceToPuzzle();
-    const hint = view.queryByText("Click anywhere to continue");
-    expect(hint).toBeFalsy();
+    const before = view.getByTestId("puzzle-question").textContent;
+    act(() => { fireEvent.keyDown(window, { key: " ", code: "Space" }); });
+    expect(view.getByTestId("puzzle-question").textContent).toBe(before);
+    expect(view.queryByTestId("puzzle-interaction")).toBeTruthy();
   });
 });
 
@@ -360,7 +367,7 @@ describe("StoryViewer — navbar progress", () => {
   it("should show HP display", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("hp-display")).toBeTruthy();
-    expect(screen.getByTestId("hp-value").textContent).toContain("5 / 5");
+    expect(screen.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
   });
 });
 

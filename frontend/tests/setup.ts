@@ -10,6 +10,10 @@ import "fake-indexeddb/auto";
 if (typeof window !== "undefined") {
   window.HTMLElement.prototype.scrollIntoView = function () {};
 
+  // jsdom has no canvas (getContext logs "Not implemented"). The ASCII canvases
+  // already skip drawing when there is no 2D context, so answer null quietly.
+  window.HTMLCanvasElement.prototype.getContext = (() => null) as unknown as typeof window.HTMLCanvasElement.prototype.getContext;
+
   // jsdom's Blob/File lack text() and arrayBuffer(), which every current
   // browser supports. Implement them with jsdom's FileReader.
   const BlobProto = window.Blob.prototype as Blob;

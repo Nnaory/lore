@@ -87,7 +87,7 @@ describe("Bad branch — entering the branch", () => {
     advanceToPuzzle(view);
     submit(view, "choice_A");
 
-    expect(view.getByTestId("hp-value").textContent).toContain("4 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
     expect(view.queryByTestId("puzzle-interaction")).toBeNull();
     expect(view.getByTestId("scene-content").textContent).toContain(
       "You place one Crystal A and one Crystal B"
@@ -164,11 +164,11 @@ describe("Bad branch — returning to the puzzle", () => {
     expect(view.getByTestId("puzzle-interaction")).toBeTruthy();
     expect(view.queryByTestId("puzzle-feedback")).toBeNull();
     expect(view.getByTestId("puzzle-submit")).toHaveAttribute("aria-disabled", "true");
-    expect(view.getByTestId("hp-value").textContent).toContain("4 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
 
     submit(view, "choice_B");
     expect(view.getByTestId("puzzle-continue")).toBeTruthy();
-    expect(view.getByTestId("hp-value").textContent).toContain("4 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
   });
 
   it("fails the story after five wrong answers through bad branches", () => {
@@ -207,6 +207,6 @@ describe("Demo story — correct path", () => {
 
     expect(view.getByTestId("ending-display").textContent).toContain("The City Holds");
     expect(view.getByTestId("story-complete-screen")).toBeTruthy();
-    expect(view.getByTestId("hp-value").textContent).toContain("5 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
   });
 });
