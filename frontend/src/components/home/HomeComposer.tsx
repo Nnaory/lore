@@ -7,18 +7,20 @@
  * focus), sent along with the file. Sending is off until a file is attached,
  * and typing without one shows a warning. The file and the instructions go to
  * /create (see lib/setup/pending-material), which reads the file and asks for
- * the rest (world, length, language).
+ * the rest (world, length, language). State and handlers live in
+ * use-home-composer (over lib/home), so option B's dialogue bar can reuse them;
+ * `onFileChange` reports the file so Hazel's greeting can follow it.
  */
 
 "use client";
 
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
 import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 import { MAX_INSTRUCTIONS_CHARS } from "@/lib/setup/create-form";
-import { setPendingMaterial } from "@/lib/setup/pending-material";
+import { ErrorLine } from "@/components/ui/ErrorLine";
+import { useHomeComposer } from "./use-home-composer";
 
 /** Tallest the field grows before it scrolls. */
 const MAX_INPUT_HEIGHT = 220;
@@ -30,50 +32,21 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function HomeComposer() {
-  const router = useRouter();
-  const [text, setText] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  /** The player tried to send text without a file: make the warning stronger. */
-  const [triedWithoutFile, setTriedWithoutFile] = useState(false);
+export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | null) => void } = {}) {
+  const { text, setText, file, fileError, hasText, missingFile, pickFile, removeFile, handleSubmit, handleKeyDown } =
+    useHomeComposer(onFileChange);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const hasText = text.trim() !== "";
-  /** Without a file there is no material, whatever was typed. */
-  const missingFile = hasText && file === null;
 
   function growToFit(el: HTMLTextAreaElement) {
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, MAX_INPUT_HEIGHT)}px`;
   }
 
-  function send() {
-    if (file === null) {
-      if (hasText) setTriedWithoutFile(true);
-      return;
-    }
-    setPendingMaterial({ file, instructions: text.trim() });
-    router.push("/create");
-    // The home page stays mounted (hidden) while /create is open, so leave it
-    // empty for when the player comes back.
-    setText("");
-    setFile(null);
-    setTriedWithoutFile(false);
-    if (inputRef.current) inputRef.current.style.height = "";
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    send();
-  }
-
-  function handleKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
-    // Enter sends, Shift+Enter adds a line. Enter that confirms an IME choice does neither.
-    if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
-    e.preventDefault();
-    send();
-  }
+  // The field is emptied after sending: drop the grown height with it.
+  useEffect(() => {
+    if (text === "" && inputRef.current) inputRef.current.style.height = "";
+  }, [text]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -97,7 +70,7 @@ export function HomeComposer() {
             <button
               type="button"
               data-testid="home-file-remove"
-              onClick={() => setFile(null)}
+              onClick={removeFile}
               aria-label={`Remove ${file.name}`}
               className="flex-none p-1 rounded-pill transition-colors hover:bg-white/5"
               style={{ color: "var(--foreground-faint)" }}
@@ -136,7 +109,7 @@ export function HomeComposer() {
             data-testid="home-file-input"
             onChange={(e) => {
               const chosen = e.target.files?.[0];
-              if (chosen) setFile(chosen);
+              if (chosen) pickFile(chosen);
               e.target.value = ""; // allow choosing the same file again
             }}
           />
@@ -162,15 +135,11 @@ export function HomeComposer() {
         </div>
       </form>
 
+      {fileError && <ErrorLine data-testid="home-file-error">{fileError}</ErrorLine>}
       {missingFile && (
-        <p
-          role="alert"
-          data-testid="home-file-required"
-          className="text-center text-xs"
-          style={{ color: triedWithoutFile ? "var(--danger)" : "var(--foreground-muted)" }}
-        >
+        <ErrorLine data-testid="home-file-required">
           Attach a material file first. What you type here is used as extra instructions, not as material.
-        </p>
+        </ErrorLine>
       )}
       {hasText && (
         <p

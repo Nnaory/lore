@@ -3,14 +3,18 @@
  *
  * Shown when the player is between stories (after exiting or completing a story).
  * Lists stories in the campaign sequence with their lock/complete/available state
- * and lets the player start an available story.
- * A glass card over the pumpkin night.
+ * and lets the player start an available story. Flat Kit layout (Pola K): a
+ * transparent column split by 1px smoke lines, so the animated backdrop shows
+ * through. The Current row is inverted (cream fill, ink text).
  */
 
 import Link from "next/link";
 import type { CampaignBlueprint } from "@/lib/types/campaign";
 import type { CampaignState } from "@/lib/types/game";
 import { isStoryUnlocked } from "@/lib/game/campaign-manager";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge";
 
 type CampaignLobbyProps = {
   campaign: CampaignBlueprint;
@@ -32,112 +36,102 @@ export function CampaignLobby({
   return (
     <div
       data-testid="campaign-lobby"
-      className="flex flex-col items-center justify-center min-h-full py-12 px-4"
+      className="mx-auto flex min-h-full w-full max-w-[680px] flex-col px-5 pb-12 md:px-0"
     >
-      <div className="lore-glass lore-glass-panel rounded-card w-full max-w-md p-6 sm:p-8">
-        {homeHref && (
+      {/* Top row (44px) */}
+      <div className="flex min-h-[44px] items-center justify-between">
+        {homeHref ? (
           <Link
             href={homeHref}
             data-testid="lobby-home-link"
-            className="inline-block mb-6 text-xs tracking-wide"
-            style={{ color: "var(--foreground-muted)" }}
+            className="inline-flex min-h-[44px] items-center gap-2 font-mono text-[12px] font-bold text-muted"
           >
-            ← All stories
+            <Icon name="back" size={14} />
+            All stories
           </Link>
+        ) : (
+          <span />
         )}
-        {/* Campaign title */}
-        <div className="text-center mb-8">
-          <p className="text-xs tracking-widest uppercase mb-2" style={{ color: "var(--foreground-faint)" }}>
-            Campaign
-          </p>
-          <h1 className="text-2xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }} data-testid="campaign-title">
-            {campaign.title}
-          </h1>
-        </div>
+        <span className="font-mono text-[12px] font-bold tracking-[0.2em] text-cream">LORE</span>
+      </div>
 
-        <div className="lore-divider mb-8" />
+      <div className="mt-8 flex flex-col gap-2">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-gold md:text-[12px]">
+          Campaign
+        </p>
+        <h1 className="font-display text-[28px] font-bold leading-[1.15] text-cream md:text-[36px]" data-testid="campaign-title">
+          {campaign.title}
+        </h1>
+      </div>
 
-        {onViewResults && (
-          <button
-            type="button"
-            data-testid="lobby-view-results"
-            onClick={onViewResults}
-            className="lore-pill lore-pill-primary w-full mb-6"
-          >
-            Campaign complete — see your results →
-          </button>
-        )}
+      <div aria-hidden="true" className="my-6 h-px w-full bg-smoke" />
 
-        {/* Story list */}
-        <div className="flex flex-col gap-4" data-testid="story-list" role="list" aria-label="Campaign stories">
-          {campaign.story_sequence.map((entry, idx) => {
-            const isCompleted = campaignState.completed_stories.includes(entry.story_id);
-            const unlocked = isStoryUnlocked(entry.story_id, campaign, campaignState);
-            const isCurrent = campaignState.current_story_id === entry.story_id && !isCompleted;
+      {onViewResults && (
+        <Button variant="primary" data-testid="lobby-view-results" onClick={onViewResults} className="mb-6 w-full">
+          Campaign complete — see your results →
+        </Button>
+      )}
 
-            let badgeText = "Locked";
-            let badgeStyle: React.CSSProperties = {
-              backgroundColor: "transparent",
-              color: "var(--foreground-faint)",
-              borderColor: "var(--border-dim)",
-            };
-            if (isCompleted) {
-              badgeText = "Completed";
-              badgeStyle = { backgroundColor: "rgba(111, 207, 151, 0.1)", color: "#6fcf97", borderColor: "#2d6a4a" };
-            } else if (isCurrent) {
-              badgeText = "Current";
-              badgeStyle = { backgroundColor: "rgba(246, 200, 78, 0.1)", color: "var(--accent-gold)", borderColor: "var(--accent-gold)" };
-            } else if (unlocked) {
-              badgeText = "Available";
-              badgeStyle = { backgroundColor: "transparent", color: "var(--foreground-muted)", borderColor: "var(--border)" };
-            }
+      <div className="flex flex-col" data-testid="story-list" role="list" aria-label="Campaign stories">
+        {campaign.story_sequence.map((entry, idx) => {
+          const isCompleted = campaignState.completed_stories.includes(entry.story_id);
+          const unlocked = isStoryUnlocked(entry.story_id, campaign, campaignState);
+          const isCurrent = campaignState.current_story_id === entry.story_id && !isCompleted;
 
-            return (
-              <div
-                key={entry.story_id}
-                data-testid={`story-entry-${entry.story_id}`}
-                className="lore-tile rounded-panel relative overflow-hidden"
-                style={isCurrent ? { borderLeftWidth: "3px", borderLeftColor: "var(--accent-gold)" } : undefined}
-                role="listitem"
-              >
-                <div className="p-4">
-                  <div className="flex items-start justify-between gap-2 mb-2">
-                    <span className="text-xs font-mono" style={{ color: "var(--foreground-faint)" }}>
-                      {String(idx + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      className="text-xs px-2 py-0.5 rounded-full"
-                      style={{ borderWidth: "1px", borderStyle: "solid", ...badgeStyle }}
-                      data-testid={`story-badge-${entry.story_id}`}
-                    >
-                      {badgeText}
-                    </span>
-                  </div>
+          let badgeText = "Locked";
+          let variant: StatusBadgeVariant = "locked";
+          if (isCompleted) {
+            badgeText = "Completed";
+            variant = "done";
+          } else if (isCurrent) {
+            badgeText = "Current";
+            variant = "current";
+          } else if (unlocked) {
+            badgeText = "Available";
+            variant = "available";
+          }
 
-                  <p className="text-sm font-medium mb-1" style={{ color: unlocked ? "var(--foreground)" : "var(--foreground-faint)" }}>
-                    {entry.title}
-                  </p>
+          const rowClass = isCurrent ? "bg-cream text-ink" : "";
+          const indexClass = isCurrent ? "text-ink" : "text-gold";
+          const titleClass = isCurrent ? "text-ink" : unlocked ? "text-cream" : "text-muted";
 
-                  {unlocked && !isCompleted && (
-                    <button
-                      data-testid={`start-story-${entry.story_id}`}
-                      onClick={() => onStartStory(entry.story_id)}
-                      className="lore-pill lore-pill-sm lore-pill-primary mt-3 w-full"
-                    >
-                      {isCurrent ? "Continue" : "Start Story"}
-                    </button>
-                  )}
-
-                  {!unlocked && !isCompleted && (
-                    <p className="mt-3 text-xs" style={{ color: "var(--foreground-faint)" }} aria-live="polite">
-                      Complete previous stories to unlock
-                    </p>
-                  )}
-                </div>
+          return (
+            <div
+              key={entry.story_id}
+              data-testid={`story-entry-${entry.story_id}`}
+              data-current={isCurrent || undefined}
+              className={`border-b border-smoke px-0 py-4 ${isCurrent ? "px-4" : ""} ${rowClass}`}
+              role="listitem"
+            >
+              <div className="flex items-start gap-3">
+                <span className={`font-mono text-[12px] font-bold leading-[1.5] ${indexClass}`}>
+                  {String(idx + 1).padStart(2, "0")}
+                </span>
+                <p className={`min-w-0 flex-1 text-[15px] font-bold leading-[1.4] ${titleClass}`}>{entry.title}</p>
+                <StatusBadge variant={variant} data-testid={`story-badge-${entry.story_id}`}>
+                  {badgeText}
+                </StatusBadge>
               </div>
-            );
-          })}
-        </div>
+
+              {unlocked && !isCompleted && (
+                <Button
+                  variant="primary"
+                  data-testid={`start-story-${entry.story_id}`}
+                  onClick={() => onStartStory(entry.story_id)}
+                  className="mt-4 w-full md:w-auto"
+                >
+                  {isCurrent ? "Continue" : "Start Story"}
+                </Button>
+              )}
+
+              {!unlocked && !isCompleted && (
+                <p className="mt-3 font-mono text-[12px] text-muted" aria-live="polite">
+                  Complete previous stories to unlock
+                </p>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

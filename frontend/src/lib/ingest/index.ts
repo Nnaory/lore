@@ -60,7 +60,11 @@ const BY_MIME: Record<string, FileKind> = {
 /** Decide how to read a file from its extension, falling back to its MIME type. */
 export function detectFileKind(file: Pick<File, "name" | "type">): FileKind {
   const ext = /\.([a-z0-9]+)$/i.exec(file.name)?.[1]?.toLowerCase();
-  return (ext && BY_EXTENSION[ext]) || BY_MIME[file.type] || "unsupported";
+  // Own-property lookups only: a MIME or extension such as "valueOf" must not
+  // resolve to Object.prototype members.
+  if (ext && Object.hasOwn(BY_EXTENSION, ext)) return BY_EXTENSION[ext];
+  if (Object.hasOwn(BY_MIME, file.type)) return BY_MIME[file.type];
+  return "unsupported";
 }
 
 async function readByKind(kind: DocumentFileType, file: File): Promise<ExtractedDocument> {

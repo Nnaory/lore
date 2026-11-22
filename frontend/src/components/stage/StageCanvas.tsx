@@ -10,7 +10,7 @@
 
 "use client";
 
-import { Player } from "@remotion/player";
+import { Player, type PlayerRef } from "@remotion/player";
 import { useSyncExternalStore, type ReactNode } from "react";
 import type { Pacing } from "@/lib/story/pacing";
 import { CANVAS_FPS, CANVAS_HEIGHT, CANVAS_WIDTH } from "./canvas-layout";
@@ -54,12 +54,20 @@ function sceneSpec(scene: CanvasScene) {
   }
 }
 
+export function sceneDurationFrames(scene: CanvasScene): number {
+  return sceneSpec(scene).duration;
+}
+
 type StageCanvasProps = {
   scene: CanvasScene;
   /** Changes whenever the canvas should restart its animation. */
   sceneKey: string;
   pacing: Pacing;
   children?: ReactNode;
+  /** Callback ref for the Remotion player (feeds `useCanvasPlayback`). */
+  playerRef?: (player: PlayerRef | null) => void;
+  /** Inside a CanvasFrame: no own border, radius or shadow (the frame draws them). */
+  bare?: boolean;
 };
 
 const noSubscribe = () => () => {};
@@ -73,7 +81,7 @@ function useIsClient(): boolean {
   return useSyncExternalStore(noSubscribe, () => true, () => false);
 }
 
-export function StageCanvas({ scene, sceneKey, pacing, children }: StageCanvasProps) {
+export function StageCanvas({ scene, sceneKey, pacing, children, playerRef, bare = false }: StageCanvasProps) {
   const { component, duration, loop } = sceneSpec(scene);
   const fast = pacing === "fast";
   const isClient = useIsClient();
@@ -81,17 +89,17 @@ export function StageCanvas({ scene, sceneKey, pacing, children }: StageCanvasPr
     <div
       data-testid="stage-canvas"
       data-canvas-kind={scene.kind}
-      className="relative mx-auto overflow-hidden rounded-panel"
+      className={bare ? "relative mx-auto overflow-hidden" : "relative mx-auto overflow-hidden rounded-panel"}
       style={{
         aspectRatio: `${CANVAS_WIDTH} / ${CANVAS_HEIGHT}`,
         // Fill the width, but never overflow the height of a size container.
         width: `min(100%, calc(100cqh * ${CANVAS_WIDTH} / ${CANVAS_HEIGHT}))`,
-        border: "1px solid var(--glass-edge)",
-        boxShadow: "var(--glass-shadow)",
+        ...(bare ? {} : { border: "1px solid var(--glass-edge)", boxShadow: "var(--glass-shadow)" }),
       }}
     >
       {isClient ? (
       <Player
+        ref={playerRef}
         key={`${sceneKey}:${pacing}`}
         component={component}
         inputProps={scene.props as unknown as Record<string, unknown>}
@@ -113,7 +121,7 @@ export function StageCanvas({ scene, sceneKey, pacing, children }: StageCanvasPr
         acknowledgeRemotionLicense
       />
       ) : (
-        <div className="absolute inset-0" style={{ backgroundColor: "var(--background)" }} aria-hidden="true" />
+        <div className="absolute inset-0" style={{ backgroundColor: bare ? "var(--color-ink)" : "var(--background)" }} aria-hidden="true" />
       )}
       {children && <div className="absolute inset-0">{children}</div>}
     </div>

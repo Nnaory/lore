@@ -19,6 +19,15 @@ export function loadPacing(): Pacing {
   }
 }
 
+/** The raw stored value, or null when the player never chose (see `initialTextMode`). */
+export function loadStoredPacing(): string | null {
+  try {
+    return window.localStorage.getItem(KEY);
+  } catch {
+    return null;
+  }
+}
+
 export function savePacing(pacing: Pacing): void {
   try {
     window.localStorage.setItem(KEY, pacing);

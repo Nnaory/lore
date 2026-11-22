@@ -217,7 +217,7 @@ function PlotView({ visual, area }: { visual: PlotVisual; area: Area }) {
           {visual.series.map((s, i) =>
             s.label ? (
               <g key={i} transform={`translate(${box.x + box.w - 220}, ${box.y + 10 + i * 30})`}>
-                <rect width={22} height={6} y={-4} rx={3} fill={TONE_COLORS[toneAt(i, s.tone)]} />
+                <rect width={22} height={6} y={-4} fill={TONE_COLORS[toneAt(i, s.tone)]} />
                 <text x={32} y={4} fill={TEXT} fontSize={18}>{s.label}</text>
               </g>
             ) : null
@@ -290,8 +290,7 @@ function DiagramView({ visual, area }: { visual: DiagramVisual; area: Area }) {
               opacity: Math.min(1, pop * 1.4),
               transform: `scale(${0.8 + 0.2 * pop})`,
               border: `2px solid ${GOLD_DIM}`,
-              borderRadius: 14,
-              background: "rgba(34, 34, 34, 0.92)",
+              background: "color-mix(in srgb, var(--color-ink) 92%, transparent)",
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
@@ -299,7 +298,6 @@ function DiagramView({ visual, area }: { visual: DiagramVisual; area: Area }) {
               textAlign: "center",
               padding: "8px 12px",
               overflow: "hidden",
-              boxShadow: "0 0 24px rgba(246, 200, 78, 0.08)",
             }}
           >
             <div style={{ color: TEXT, fontSize, fontWeight: 600, lineHeight: 1.2 }}>{n.label}</div>
@@ -344,8 +342,12 @@ function TableView({ visual, area }: { visual: TableVisual; area: Area }) {
                 style={{
                   opacity: appear,
                   transform: `translateX(${(1 - appear) * -16}px)`,
-                  background: hot ? "rgba(246, 200, 78, 0.14)" : r % 2 ? "rgba(255, 255, 255, 0.02)" : "transparent",
-                  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                  background: hot
+                    ? "color-mix(in srgb, var(--color-gold) 14%, transparent)"
+                    : r % 2
+                      ? "color-mix(in srgb, var(--color-cream) 2%, transparent)"
+                      : "transparent",
+                  borderBottom: "1px solid color-mix(in srgb, var(--color-cream) 10%, transparent)",
                 }}
               >
                 {row.map((value, c) => (
@@ -405,8 +407,7 @@ function FormulaView({ visual, area }: { visual: FormulaVisual; area: Area }) {
             fontSize: 26,
             padding: "12px 24px",
             border: `1px solid ${GOLD_DIM}`,
-            borderRadius: 10,
-            background: "rgba(34, 34, 34, 0.85)",
+            background: "color-mix(in srgb, var(--color-ink) 85%, transparent)",
             whiteSpace: "pre",
           }}
         >
