@@ -165,3 +165,4 @@ LORE mempertahankan estetika **Modern Dark Editorial / Dark Sci-Fi Gold** agar k
 - [ ] Daftar lengkap variasi *Interactive Primitives* di Remotion untuk berbagai mata pelajaran (eksakta vs sosial/humaniora).
 - [ ] Rumus final dan angka keseimbangan untuk **Credit Simulation**.
 - [ ] Tata letak adaptif untuk layar vertikal (*mobile portrait*—apakah Character dan Canvas ditumpuk atau menggunakan tab switch).
+Visual identity: see DESIGN-SYSTEM.md
