@@ -4,8 +4,9 @@ Why: port of `frontend/src/lib/ai/campaign-planner-engine.ts`. The model cannot 
 IDs and ordering, so the app owns them: `build_campaign_blueprint` turns materials and options
 into a candidate campaign where one material is exactly one story, stories are ordered by
 cross-material concept prerequisites (stable topological sort, ties by input order), and IDs are
-`story_01`, `char_01`, `outcome_story_01_success`. Gemini only rewrites the creative text on top
-(see `app.ai.campaign_planner`). Same input gives the same output; inputs are never changed.
+`story_01`, `outcome_story_01_success`, and the fixed Kit cast ids (`eldric`, `mira`, ...).
+Gemini only rewrites the creative text on top (see `app.ai.campaign_planner`). Same input gives
+the same output; inputs are never changed.
 
 The blueprint is returned as a plain dict, not a validated model: like the TypeScript engine it
 may still hold a value the schema rejects (for example `tone: ""` from the options), and the
@@ -272,13 +273,13 @@ def build_campaign_blueprint(
         "setting": setting,
         "characters": [
             {
-                "character_id": f"char_{_pad(i + 1)}",
+                "character_id": char.character_id,
                 "name": char.name,
                 "role": char.role,
                 "description": f"{char.description} (campaign {campaign_id})",
                 "expressions": dict(BASE_EXPRESSIONS),
             }
-            for i, char in enumerate(template.characters)
+            for char in template.characters
         ],
         "world_rules": list(template.world_rules),
         "story_sequence": story_sequence,

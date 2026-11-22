@@ -1,15 +1,17 @@
 """Semantic validator for Campaign Planner output.
 
 Why: port of `frontend/src/lib/validation/planner-validator.ts`. Rules the legacy campaign
-validator does not enforce: unique story, character and outcome IDs; exactly one story per input
-material (and no story for an unknown material); `required_knowledge` may only name concepts of
-materials whose story comes EARLIER, never the same story's material and never a later one.
+validator does not enforce: unique story, character and outcome IDs; every character_id is a
+Kit cast id; exactly one story per input material (and no story for an unknown material);
+`required_knowledge` may only name concepts of materials whose story comes EARLIER, never the
+same story's material and never a later one.
 Error order and messages match the TypeScript version, because they travel to the client as the
 `detail` of a `VALIDATION_FAILED` answer.
 """
 
 from __future__ import annotations
 
+from app.ai.campaign_templates import CAST_IDS
 from app.ai.contracts.campaign import CampaignBlueprint
 from app.ai.contracts.material import MaterialBlueprint
 from app.ai.validation import validation_error
@@ -48,6 +50,15 @@ def validate_planned_campaign(
                 )
             )
         seen_character_ids.add(character.character_id)
+        if character.character_id not in CAST_IDS:
+            errors.append(
+                validation_error(
+                    "INVALID_CAST_CHARACTER",
+                    f'character_id "{character.character_id}" in campaign "{cid}" is not one of '
+                    f"the Kit cast ({', '.join(CAST_IDS)}).",
+                    f"characters[{character.character_id}]",
+                )
+            )
 
     # 3. outcome_id uniqueness (campaign-wide)
     seen_outcome_ids: set[str] = set()
