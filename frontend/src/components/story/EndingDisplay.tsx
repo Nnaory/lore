@@ -1,79 +1,48 @@
 /**
- * EndingDisplay
+ * EndingDisplay — story ending panel on the Stage (Pola P, design 6.7)
  *
- * Renders the story ending — shown when an ending scene is reached.
- * A glass card with divider lines.
+ * Why: shown when an ending scene is reached. Built from Kit tokens and
+ * StatusBadge (`Success` = done, `Failed` = locked, `Partial Success` =
+ * available), top-aligned and scrollable inside the panel with no glass,
+ * radius, shadow or non-token colours.
  */
 
+import { StatusBadge, type StatusBadgeVariant } from "@/components/ui/StatusBadge";
 import type { Ending } from "@/lib/types/scene";
 
 type EndingDisplayProps = {
   ending: Ending;
 };
 
-const endingTypeLabel: Record<Ending["type"], string> = {
-  success: "Success",
-  failure: "Failed",
-  partial_success: "Partial Success",
-};
-
-const endingTypeStyle: Record<Ending["type"], React.CSSProperties> = {
-  success: { backgroundColor: "rgba(111, 207, 151, 0.1)", borderColor: "#2d6a4a", color: "#6fcf97" },
-  failure: { backgroundColor: "rgba(216, 74, 58, 0.1)", borderColor: "#6a2d2d", color: "#eb5757" },
-  partial_success: { backgroundColor: "rgba(242, 201, 76, 0.1)", borderColor: "#6a5a2d", color: "#f2c94c" },
+const ENDING_BADGE: Record<Ending["type"], { label: string; variant: StatusBadgeVariant }> = {
+  success: { label: "Success", variant: "done" },
+  failure: { label: "Failed", variant: "locked" },
+  partial_success: { label: "Partial Success", variant: "available" },
 };
 
 export function EndingDisplay({ ending }: EndingDisplayProps) {
+  const badge = ENDING_BADGE[ending.type];
+
   return (
     <div
       data-testid="ending-display"
-      className="lore-glass lore-glass-panel rounded-panel w-full max-w-2xl mx-auto overflow-hidden"
-      style={{ borderColor: "var(--accent-gold)" }}
+      className="mx-auto flex max-h-[600px] w-full max-w-[366px] flex-col items-center gap-4 overflow-y-auto border-2 border-smoke bg-ink p-5 text-center md:max-w-[720px] md:p-6"
       role="region"
       aria-label={`Story ending: ${ending.title}`}
     >
-      {/* Top divider */}
-      <div className="chat-divider" aria-hidden="true" />
+      <StatusBadge variant={badge.variant} data-testid="ending-type-badge">
+        {badge.label}
+      </StatusBadge>
 
-      {/* Type badge */}
-      <div className="px-6 py-4 text-center">
-        <span
-          data-testid="ending-type-badge"
-          className="inline-block text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full"
-          style={endingTypeStyle[ending.type]}
-        >
-          {endingTypeLabel[ending.type]}
-        </span>
-      </div>
+      <h2 className="font-display text-[18px] font-bold leading-snug text-gold md:text-[20px]">
+        {ending.title}
+      </h2>
 
-      {/* Divider */}
-      <div className="chat-divider" aria-hidden="true" />
+      <div aria-hidden="true" className="h-px w-full bg-smoke" />
 
-      {/* Title */}
-      <div className="px-6 py-4 text-center">
-        <h2
-          className="text-xl font-semibold tracking-wide"
-          style={{ color: "var(--accent-gold)" }}
-        >
-          {ending.title}
-        </h2>
-      </div>
-
-      {/* Divider */}
-      <div className="chat-divider" aria-hidden="true" />
-
-      {/* Narration */}
-      <div className="px-6 py-4">
-        <p
-          className="text-base leading-7 italic text-center"
-          style={{ color: "var(--foreground-muted)" }}
-        >
-          {ending.narration}
-        </p>
-      </div>
-
-      {/* Bottom divider */}
-      <div className="chat-divider" aria-hidden="true" />
+      <p className="whitespace-pre-line text-center text-[15px] leading-[1.5] text-muted">
+        {ending.narration}
+      </p>
     </div>
   );
 }

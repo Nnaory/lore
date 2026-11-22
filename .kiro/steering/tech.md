@@ -4,8 +4,8 @@ inclusion: always
 
 # Stack, perintah, env, test
 
-- **Frontend (`frontend/`):** Next 16.4.5 (App Router, `cacheComponents`, `reactCompiler`, Turbopack dengan loader Tailwind), React 19.3, TypeScript strict, Tailwind 4, Zod 3, `@remotion/player` 4.0.543, pdfjs-dist, mammoth, jszip, lucide-react. Runtime Node 26 (`.nvmrc`).
-  - Test: Vitest 3, Testing Library, jsdom, fake-indexeddb.
+- **Frontend (`frontend/`):** Next 16.4.5 (App Router, `cacheComponents`, `reactCompiler`, Turbopack dengan loader Tailwind), React 19.3, TypeScript strict, Tailwind 4, Zod 3, `@remotion/player` 4.0.543, pdfjs-dist, mammoth, jszip, lucide-react, font `Space Grotesk` (`--font-display`) dan `JetBrains Mono` (`--font-mono`) lewat `next/font/google` (`src/app/fonts.ts`), serta generator/komponen ASCII Kit di `src/lib/ascii` dan `src/components/ascii`. Runtime Node 26 (`.nvmrc`).
+  - Test: Vitest 3, Testing Library, jsdom, fake-indexeddb, fast-check.
   - Alias `@/*` → `src/*` (di dalam `frontend/`).
   - Perintah (jalankan dari `frontend/`): `npm run dev | build | lint | test | test:watch | test:coverage`.
   - Next 16 punya breaking changes: baca `node_modules/next/dist/docs/` (resolve dari root repo; lihat `AGENTS.md`) sebelum menulis kode Next.
@@ -24,9 +24,9 @@ inclusion: always
 - Jangan pernah menaruh API key atau password di kode atau di steering ini. Pakai `.env`.
 
 ## Test
-- **Frontend:** 48 file `*.test.ts(x)` di `frontend/tests/` (618 test, 21 Nov 2026, dijalankan dengan Zod 3). Dikelompokkan per domain: contracts, story, schemas, ingest, campaign, knowledge, setup, stage, game, generation, state, api health. Fixture di `frontend/tests/fixtures/`; `backend-fetch.ts` melayani fixture AI backend.
+- **Frontend:** 85 file `*.test.ts(x)` di `frontend/tests/` (922 test, 22 Nov 2026, dijalankan dengan Zod 3). Dikelompokkan per domain: contracts, story, schemas, ingest, campaign, knowledge, setup, stage, game, generation, state, api health, ascii, cast, dialogue, home, ui, lib. Fixture di `frontend/tests/fixtures/`; `backend-fetch.ts` melayani fixture AI backend.
 - Environment default `node`. File yang butuh DOM memakai docblock `@vitest-environment jsdom`.
 - `frontend/tests/setup.ts` memuat jest-dom dan `fake-indexeddb/auto`, menambah polyfill `Blob.text/arrayBuffer`, dan memperbaiki localStorage di Node 25.
 - **Backend:** `backend/tests/` (595 passed + 57 skip tanpa Postgres, 21 Nov 2026). Test DB memakai service container `postgres:16-alpine` di CI (`alembic upgrade head` + `pytest`); test AI tidak butuh Postgres atau jaringan.
 - **Infra checkers:** `scripts/ci/test-checkers.py` (`7` unit test) + `check-cost-static`.
-- Status (21 Nov 2026, lokal): lint web 0 error / 0 warning, `tsc --noEmit`, `npm run build`, Vitest 618 passed, ruff clean, Pytest 595 passed. Terraform belum divalidasi lokal untuk perubahan AI (CI `ci/terraform`).
+- Status (22 Nov 2026, lokal): lint web 0 error / 0 warning, `tsc --noEmit`, `npm run build`, Vitest 922 passed (85 file, golden 40/40), ruff clean, Pytest 595 passed. Terraform belum divalidasi lokal untuk perubahan AI (CI `ci/terraform`).

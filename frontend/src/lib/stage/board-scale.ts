@@ -62,9 +62,13 @@ export function computeBoardScale(
   }
   const board = BOARD_SIZE[layout];
   if (!board) return { ok: false, reason: "invalid_viewport" };
+  const scale = Math.min(viewport.width / board.width, viewport.height / board.height);
+  if (!isPositiveFinite(scale)) {
+    return { ok: false, reason: "invalid_viewport" };
+  }
   return {
     ok: true,
-    scale: Math.min(viewport.width / board.width, viewport.height / board.height),
+    scale,
   };
 }
 

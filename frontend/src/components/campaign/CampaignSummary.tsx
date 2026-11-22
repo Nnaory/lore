@@ -1,14 +1,17 @@
 /**
- * CampaignSummary — epilogue and learning evaluation
+ * CampaignSummary — epilogue and learning evaluation (Pola K, design 6.6)
  *
- * Shown when every story in the campaign is complete. Recaps how each story
- * ended, then evaluates each concept from the evidence the game recorded,
- * with a short recap for the concepts that still need practice.
+ * Why: shown when every story in the campaign is complete. Recaps how each
+ * story ended, then evaluates each concept from the evidence the game recorded,
+ * with a short recap for the concepts that still need practice. Built from Kit
+ * components (Button, SectionLabel) and token classes only — transparent column
+ * so the root layout's animated PumpkinBackdrop remains visible.
  */
 
 "use client";
 
-import Link from "next/link";
+import { Button } from "@/components/ui/Button";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { ConceptOutcome, LearningSummary } from "@/lib/game/learning-summary";
 
 type CampaignSummaryProps = {
@@ -17,11 +20,34 @@ type CampaignSummaryProps = {
   homeHref?: string;
 };
 
-const OUTCOME: Record<ConceptOutcome, { label: string; detail: string; mark: string; color: string }> = {
-  mastered: { label: "Mastered", detail: "Right on the first try", mark: "●", color: "#6fcf97" },
-  developing: { label: "Developing", detail: "Right after a mistake", mark: "◐", color: "var(--accent-gold)" },
-  practice: { label: "Needs practice", detail: "Not answered correctly yet", mark: "○", color: "var(--danger)" },
-  unseen: { label: "Not tested", detail: "Taught, but never tested", mark: "·", color: "var(--foreground-faint)" },
+const OUTCOME: Record<
+  ConceptOutcome,
+  { label: string; detail: string; mark: string; colorClass: string }
+> = {
+  mastered: {
+    label: "Mastered",
+    detail: "Right on the first try",
+    mark: "●",
+    colorClass: "text-gold",
+  },
+  developing: {
+    label: "Developing",
+    detail: "Right after a mistake",
+    mark: "◐",
+    colorClass: "text-cream",
+  },
+  practice: {
+    label: "Needs practice",
+    detail: "Not answered correctly yet",
+    mark: "○",
+    colorClass: "text-ember",
+  },
+  unseen: {
+    label: "Not tested",
+    detail: "Taught, but never tested",
+    mark: "·",
+    colorClass: "text-muted",
+  },
 };
 
 export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSummaryProps) {
@@ -29,106 +55,124 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSu
   const { mastered } = summary.counts;
 
   return (
-    <div className="min-h-screen overflow-y-auto px-4" data-testid="campaign-summary">
-      <main className="lore-glass lore-glass-panel rounded-card w-full max-w-2xl mx-auto my-10 p-6 sm:p-10 flex flex-col gap-10">
-        <header className="text-center flex flex-col gap-2">
-          <p className="text-xs tracking-[0.3em] uppercase" style={{ color: "var(--accent-gold-dim)" }}>
-            Epilogue
-          </p>
-          <h1 className="text-2xl font-semibold tracking-wide" style={{ color: "var(--foreground)" }}>
-            {summary.campaign_title}
-          </h1>
-        </header>
+    <div
+      data-testid="campaign-summary"
+      className="mx-auto flex min-h-full w-full max-w-[680px] flex-col px-5 pb-12 md:px-0"
+    >
+      {/* Top row (44px desktop, 56px phone) */}
+      <div className="flex min-h-[56px] items-center justify-between md:min-h-[44px]">
+        <span aria-hidden="true" />
+        <span className="font-mono text-[13px] font-bold tracking-[0.4em] text-gold">LORE</span>
+      </div>
 
-        <section aria-label="How your story ended" className="flex flex-col gap-5">
-          {summary.stories.map((story) => (
-            <article key={story.story_id} data-testid={`epilogue-${story.story_id}`} className="flex flex-col gap-2">
-              <h2 className="text-sm font-semibold tracking-wide" style={{ color: "var(--accent-gold)" }}>
-                {story.ending_title}
-              </h2>
-              {story.ending_narration.split("\n").filter(Boolean).map((paragraph, i) => (
-                <p key={i} className="text-sm leading-7 italic" style={{ color: "var(--foreground-muted)" }}>
+      <header className="mt-8 flex flex-col gap-2">
+        <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ember md:text-[12px]">
+          Epilogue
+        </p>
+        <h1 className="font-display text-[28px] font-bold leading-[1.15] text-cream md:text-[36px]">
+          {summary.campaign_title}
+        </h1>
+      </header>
+
+      <section aria-label="How your story ended" className="mt-6 flex flex-col gap-5">
+        {summary.stories.map((story) => (
+          <article
+            key={story.story_id}
+            data-testid={`epilogue-${story.story_id}`}
+            className="flex flex-col gap-2"
+          >
+            <h2 className="font-display text-[17px] font-bold leading-snug text-gold">
+              {story.ending_title}
+            </h2>
+            {story.ending_narration
+              .split("\n")
+              .filter(Boolean)
+              .map((paragraph, i) => (
+                <p key={i} className="text-[14px] leading-[1.5] text-muted md:text-[15px]">
                   {paragraph}
                 </p>
               ))}
-            </article>
-          ))}
-        </section>
+          </article>
+        ))}
+      </section>
 
-        <div className="lore-divider" />
+      <div aria-hidden="true" className="my-6 h-px w-full bg-smoke" />
 
-        <section aria-labelledby="evaluation-heading" className="flex flex-col gap-4" data-testid="learning-evaluation">
-          <div>
-            <h2 id="evaluation-heading" className="text-xs tracking-[0.25em] uppercase" style={{ color: "var(--foreground)" }}>
-              What you learned
-            </h2>
-            <p className="text-sm mt-2" style={{ color: "var(--foreground-muted)" }} data-testid="evaluation-headline">
-              {total === 0
-                ? "No concepts were tested in this campaign."
-                : `You mastered ${mastered} of ${total} concept${total === 1 ? "" : "s"} on the first try.`}
-            </p>
-          </div>
-
-          <ul className="flex flex-col gap-2">
-            {summary.concepts.map((concept) => {
-              const o = OUTCOME[concept.outcome];
-              const needsRecap = concept.outcome === "developing" || concept.outcome === "practice";
-              return (
-                <li
-                  key={concept.concept_id}
-                  data-testid={`concept-result-${concept.concept_id}`}
-                  data-outcome={concept.outcome}
-                  className="lore-tile rounded-tip p-3 flex flex-col gap-1.5"
-                >
-                  <div className="flex items-center gap-3">
-                    <span aria-hidden="true" style={{ color: o.color }}>{o.mark}</span>
-                    <span className="flex-1 text-sm" style={{ color: "var(--foreground)" }}>{concept.name}</span>
-                    <span className="text-xs text-right" style={{ color: o.color }}>
-                      {o.label}
-                      <span className="block" style={{ color: "var(--foreground-faint)" }}>{o.detail}</span>
-                    </span>
-                  </div>
-                  {needsRecap && concept.definition && (
-                    <p className="text-xs leading-5 pl-6" style={{ color: "var(--foreground-muted)" }}>
-                      <span style={{ color: "var(--foreground-faint)" }}>Recap: </span>
-                      {concept.definition}
-                    </p>
-                  )}
-                  {needsRecap && concept.watch_out && (
-                    <p className="text-xs leading-5 pl-6" style={{ color: "var(--foreground-faint)" }}>
-                      Watch out for: {concept.watch_out}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          {homeHref && (
-            <Link
-              href={homeHref}
-              className="lore-pill lore-pill-lg lore-pill-primary"
-            >
-              Back to your stories
-            </Link>
-          )}
-          <Link
-            href="/create"
-            className="lore-pill lore-pill-lg"
+      <section
+        aria-label="What you learned"
+        className="flex flex-col gap-4"
+        data-testid="learning-evaluation"
+      >
+        <div className="flex flex-col gap-2">
+          <SectionLabel number="01" title="WHAT YOU LEARNED" />
+          <p
+            className="text-[14px] leading-[1.5] text-muted md:text-[15px]"
+            data-testid="evaluation-headline"
           >
-            Create a new story
-          </Link>
-          <button
-            type="button"
-            onClick={onBackToLobby}
-            className="lore-pill lore-pill-lg"
-          >
-            Campaign lobby
-          </button>
+            {total === 0
+              ? "No concepts were tested in this campaign."
+              : `You mastered ${mastered} of ${total} concept${total === 1 ? "" : "s"} on the first try.`}
+          </p>
         </div>
-      </main>
+
+        <ul className="m-0 flex list-none flex-col p-0">
+          {summary.concepts.map((concept) => {
+            const o = OUTCOME[concept.outcome];
+            const needsRecap = concept.outcome === "developing" || concept.outcome === "practice";
+            return (
+              <li
+                key={concept.concept_id}
+                data-testid={`concept-result-${concept.concept_id}`}
+                data-outcome={concept.outcome}
+                className="flex flex-col gap-1.5 border-b border-smoke py-3.5"
+              >
+                <div className="flex items-start gap-3">
+                  <span
+                    aria-hidden="true"
+                    className={`font-mono text-[14px] leading-[1.4] ${o.colorClass}`}
+                  >
+                    {o.mark}
+                  </span>
+                  <span className="min-w-0 flex-1 text-[15px] font-bold leading-[1.4] text-cream">
+                    {concept.name}
+                  </span>
+                  <span className={`text-right font-mono text-[12px] font-bold ${o.colorClass}`}>
+                    {o.label}
+                    <span className="block font-mono text-[11px] font-normal text-muted">
+                      {o.detail}
+                    </span>
+                  </span>
+                </div>
+                {needsRecap && concept.definition && (
+                  <p className="pl-6 font-mono text-[12px] leading-[1.5] text-muted">
+                    <span>Recap: </span>
+                    {concept.definition}
+                  </p>
+                )}
+                {needsRecap && concept.watch_out && (
+                  <p className="pl-6 font-mono text-[12px] leading-[1.5] text-muted">
+                    Watch out for: {concept.watch_out}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      </section>
+
+      <div className="mt-8 flex flex-col gap-3 md:flex-row">
+        {homeHref && (
+          <Button variant="primary" href={homeHref} className="w-full md:w-auto">
+            Back to your stories
+          </Button>
+        )}
+        <Button variant="outline" href="/create" className="w-full md:w-auto">
+          Create a new story
+        </Button>
+        <Button variant="outline" onClick={onBackToLobby} className="w-full md:w-auto">
+          Campaign lobby
+        </Button>
+      </div>
     </div>
   );
 }

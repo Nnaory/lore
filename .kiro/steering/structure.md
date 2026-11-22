@@ -17,8 +17,8 @@ docs/       DOCS.md, DESIGN.md (visi v2), infra/ (arsitektur yang sudah diimplem
 
 ## Di dalam `frontend/src`
 - `app/` route halaman dan satu route handler, `app/api/health` (liveness). Tidak ada kode server lain di frontend.
-- `components/` per area: `stage`, `story`, `campaign`, `setup`, `play`, `home`, `backdrop`.
-- `lib/` logika murni per domain: `contracts`, `game`, `story`, `campaign`, `generation`, `ingest`, `setup`, `state`, `types`, `ascii-field`.
+- `components/` per area: `ascii`, `ui`, `stage`, `story`, `campaign`, `setup`, `play`, `home`, `backdrop` (hanya `PumpkinBackdrop`).
+- `lib/` logika murni per domain: `ascii`, `cast`, `stage`, `dialogue`, `prep`, `home`, `schemas`, `contracts`, `game`, `story`, `campaign`, `generation`, `ingest`, `setup`, `state`, `types`, `ascii-field`.
 - Tipe di `lib/types`, schema Zod padanannya di `lib/contracts/schemas`.
 
 ## Penamaan dan pola

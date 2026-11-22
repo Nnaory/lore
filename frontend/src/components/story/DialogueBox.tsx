@@ -28,7 +28,7 @@ export interface DialogueTestIds {
 interface Props {
   speakerName: string;
   speakerRole?: string;
-  /** Name colour: gold by default; a character's cloth colour on Home B (Hazel = #E0393E). */
+  /** Name colour: gold by default; a character's cloth colour on Home B (Hazel = var(--color-cloth-hazel)). */
   nameColor?: string;
   text: string;
   /** Optional choice buttons (render <ChoiceButton>s). */

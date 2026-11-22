@@ -19,7 +19,7 @@ import { AsciiFieldEngine } from "@/lib/ascii-field/engine";
 import { HALLOWEEN_NIGHT, pumpkins, type Pumpkin } from "@/lib/ascii-field/pumpkins";
 
 /** What a click must NOT land on to count as a click on the sky. */
-const NOT_SKY = "a, button, input, textarea, select, label, summary, [role='button'], .lore-glass";
+const NOT_SKY = "a, button, input, textarea, select, label, summary, [role='button']";
 
 function isSky(target: EventTarget | null) {
   return target instanceof Element && !target.closest(NOT_SKY);

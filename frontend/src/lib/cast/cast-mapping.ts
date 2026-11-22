@@ -137,3 +137,30 @@ export function speakerTagName(speakerId: string | undefined, chars: readonly Ch
   const found = (chars ?? []).find((c) => c.character_id === speakerId);
   return found && found.name.trim() !== "" ? found.name : NARRATION_TAG;
 }
+
+/**
+ * Pick the secondary character on stage: the first character in `presentIds`
+ * that exists in `chars` and is distinct from `activeId`, or `null` when none
+ * qualifies. Pure, total, and never throws (Property 5).
+ */
+export function pickOtherCharacter(
+  presentIds: readonly string[] | null | undefined,
+  activeId: string | null | undefined,
+  chars: readonly Character[] | null | undefined,
+): Character | null {
+  if (!Array.isArray(presentIds) || !Array.isArray(chars) || chars.length === 0) {
+    return null;
+  }
+  const byId = new Map<string, Character>();
+  for (const c of chars) {
+    if (c && typeof c.character_id === "string" && !byId.has(c.character_id)) {
+      byId.set(c.character_id, c);
+    }
+  }
+  for (const id of presentIds) {
+    if (typeof id === "string" && id !== activeId && byId.has(id)) {
+      return byId.get(id) ?? null;
+    }
+  }
+  return null;
+}

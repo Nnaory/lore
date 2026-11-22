@@ -30,11 +30,15 @@ function reject(reason: HomeFileRejection): HomeFileCheck {
 
 /** Check format first, then emptiness, then the upper size bound. */
 export function validateHomeFile(file: { name: string; size: number; type: string }): HomeFileCheck {
+  if (!file || typeof file.name !== "string" || typeof file.type !== "string") {
+    return reject("unsupported_format");
+  }
   const kind = detectFileKind({ name: file.name, type: file.type });
   if (kind === "unsupported" || kind === "legacy-doc" || kind === "legacy-ppt") {
     return reject("unsupported_format");
   }
-  if (!(file.size > 0)) return reject("empty_file");
-  if (file.size > MAX_FILE_BYTES) return reject("too_large");
+  const size = typeof file.size === "number" && Number.isFinite(file.size) ? file.size : 0;
+  if (!(size > 0)) return reject("empty_file");
+  if (size > MAX_FILE_BYTES) return reject("too_large");
   return { ok: true };
 }

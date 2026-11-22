@@ -15,11 +15,11 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { ArrowUp, FileText, Paperclip, X } from "lucide-react";
 import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 import { MAX_INSTRUCTIONS_CHARS } from "@/lib/setup/create-form";
 import { ErrorLine } from "@/components/ui/ErrorLine";
+import { Icon } from "@/components/ui/Icon";
 import { useHomeComposer } from "./use-home-composer";
 
 /** Tallest the field grows before it scrolls. */
@@ -53,29 +53,24 @@ export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | nu
       <form
         data-testid="home-composer"
         onSubmit={handleSubmit}
-        className="lore-glass lore-glass-composer rounded-card flex flex-col gap-2 p-2.5"
+        className="flex flex-col gap-2 border-2 border-smoke bg-ink p-2.5"
       >
         {file && (
           <div
             data-testid="home-file-chip"
-            className="lore-tile rounded-tip self-start max-w-full flex items-center gap-2 py-1.5 pl-3 pr-1.5"
+            className="flex max-w-full items-center gap-2 self-start border border-gold bg-ink py-1.5 pl-3 pr-1.5"
           >
-            <FileText size={14} aria-hidden="true" className="flex-none" style={{ color: "var(--accent-gold-dim)" }} />
-            <span className="min-w-0 truncate text-sm" style={{ color: "var(--foreground)" }}>
-              {file.name}
-            </span>
-            <span className="flex-none text-xs" style={{ color: "var(--foreground-faint)" }}>
-              {formatSize(file.size)}
-            </span>
+            <Icon name="file" size={14} className="flex-none text-gold" />
+            <span className="min-w-0 truncate text-sm text-cream">{file.name}</span>
+            <span className="flex-none font-mono text-xs text-muted">{formatSize(file.size)}</span>
             <button
               type="button"
               data-testid="home-file-remove"
               onClick={removeFile}
               aria-label={`Remove ${file.name}`}
-              className="flex-none p-1 rounded-pill transition-colors hover:bg-white/5"
-              style={{ color: "var(--foreground-faint)" }}
+              className="flex-none p-1 text-muted hover:text-cream"
             >
-              <X size={14} aria-hidden="true" />
+              <Icon name="close" size={14} />
             </button>
           </div>
         )}
@@ -96,8 +91,7 @@ export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | nu
             placeholder={
               file ? "Add instructions (optional), then press send." : "Add instructions (optional), then attach a file…"
             }
-            className="lore-composer-input flex-1 min-w-0 resize-none bg-transparent px-3 py-2 text-[15px] leading-6"
-            style={{ color: "var(--foreground)" }}
+            className="min-w-0 flex-1 resize-none bg-transparent px-3 py-2 text-[15px] leading-6 text-cream placeholder:text-muted"
           />
 
           <input
@@ -119,18 +113,22 @@ export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | nu
             onClick={() => fileInputRef.current?.click()}
             aria-label="Attach a material file"
             title="Attach a material file"
-            className={`lore-pill lore-pill-icon flex-none ${missingFile ? "lore-pill-accent" : ""}`}
+            className={`flex min-h-[44px] min-w-[44px] flex-none items-center justify-center border-2 ${
+              missingFile ? "border-gold text-gold" : "border-cream text-cream"
+            }`}
           >
-            <Paperclip size={18} aria-hidden="true" />
+            <Icon name="paperclip" size={18} />
           </button>
           <button
             type="submit"
             data-testid="home-send"
             disabled={file === null}
             aria-label="Build a story from the attached file"
-            className="lore-pill lore-pill-icon lore-pill-primary flex-none"
+            className={`flex min-h-[44px] min-w-[44px] flex-none items-center justify-center ${
+              file === null ? "cursor-not-allowed bg-smoke text-muted" : "cursor-pointer bg-ember text-ink"
+            }`}
           >
-            <ArrowUp size={18} aria-hidden="true" />
+            <Icon name="arrow-up" size={18} />
           </button>
         </div>
       </form>
@@ -142,16 +140,12 @@ export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | nu
         </ErrorLine>
       )}
       {hasText && (
-        <p
-          className="text-right text-xs px-2"
-          style={{ color: "var(--foreground-faint)" }}
-          data-testid="home-instructions-count"
-        >
+        <p className="px-2 text-right font-mono text-xs text-muted" data-testid="home-instructions-count">
           {text.length} / {MAX_INSTRUCTIONS_CHARS}
         </p>
       )}
 
-      <p className="lore-halo text-center text-xs" style={{ color: "var(--foreground-faint)" }}>
+      <p className="text-center font-mono text-xs text-muted">
         PDF · DOCX · PPTX · TXT · MD, up to {MAX_MB} MB. A file is required. Your file is read on this device.
       </p>
     </div>

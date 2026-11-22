@@ -11,6 +11,7 @@ import {
   emotionToExpression,
   mapCharacter,
   mapExpression,
+  pickOtherCharacter,
   resolveCampaignCast,
 } from "@/lib/cast/cast-mapping";
 import type { Character } from "@/lib/types/campaign";
@@ -301,3 +302,39 @@ describe("Backend Kit ids and legacy ids", () => {
     expect([...resolveCampaignCast(legacy).entries()]).toEqual([...result.entries()]);
   });
 });
+
+/**
+ * Feature: ui-redesign, Property 5: Karakter lain berbeda dari penutur aktif
+ * Validates: Requirements 12.6, 12.7
+ */
+describe("Property 5: other character is distinct from the active speaker", () => {
+  it("returns null or a campaign character in characters_present distinct from activeId, deterministically", () => {
+    const presentArb = fc.array(
+      fc.oneof(castIdArb, fc.string({ maxLength: 12 })),
+      { maxLength: 10 }
+    );
+    const activeArb = fc.oneof(castIdArb, fc.string({ maxLength: 12 }), fc.constant(""));
+
+    fc.assert(
+      fc.property(campaignArb(8), presentArb, activeArb, (chars, presentIds, activeId) => {
+        const a = pickOtherCharacter(presentIds, activeId, chars);
+        const b = pickOtherCharacter([...presentIds], activeId, chars.map((c) => ({ ...c })));
+        expect(b).toEqual(a);
+
+        const campaignIds = new Set(chars.map((c) => c.character_id));
+        const hasCandidate = presentIds.some((id) => id !== activeId && campaignIds.has(id));
+
+        if (!hasCandidate) {
+          expect(a).toBeNull();
+        } else {
+          expect(a).not.toBeNull();
+          expect(presentIds).toContain(a!.character_id);
+          expect(campaignIds.has(a!.character_id)).toBe(true);
+          expect(a!.character_id).not.toBe(activeId);
+        }
+      }),
+      { numRuns: 150 }
+    );
+  });
+});
+

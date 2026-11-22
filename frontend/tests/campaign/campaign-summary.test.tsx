@@ -10,6 +10,7 @@ import { buildLearningSummary } from "@/lib/game/learning-summary";
 import { createInitialCampaignState, completeStory } from "@/lib/game/campaign-manager";
 import { recordLearningExposure, recordPuzzleSubmission, createInitialKnowledge } from "@/lib/game/knowledge-manager";
 import { CampaignPlayer } from "@/components/campaign/CampaignPlayer";
+import { CampaignSummary } from "@/components/campaign/CampaignSummary";
 import { dummyCampaign, dummyMaterial, dummyStory } from "@/data/dummy-campaign";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { CampaignState } from "@/lib/types/game";
@@ -152,3 +153,84 @@ describe("CampaignPlayer — results", () => {
     expect(screen.queryByTestId("lobby-view-results")).toBeNull();
   });
 });
+
+describe("CampaignSummary component (task 11.3)", () => {
+  it("renders mastered, developing, practice, and unseen concept rows with Kit markers and tokens", () => {
+    render(
+      <CampaignSummary
+        summary={{
+          campaign_title: "The Last Beacon",
+          stories: [
+            {
+              story_id: "s1",
+              title: "Story 1",
+              ending_title: "The City Holds",
+              ending_narration: "First paragraph.\nSecond paragraph.",
+            },
+          ],
+          concepts: [
+            { concept_id: "c_mastered", name: "Linear Combination", outcome: "mastered", definition: "Def 1", watch_out: "Mis 1" },
+            { concept_id: "c_dev", name: "Vector Span", outcome: "developing", definition: "Def 2", watch_out: "Mis 2" },
+            { concept_id: "c_prac", name: "Basis Vectors", outcome: "practice", definition: "Def 3", watch_out: "Mis 3" },
+            { concept_id: "c_unseen", name: "Eigenvalues", outcome: "unseen", definition: "Def 4", watch_out: null },
+          ],
+          counts: { mastered: 1, developing: 1, practice: 1, unseen: 1 },
+        }}
+        homeHref="/"
+        onBackToLobby={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("evaluation-headline").textContent).toBe(
+      "You mastered 1 of 4 concepts on the first try."
+    );
+
+    const masteredRow = screen.getByTestId("concept-result-c_mastered");
+    expect(masteredRow.dataset.outcome).toBe("mastered");
+    expect(masteredRow.textContent).toContain("●");
+    expect(masteredRow.textContent).toContain("Mastered");
+    expect(masteredRow.textContent).toContain("Right on the first try");
+    expect(masteredRow.textContent).not.toContain("Recap:");
+
+    const devRow = screen.getByTestId("concept-result-c_dev");
+    expect(devRow.dataset.outcome).toBe("developing");
+    expect(devRow.textContent).toContain("◐");
+    expect(devRow.textContent).toContain("Developing");
+    expect(devRow.textContent).toContain("Right after a mistake");
+    expect(devRow.textContent).toContain("Recap: Def 2");
+    expect(devRow.textContent).toContain("Watch out for: Mis 2");
+
+    const pracRow = screen.getByTestId("concept-result-c_prac");
+    expect(pracRow.dataset.outcome).toBe("practice");
+    expect(pracRow.textContent).toContain("○");
+    expect(pracRow.textContent).toContain("Needs practice");
+    expect(pracRow.textContent).toContain("Not answered correctly yet");
+    expect(pracRow.textContent).toContain("Recap: Def 3");
+    expect(pracRow.textContent).toContain("Watch out for: Mis 3");
+
+    const unseenRow = screen.getByTestId("concept-result-c_unseen");
+    expect(unseenRow.dataset.outcome).toBe("unseen");
+    expect(unseenRow.textContent).toContain("·");
+    expect(unseenRow.textContent).toContain("Not tested");
+    expect(unseenRow.textContent).toContain("Taught, but never tested");
+    expect(unseenRow.textContent).not.toContain("Recap:");
+  });
+
+  it("shows the empty-concepts sentence when no concepts were tested", () => {
+    render(
+      <CampaignSummary
+        summary={{
+          campaign_title: "Empty Campaign",
+          stories: [],
+          concepts: [],
+          counts: { mastered: 0, developing: 0, practice: 0, unseen: 0 },
+        }}
+        onBackToLobby={vi.fn()}
+      />
+    );
+    expect(screen.getByTestId("evaluation-headline").textContent).toBe(
+      "No concepts were tested in this campaign."
+    );
+  });
+});
+

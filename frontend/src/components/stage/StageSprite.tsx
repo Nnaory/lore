@@ -39,6 +39,15 @@ export interface StageSpriteProps {
   style?: CSSProperties;
 }
 
+/** Desktop slot for the secondary character (centred in the 736x414 CanvasFrame slot, 8px cells = 211x384). */
+const OTHER_SPRITE_DESKTOP = {
+  x: 694,
+  y: 47,
+  width: 211,
+  height: 384,
+  fontPx: 8,
+} as const;
+
 export function StageSprite({
   layout,
   characterId,
@@ -49,10 +58,10 @@ export function StageSprite({
   role = "active",
   style,
 }: StageSpriteProps) {
-  const box = STAGE_BOXES[layout].sprite;
+  const other = role === "other";
+  const box = other && layout === "desktop" ? OTHER_SPRITE_DESKTOP : STAGE_BOXES[layout].sprite;
   const layers = useMemo(() => renderCharacter(castId, expression), [castId, expression]);
   const pixelRatio = useBoardPixelRatio();
-  const other = role === "other";
   return (
     <figure
       data-testid={other ? "stage-character-other" : "stage-character"}
@@ -67,7 +76,7 @@ export function StageSprite({
         top: box.y,
         width: box.width,
         height: box.height,
-        zIndex: layout === "desktop" ? 20 : 5,
+        zIndex: other ? 5 : layout === "desktop" ? 20 : 5,
         opacity: other ? 0.4 : 1,
         pointerEvents: "none",
         ...style,

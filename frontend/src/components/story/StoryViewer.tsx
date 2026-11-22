@@ -30,8 +30,8 @@ import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
 import { loadStoredPacing, motionAllowed, savePacing, type Pacing } from "@/lib/story/pacing";
 import { initialTextMode } from "@/lib/dialogue/typewriter";
-import { resolveCampaignCast, emotionToExpression } from "@/lib/cast/cast-mapping";
-import { STAGE_BOXES } from "@/lib/stage/stage-boxes";
+import { resolveCampaignCast, emotionToExpression, pickOtherCharacter } from "@/lib/cast/cast-mapping";
+import { STAGE_BOXES, visibleSprites } from "@/lib/stage/stage-boxes";
 import type { StageLayout } from "@/lib/stage/board-scale";
 import { stableHash } from "@/lib/contracts/hash";
 import {
@@ -62,6 +62,9 @@ import type { ChatEntry } from "@/components/stage/chat-entry";
 import { ChatLog } from "@/components/stage/ChatLog";
 import { emotionFor, type Emotion } from "@/components/stage/emotion";
 import { Button } from "@/components/ui/Button";
+import { ErrorLine } from "@/components/ui/ErrorLine";
+import { Icon } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 
 type StoryViewerProps = {
   story: StoryBlueprint;
@@ -143,10 +146,10 @@ function overlay(layout: StageLayout, children: ReactNode) {
   return (
     <div
       data-testid="stage-overlay"
-      className="overflow-y-auto flex items-start sm:items-center justify-center p-4"
-      style={{ position: "absolute", ...OVERLAY_BOX[layout], zIndex: 30, backgroundColor: "rgba(34, 34, 34, 0.55)" }}
+      className="flex items-start justify-center overflow-y-auto bg-ink/90 p-3 md:p-4"
+      style={{ position: "absolute", ...OVERLAY_BOX[layout], zIndex: 30 }}
     >
-      <div className="w-full max-w-2xl flex flex-col gap-4">{children}</div>
+      <div className="flex w-full max-w-[720px] flex-col items-center gap-4">{children}</div>
     </div>
   );
 }
@@ -336,6 +339,12 @@ export function StoryViewer({
   const castId = speaker.character ? castMap.get(speaker.character.character_id)?.castId : undefined;
   // Same emotion logic as before; the Kit has five expressions, so it maps down.
   const expression = emotionToExpression(emotion);
+  const otherCharacter = pickOtherCharacter(
+    currentScene?.characters_present,
+    speaker.character?.character_id,
+    characters
+  );
+  const otherCastId = otherCharacter ? castMap.get(otherCharacter.character_id)?.castId : undefined;
 
   // ── Canvas (OQ-12: a CanvasFrame only for lesson, visual and decision) ─────
   const seed = parseInt(stableHash(story.story_id), 36) % 1000;
@@ -377,15 +386,12 @@ export function StoryViewer({
           data-testid="story-viewer-error"
           role="alert"
           aria-live="assertive"
-          className="lore-glass lore-glass-panel rounded-panel p-6 text-center"
-          style={{ borderColor: "var(--danger)" }}
+          className="mx-auto flex w-full max-w-[366px] flex-col items-center gap-3 border-2 border-smoke bg-ink p-5 text-center md:max-w-[720px] md:p-6"
         >
-          <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--danger)" }}>
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold">
             Navigation Error
           </p>
-          <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>
-            {navigationError.message}
-          </p>
+          <ErrorLine>{navigationError.message}</ErrorLine>
         </div>
       );
     }
@@ -393,9 +399,9 @@ export function StoryViewer({
     if (puzzleMissing && currentScene?.type === "puzzle") {
       return overlay(
         layout,
-        <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
+        <ErrorLine data-testid="scene-error">
           Puzzle not found for {currentScene.puzzle_id}.
-        </p>
+        </ErrorLine>
       );
     }
     if (currentScene?.type === "ending") {
@@ -406,21 +412,16 @@ export function StoryViewer({
           {ending ? (
             <EndingDisplay ending={ending} />
           ) : (
-            <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
+            <ErrorLine data-testid="scene-error">
               Ending not found for {currentScene.ending_id}.
-            </p>
+            </ErrorLine>
           )}
           {badEnding ? (
             <div className="flex justify-center">
-              <button
-                type="button"
-                data-testid="bad-ending-return-btn"
-                onClick={returnToPuzzle}
-                className="lore-pill lore-pill-lg lore-pill-accent"
-                style={{ backgroundColor: "var(--background-panel)" }}
-              >
-                ↩ Try a different choice
-              </button>
+              <Button variant="outline" data-testid="bad-ending-return-btn" onClick={returnToPuzzle}>
+                <Icon name="back" size={16} />
+                Try a different choice
+              </Button>
             </div>
           ) : (
             isComplete && (
@@ -464,6 +465,15 @@ export function StoryViewer({
             {(interaction) => {
               const canvasBox = STAGE_BOXES[layout].canvas;
               const phone = layout === "phone";
+              const sprites = visibleSprites(
+                layout,
+                speaker.character?.character_id,
+                !framed ? otherCharacter?.character_id : null
+              );
+              const showOther =
+                sprites.ok &&
+                sprites.sprites.some((s) => s.role === "other") &&
+                Boolean(otherCharacter && otherCastId);
               return (
                 <>
                   <StageBackdrop layout={layout} />
@@ -519,6 +529,17 @@ export function StoryViewer({
                         emotion={emotion}
                       />
                     )}
+                    {showOther && otherCharacter && otherCastId && (
+                      <StageSprite
+                        layout={layout}
+                        role="other"
+                        characterId={otherCharacter.character_id}
+                        castId={otherCastId}
+                        name={otherCharacter.name}
+                        expression="calm"
+                        emotion="idle"
+                      />
+                    )}
                     <StageDialogue
                       layout={layout}
                       entry={entry}
@@ -555,7 +576,8 @@ export function StoryViewer({
                             )}
                             {badBranchDone && (
                               <Button variant="outline" data-testid="bad-branch-return-btn" onClick={returnToPuzzle}>
-                                ↩ Try a different choice
+                                <Icon name="back" size={16} />
+                                Try a different choice
                               </Button>
                             )}
                           </>
@@ -575,37 +597,44 @@ export function StoryViewer({
       {showLog && <ChatLog entries={log} onClose={() => setShowLog(false)} />}
 
       {showExitConfirm && (
-        <div
+        <Modal
+          onClose={() => setShowExitConfirm(false)}
+          labelledBy="exit-confirm-title"
           data-testid="exit-confirm-dialog"
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(34, 34, 34, 0.7)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="exit-confirm-title"
+          className="p-5 md:max-w-[480px] md:p-6"
         >
-          <div className="lore-glass lore-glass-panel rounded-card p-6 max-w-sm w-full mx-4">
-            <h3 id="exit-confirm-title" className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
-              Exit Story?
-            </h3>
-            <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-              Your progress in this story will be lost. You can retry the story later, but you&apos;ll start from the beginning.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowExitConfirm(false)} className="lore-pill flex-1">
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowExitConfirm(false);
-                  onExit?.();
-                }}
-                className="lore-pill lore-pill-danger flex-1"
-              >
-                Exit Anyway
-              </button>
-            </div>
+          <h3
+            id="exit-confirm-title"
+            className="mb-3 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold"
+          >
+            Exit Story?
+          </h3>
+          <p className="mb-5 text-[15px] leading-[1.5] text-muted">
+            Your progress in this story will be lost. You can retry the story later, but you&apos;ll
+            start from the beginning.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              data-testid="exit-confirm-cancel"
+              onClick={() => setShowExitConfirm(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              data-testid="exit-confirm-accept"
+              onClick={() => {
+                setShowExitConfirm(false);
+                onExit?.();
+              }}
+              className="flex-1"
+            >
+              Exit Anyway
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

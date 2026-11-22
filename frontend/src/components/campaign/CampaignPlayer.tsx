@@ -1,10 +1,14 @@
 /**
- * CampaignPlayer
+ * CampaignPlayer — branch selector for a campaign play session (design 6.5)
  *
- * Owns campaign-level state for one play session (via useCampaign) and
- * renders the CampaignLobby (between stories), the StoryViewer (while
- * playing), or the CampaignSummary (epilogue + evaluation, once complete).
- * Pages only supply the campaign data.
+ * Why: owns campaign-level state for one play session (via useCampaign) and
+ * renders one of three branches without adding chrome of its own:
+ *   - CampaignSummary (epilogue + learning evaluation, once complete)
+ *   - CampaignLobby (between stories)
+ *   - StoryViewer (the Stage inside ScaledBoard, keyed by story_id so a story
+ *     change remounts per-story state)
+ * Lobby and summary sit in a scrolling `min-h-dvh` wrapper with `.lore-grid-lines`
+ * (transparent fill so the root layout's animated PumpkinBackdrop stays visible).
  */
 
 "use client";
@@ -76,20 +80,22 @@ export function CampaignPlayer({
 
   if (showResults && isCampaignComplete) {
     return (
-      <CampaignSummary
-        summary={buildLearningSummary({ campaign, stories, state: campaignState, materials })}
-        homeHref={homeHref}
-        onBackToLobby={() => {
-          setShowResults(false);
-          onExitStory();
-        }}
-      />
+      <div className="lore-grid-lines min-h-dvh overflow-y-auto">
+        <CampaignSummary
+          summary={buildLearningSummary({ campaign, stories, state: campaignState, materials })}
+          homeHref={homeHref}
+          onBackToLobby={() => {
+            setShowResults(false);
+            onExitStory();
+          }}
+        />
+      </div>
     );
   }
 
   if (isAtLobby) {
     return (
-      <div className="h-screen flex flex-col overflow-y-auto">
+      <div className="lore-grid-lines min-h-dvh overflow-y-auto">
         <CampaignLobby
           campaign={campaign}
           campaignState={campaignState}
@@ -102,22 +108,20 @@ export function CampaignPlayer({
   }
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
-      <StoryViewer
-        // A new story must start from its own first scene with full HP.
-        // StoryViewer keeps that per-story state internally, so remount it
-        // whenever the active story changes.
-        key={activeStory.story_id}
-        story={activeStory}
-        characters={campaign.characters}
-        genre={campaign.genre}
-        onStoryComplete={onStoryComplete}
-        onExit={onExitStory}
-        isCampaignComplete={isCampaignComplete}
-        onViewResults={viewResults}
-        onKnowledgeUpdate={onKnowledgeUpdate}
-        playerKnowledge={campaignState.player_knowledge}
-      />
-    </div>
+    <StoryViewer
+      // A new story must start from its own first scene with full HP.
+      // StoryViewer keeps that per-story state internally, so remount it
+      // whenever the active story changes.
+      key={activeStory.story_id}
+      story={activeStory}
+      characters={campaign.characters}
+      genre={campaign.genre}
+      onStoryComplete={onStoryComplete}
+      onExit={onExitStory}
+      isCampaignComplete={isCampaignComplete}
+      onViewResults={viewResults}
+      onKnowledgeUpdate={onKnowledgeUpdate}
+      playerKnowledge={campaignState.player_knowledge}
+    />
   );
 }
