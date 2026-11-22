@@ -4,3 +4,4 @@ export * from './scene';
 export * from './pumpkin';
 export * from './wordmark';
 export * from './recipes';
+export * from './cauldron';

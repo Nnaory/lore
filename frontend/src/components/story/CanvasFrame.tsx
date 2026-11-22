@@ -1,23 +1,45 @@
 /**
- * The "window" that holds the Remotion player on the Stage (docs/DESIGN-SYSTEM.md §4.2).
+ * The "window" that holds the Remotion player on the Stage (docs/DESIGN-SYSTEM.md §4.4).
  * Solid ink, 2px smoke border, 14px gold corner ticks (10px on phone). No glass, no radius.
  *
- *   <CanvasFrame label="beacon_ignition" status="paused" footer={<PlayerBar … />}>
+ *   <CanvasFrame label="beacon_ignition" chip={{ text: t(lang, 'answer.chip.paused'), tone: 'ember' }} footer={<PlayerBar … />}>
  *     <Player component={…} style={{ width: '100%', height: '100%' }} … />
  *   </CanvasFrame>
  *
- * Optional props (task 1.4; defaults keep the Kit look): `footerless` drops the footer bar even
- * when a `footer` is passed, `bodyClassName` adds classes to the body wrapper.
+ * Kit v2 API: `chip` + optional `title`. Repo extensions (defaults keep the Kit look):
+ * `status` is a legacy shortcut for `chip` (used by stage/CanvasPane until the answer layer lands),
+ * `footerless` drops the footer bar even when a `footer` is passed, `bodyClassName` adds classes
+ * to the body wrapper.
  */
 import type { ReactNode } from 'react';
 
+export type ChipTone = 'ember' | 'gold' | 'cream';
+export type CanvasChip = { text: string; tone: ChipTone };
+
+const LEGACY_CHIPS: Record<'paused' | 'playing' | 'resumed', CanvasChip> = {
+  paused: { text: 'PAUSED · YOUR MOVE', tone: 'ember' },
+  resumed: { text: 'RESUMED', tone: 'gold' },
+  playing: { text: 'PLAYING', tone: 'gold' },
+};
+
 export function CanvasFrame({
-  label, status, children, footer, className, footerless = false, bodyClassName,
+  label, chip, status, children, footer, className, title = 'CANVAS', footerless = false, bodyClassName,
 }: {
-  label: string; status: 'paused' | 'playing' | 'resumed'; children: ReactNode; footer?: ReactNode; className?: string;
-  footerless?: boolean; bodyClassName?: string;
+  label: string;
+  /** Status chip, e.g. { text: t(lang,'answer.chip.paused'), tone: 'ember' }. Ink text on every tone. */
+  chip?: CanvasChip;
+  /** Legacy shortcut; ignored when `chip` is given. */
+  status?: 'paused' | 'playing' | 'resumed';
+  children: ReactNode;
+  footer?: ReactNode;
+  className?: string;
+  /** Header word: CANVAS, or the council title. */
+  title?: string;
+  footerless?: boolean;
+  bodyClassName?: string;
 }) {
-  const chip = status === 'paused' ? { text: 'PAUSED · YOUR MOVE', bg: 'bg-ember' } : status === 'resumed' ? { text: 'RESUMED', bg: 'bg-gold' } : { text: 'PLAYING', bg: 'bg-gold' };
+  const c = chip ?? LEGACY_CHIPS[status ?? 'playing'];
+  const chipBg = c.tone === 'ember' ? 'bg-ember' : c.tone === 'gold' ? 'bg-gold' : 'bg-cream';
   const tick = 'absolute size-2.5 border-gold md:size-3.5';
   return (
     <section aria-label="Interactive canvas" className={`relative flex flex-col border-2 border-smoke bg-ink ${className ?? ''}`}>
@@ -26,11 +48,11 @@ export function CanvasFrame({
       <span aria-hidden className={`${tick} -bottom-0.5 -left-0.5 border-b-2 border-l-2`} />
       <span aria-hidden className={`${tick} -bottom-0.5 -right-0.5 border-b-2 border-r-2`} />
 
-      <header className="flex items-center justify-between px-2.5 pt-2 md:px-[18px] md:pt-3.5">
+      <header className="flex h-[30px] shrink-0 items-center justify-between px-2.5 pt-1 md:h-10 md:px-[18px] md:pt-1">
         <span className="font-mono text-[10px] tracking-[0.18em] text-gold md:text-[11px]">
-          CANVAS <span className="hidden tracking-normal text-muted md:inline">/ {label}</span>
+          {title} <span className="hidden tracking-normal text-muted md:inline">/ {label}</span>
         </span>
-        <span className={`${chip.bg} px-1.5 py-[3px] font-mono text-[10px] font-bold tracking-[0.12em] text-ink md:px-2 md:py-1 md:text-[11px]`}>{chip.text}</span>
+        <span className={`${chipBg} px-1.5 py-[3px] font-mono text-[10px] font-bold tracking-[0.12em] text-ink md:px-2 md:py-1 md:text-[11px]`}>{c.text}</span>
       </header>
 
       <div className={`relative min-h-0 flex-1 ${bodyClassName ?? ''}`}>{children}</div>

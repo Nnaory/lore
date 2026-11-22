@@ -87,3 +87,19 @@
     text-transform: uppercase;
   }
 }
+
+/* ---- motion (DESIGN-SYSTEM §8): stepped, ASCII-like; all disabled for reduced motion ---- */
+@keyframes lore-rise { 0% { transform: translateY(0); opacity: 0 } 10% { opacity: 1 } 78% { opacity: 1 } 100% { transform: translateY(var(--lore-rise, -220px)); opacity: 0 } }
+@keyframes lore-blink { 50% { opacity: 0 } }
+@keyframes lore-roll { from { transform: translateY(var(--lore-roll-from, 860px)) } to { transform: translateY(var(--lore-roll-to, -2240px)) } }
+@keyframes lore-in { from { opacity: 0 } to { opacity: 1 } }
+@layer utilities {
+  .lore-bub { animation: lore-rise 3.2s steps(16) forwards; }
+  .lore-blink { animation: lore-blink 1s steps(1) infinite; }
+  .lore-roll { animation: lore-roll var(--lore-roll-dur, 34s) linear forwards; }
+  .lore-in { animation: lore-in 0.6s steps(6) both; }
+  @media (prefers-reduced-motion: reduce) {
+    .lore-bub { animation: none; opacity: 0; }
+    .lore-blink, .lore-roll, .lore-in { animation: none; }
+  }
+}

@@ -9,9 +9,11 @@
  * `onAdvance` makes the text area a click/Enter/Space target, `testIds` adds data-testid hooks,
  * `nameTag={false}` hides the speaker tag, `wrapText` wraps the paragraph, `testIds.mode` marks the fast|animate group. ChoiceButton adds `letter`, `title`, `testId`,
  * `ariaPressed`, `disabled`; its label clamps to 2 lines.
- * Task 5.5 (Home B): ottomBar swaps the whole bottom bar; padLeft sets the desktop text/name-tag inset.
+ * Task 5.5 (Home B): `bottomBar` swaps the whole bottom bar; padLeft sets the desktop text/name-tag inset.
  * Phone (task 2.3): the text area scrolls inside the fixed 250px box (`min-h-0`), and the bottom bar
  * sits directly under the choices (the 8px gap above it is desktop only).
+ * Kit v2: `hint` (secondary line under the text), `extra` (block under the text, e.g. <AnswerMenu>),
+ * `bare` (no bottom bar: Home, Building World, ending).
  */
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 
@@ -33,6 +35,12 @@ interface Props {
   text: string;
   /** Optional choice buttons (render <ChoiceButton>s). */
   choices?: ReactNode;
+  /** Optional secondary line under the text (ink-soft, mono 12), e.g. the answer hint. */
+  hint?: string;
+  /** Optional block under the text on every size (e.g. <AnswerMenu> on phone, concept chips). */
+  extra?: ReactNode;
+  /** Hide the ask/fast/animate/log bar (Home, Building World, ending). */
+  bare?: boolean;
   mode: TextMode;
   onModeChange: (m: TextMode) => void;
   onAsk?: (q: string) => void;
@@ -55,7 +63,7 @@ interface Props {
 }
 
 export function DialogueBox({
-  speakerName, speakerRole, nameColor, text, choices, mode, onModeChange, onAsk, onOpenLog,
+  speakerName, speakerRole, nameColor, text, choices, hint, extra, bare, mode, onModeChange, onAsk, onOpenLog,
   askPlaceholder = `Ask ${speakerName.charAt(0) + speakerName.slice(1).toLowerCase()} something…`,
   askDisabled = false, onAdvance, testIds, nameTag = true, wrapText, bottomBar, padLeft, className,
 }: Props) {
@@ -84,8 +92,11 @@ export function DialogueBox({
         className={`relative min-h-0 flex-1 px-4 pt-5 max-md:overflow-y-auto md:pl-[var(--dlg-pl,6rem)] md:pr-14 md:pt-[26px] ${onAdvance ? 'cursor-pointer' : ''}`}
       >
         {wrapText ? wrapText(paragraph) : paragraph}
+        {hint && <p className="m-0 mt-1.5 font-mono text-[11px] text-ink-soft md:text-xs">{hint}</p>}
         <span aria-hidden className="absolute bottom-0.5 right-3 text-xs text-ember md:right-6 md:text-sm">▼</span>
       </div>
+
+      {extra && <div className="px-2.5 pt-2 md:pl-[var(--dlg-pl,6rem)] md:pr-14">{extra}</div>}
 
       {choices && (
         <div role="group" aria-label="Choices" className="flex gap-1.5 px-2.5 pb-2.5 pt-2 md:hidden">
@@ -93,7 +104,7 @@ export function DialogueBox({
         </div>
       )}
 
-      {bottomBar ?? <div className="flex h-[46px] md:mt-2 items-stretch border-t-2 border-ink md:h-[52px]">
+      {bare ? null : bottomBar ?? <div className="flex h-[46px] md:mt-2 items-stretch border-t-2 border-ink md:h-[52px]">
         <form
           className="flex min-w-0 flex-1 items-center gap-2.5 px-3 md:pl-24"
           onSubmit={(e) => {

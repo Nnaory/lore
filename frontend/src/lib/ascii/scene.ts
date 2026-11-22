@@ -52,4 +52,8 @@ export function scene(rec: SceneParams): Layer[] {
 export const SCENE_LAYOUTS = {
   stageDesktop: { cols: 167, rows: 57, horizon: 30, beaconCol: 55, gateCol: 55, moon: [12, 4, 2.6] as [number, number, number] },
   stagePhone: { cols: 82, rows: 99, horizon: 52, beaconCol: 60, gateCol: 60, moon: [70, 36, 2.2] as [number, number, number] },
+  /** Full-screen backdrop behind the ending credits (9px cells, 1440×900). */
+  credits: { cols: 267, rows: 100, horizon: 74, beaconCol: 200, gateCol: 46, moon: [30, 8, 4] as [number, number, number] },
+  /** Phone credits backdrop (6px cells, anchored to the bottom). */
+  creditsPhone: { cols: 109, rows: 60, horizon: 30, beaconCol: 80, gateCol: 24, moon: [14, 6, 2.6] as [number, number, number] },
 } as const;

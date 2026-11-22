@@ -57,6 +57,12 @@ Text on ember or gold is always `ink`.
 
 ## 4. Screens
 
+### 4.0 Fixed boards
+
+Every screen is designed as a fixed frame — desktop **1440 × 900**, phone **390 × 844** — and rendered with
+`<ScaledBoard>` (components/layout): the frame keeps its exact px layout and is scaled as one unit
+(desktop: contain; phone: fit width). Pick the frame with `useIsPhone()` (< 768px). Never re-flow children.
+
 ### 4.1 Stage — desktop (frame 1440 × 900)
 
 Render the stage at its design size and scale it as one unit:
@@ -83,8 +89,7 @@ Choice buttons (desktop) live in the canvas frame under the puzzle: 44px tall, m
 | Scene | 0,56 | `renderScene(…, 'stagePhone')`, **8px** cells, opacity 0.85 |
 | Canvas frame | 12,68 · 366×246 | player bar 38px; corner ticks 10px |
 | Speaker sprite | 6,318 · 211×384 | **8px** cells, drawn **before** the box (box covers its lower body) |
-| Dialogue box | 12,582 · 366×250 | text 13/1.55, choices **inside** the box (up to 4 buttons, flex 1, 44px), bottom bar 46px `[> Ask…][fast|animate][log]` |
-| Background | 390×844 | `.lore-grid-bg` + `PUMPKINS_STAGE_PHONE` (2 small pumpkins right of the sprite; the canvas frame has no pumpkin placements, so these are chosen, not copied) |
+| Dialogue box | 12,582 · 366×250 | text 13/1.55, choices **inside** the box (3 buttons, flex 1, 44px), bottom bar 46px `[> Ask…][fast|animate][log]` |
 
 ### 4.3 Dialogue box (both sizes)
 
@@ -111,15 +116,89 @@ One flat column: x 380, width 680, full height, ink fill, 1px smoke left/right b
 
 Header 56 (back icon + LORE). Padding 20. Same sections stacked; world options become 54px rows; chapters a 5-column grid; dropzone stacks (icon + text, full-width button). Sticky bottom bar: status line + 52px full-width CTA.
 
-### 4.7 Home — three candidate inputs (pick one, delete the others)
+### 4.7 Home — option B "Greeted by Hazel" (chosen)
 
-| Option | Desktop | Phone |
+Component: `components/home/HomeGreeting.tsx`. Reference: `HomeB.dc.html`, `HomeBMobile.dc.html`.
+
+| Element | Desktop (1440×900) | Phone (390×844) |
 |---|---|---|
-| **A · Pumpkin mouth** | `PumpkinMouthInput size="desktop"` centered at y 140 (MOUTH_PRESETS.desktop: w 130, 9px cells → 724×531); `LORE` mono 30/700 0.5em + tagline at y 44; under it at y 708: file chip (2px gold), formats line, `Play the demo` outline button | `size="phone"` (w 112, 5px cells) at y 190; demo button pinned bottom 32, 52px |
-| **B · Greeted by Hazel** | Hazel full figure 10px cells at 230,300 (in front); dialogue box 450,548 · 780×212, name `HAZEL` in `#E0393E`; input row 56px + `Add file` + `Brew it →` (ember). Adding a file switches Hazel to `surprised` and changes the line | Hazel bust 9px at 10,150; box 12,420 · 366 wide; buttons as a 2-column row (50px) |
-| **C · Terminal** | `wordmark()` at 22px cells (660×132) at 390,170; command bar 340,384 · 760×64, 2px cream border: `lore ›` (gold) + input + ember block cursor 10×20 + `[ + file ]` + `build ↵` (ember) | wordmark 8.8px cells; bar full width with buttons on a second 50px row |
+| Wordmark | `LORE` mono 40/700, 0.5em tracking, centered at y 72 + tagline 16 muted | mono 26 at y 56 + tagline 14 |
+| Hazel | full figure, **10px** cells at 230,300, drawn **after** the box (in front) | bust (31 rows), **9px** at 10,150, behind the box |
+| Dialogue box | 450,548 · 780 wide, min 212 tall; name tag `HAZEL` in `cloth-hazel` + role | 12,420 · 366 wide |
+| Reply row | 56px: `>` + input (15px) · `Add file` (2px ink left border; ink fill when a file is attached) · `Brew it →` ember | input row 52px, then a 2-column 50px row: `Add file` · `Brew it →` |
+| File chip | ink chip with file name + ✕, above the reply row | same |
+| Footer | formats line (mono 12 muted) left, `Play the demo` outline button right, at y 790 | formats line at y 726, demo button pinned bottom 28 (52px) |
 
-Common: files PDF · DOCX · PPTX · TXT · MD up to 25 MB, read on device; "Play the demo: The Last Beacon".
+Behaviour: idle line = `home.greeting`, Hazel `smile`. After choosing a file: line = `home.gotFile`, Hazel `surprised`.
+Submit needs a file or a typed topic. Files: PDF · DOCX · PPTX · TXT · MD, ≤ 25 MB, read on device.
+
+### 4.8 (not used)
+
+Home options A and C were removed from the Kit; the number is kept so §4.9–4.11 stay stable for `docs/tasks/*`.
+
+### 4.9 Answer layer
+
+A choice beat replaces the generic buttons. The **question is spoken in the DialogueBox** (with `hint` under it);
+the canvas only shows visuals. Flow (`useAnswerFlow`): click/tap once = highlight + shape preview, same option again
+(or Enter) = lock. No submit button. Wrong lock: HP −1, option REJECTED for good (dashed + struck), speaker shows
+`reaction.wrong` and says the option's `why`. Right lock: option ember, chip `SEAL OPEN`, speaker `reaction.correct` + `why`.
+Keys: 1–4 highlight, Enter lock. Reference: `AnswerStates.dc.html` (every state).
+
+**4.9.1 Runes (desktop, `mode: 'rune'`)** — `RuneBoard` inside the Stage canvas frame (736×414):
+preview panel 18,46 · 452×236 (1px smoke border, `SHAPE PREVIEW` label, `ShapePreview`, caption at bottom);
+seal 490,46 · 228×236 (ring r96, dotted ring r78, 8 gold ticks, slot 160×44 centered at 34,90, label under);
+rune tiles centered at y 296, 56px tall, gap 12, min-width 160, 22px key cap. Chip: `PAUSED · YOUR MOVE` / `SEAL REJECTS` (cream) / `SEAL OPEN` (gold).
+
+**4.9.2 Menu (phone)** — canvas frame 12,68 · 366×246 shows `PhonePreview`; dialogue box 12,450 · 366×382 holds the
+question, `AnswerMenu` rows (48px, gap 6, ▶ + key cap + label + tag) and the hint. Focused row = ink fill, cream text;
+correct = ember; rejected = dashed muted border, ink-soft, struck.
+
+**4.9.3 Council of Voices (`mode: 'council'`)** — for misconception questions. `CouncilVoices` replaces the canvas
+content: 3 columns (2px smoke separators), each a 6px-cell bust, name in cloth colour + mood, claim (mono 12, centered),
+`Trust <name>` button (44px). One click commits. After the pick: right voice gets an ember inset ring + `RIGHT` stamp,
+a wrong pick gets a cream ring + `WRONG` stamp; expressions react (right voice smiles, rival turns angry when beaten,
+the voice that fooled you smiles). Phone: use 4.9.2 with the claims as row labels.
+
+`ShapePreview` kinds (viewBox 450×200, 40px grid): `vector2d` (arrow from origin, dashed gold projections, component
+labels), `scalar` (number line, ember dot), `matrix` (ember boxes inside cream brackets + `r×c`), `text`. The caption
+describes the shape only — **it never reveals correctness**.
+
+### 4.10 Building World — Hazel's cauldron
+
+Component: `components/brew/BrewingScreen.tsx` (+ `Cauldron`). Reference: `Brew.dc.html`, `BrewReview.dc.html`, `BrewMobile.dc.html`.
+Data: SSE events → `brewReducer` (lib/schemas/brew.ts). **No fake timers or progress.**
+
+| Element | Desktop | Phone |
+|---|---|---|
+| Header | 64px: `LORE` gold · `BUILDING YOUR WORLD` ember mono 12/700 + meta line · total time mono 13/700 | 56px, same three parts, smaller |
+| Hazel | full figure 10px at 110,186 | 6px at 2,248 |
+| Cauldron | `cauldron(frame)` 10px at 380,404, 4 frames @250ms | 6px at 150,380 |
+| Bubbles | zone 380,160 · 400×260; each new concept / world part / chapter rises `( label )` mono 14/700 (`lore-bub`, 3.2s, steps(16)); concepts candle, world cream, chapters ember | zone 140,110 · 250×270, mono 12 |
+| Steps | column at 880,112 · 440×556, 1px smoke left border: 4 rows 52px (14px square: done ember fill, active ember border + blinking core, review = gold border + `waiting for you`, pending smoke), per-step mm:ss | 4 segment bars (6px) + current step line |
+| Log | bordered box under the steps, last 11 lines, blinking ember cursor | last 3 lines |
+| Dialogue | 110,700 · 1210×160, `HAZEL` tag, line per step (`brew.hazel.*`) | 12,676 → bottom 12 (review: top 462) |
+
+Review step (`awaiting_review`): Hazel `smile`; chips for every concept (kept = ink fill `✓ label`, dropped = dashed,
+struck `+ label`), button `Stir again · n concepts →` (ember, disabled at 0) → POST kept list, resume graph.
+Done: `Enter <world> →`. Expressions per step: reading calm · review smile · world calm · writing surprised · done smile.
+
+### 4.11 Ending — VN credits
+
+Component: `components/ending/Ending.tsx`. Reference: `Credits.dc.html` (roll), `CreditsEnd.dc.html`, `CreditsMobile.dc.html`.
+Data: `StoryResult` (lib/story/result.ts), computed on the client from the locked answers.
+
+- **Roll** starts after the last narration line: backdrop `renderScene(…,'credits')` 9px at 55% opacity; center column
+  400,0 · 640×900 (ink, 1px smoke sides) scrolling up with `lore-roll` (34s, linear): presents → title 48 → subtitle gold →
+  source file → `THE CAST` (per character: 7px bust, name in cloth colour 26/700, role, verb by `function`, lesson, stat line gold)
+  → `CONCEPTS YOU TAKE HOME` → world/stirred by/written by/played by **you** (ember) → `Thanks for playing.`
+  `skip ▸▸` button at bottom-right. Allies `smile`, rival `angry`.
+- **End card** (after roll or skip): column 340,0 · 760 wide: `THE END` ember stamp, title 44, subtitle gold, lineup of
+  5px busts, then a 648px grid — concept list (10px squares: ember = first try, gold = after retry, empty = needs another go,
+  meta ember for weak) and stats (HP squares, accuracy, concepts mastered, minutes) — then primary `Retry: <weakest concept> →`
+  (ember, 52px), `New story` (2px cream), and text links `↺ replay credits` / `view conversation log`.
+- Phone: roll is full-width (6px busts, text centered); end card stacks stamp → title → 4px busts (cropped to cols 4–40) →
+  4-up stats row → concept list → pinned buttons.
+- No green anywhere; no "Ask …" input on the ending.
 
 ## 5. ASCII system
 
@@ -163,13 +242,31 @@ The AI names characters and expressions freely (`character_id`, `name`, an expre
 
 ## 7. Accessibility
 
-Real `<button>`, `<a>`, `<input>` + `<label>`. ASCII art: `role="img"` + name for characters, `aria-hidden` for decoration. Contrast as in §1. `prefers-reduced-motion` → text mode defaults to `fast`.
+Real `<button>`, `<a>`, `<input>` + `<label>`; `aria-pressed` on highlight/toggle states. Characters are `role="img"` with name + expression; decorative ASCII is `aria-hidden`. The brewing log is `role="log"` + `aria-live="polite"`. Contrast as in §1. `prefers-reduced-motion` → text mode defaults to `fast` (see §8 for motion).
 
-## 8. Components added or extended
+## 8. Motion
 
-Reuse these; extend, don't fork. Every file has a header comment with its reason.
+Stepped, ASCII-like motion only (CSS `steps()`), all defined in `lore-tokens.css`: `lore-bub` (bubble rise), `lore-blink`
+(cursor / active step), `lore-roll` (credits), `lore-in` (end card). Cauldron 4 fps. Typewriter: 25 ms per character.
+`prefers-reduced-motion`: no bubbles (log still updates), cauldron frame 0, credits skip straight to the end card.
 
-### 8.1 `components/ui`
+## 9. Language (i18n)
+
+UI labels live in `lib/i18n/ui.ts` (`id` + `en`, same keys — tested). Inside a story the UI language = the blueprint's
+`language`. Before a story exists (Home, Preparation, Building World until `start`) use `detectUiLang(savedSetting, navigator.language)`.
+AI-written text (dialogue, prompts, options, `why`, claims) is never translated by the UI. Never hard-code UI text in a component.
+
+## 10. Don'ts
+
+Glass/blur/radius/shadows · new colours (incl. green) · emoji · cards · hard-coded UI strings · fake progress · changing generator numbers without updating the golden fixture and this file · hand-drawn character art (always use the generator) · letting the AI send pixels or images.
+
+## 11. Repo components added or extended
+
+Components built in this repo on top of the Kit (ui-redesign spec, Kiro tasks 0–9). Reuse these; extend, don't fork. Every file has a header comment with its reason.
+
+> **Two `ScaledBoard`s.** `components/stage/ScaledBoard` (below, used by the existing screens) and the Kit v2 `components/layout/ScaledBoard` (§4.0, used by the Kit v2 screens) coexist until the Kit v2 tasks are finished; the follow-up merges them.
+
+### 11.1 `components/ui`
 
 | Component | Props | Notes |
 |---|---|---|
@@ -179,14 +276,14 @@ Reuse these; extend, don't fork. Every file has a header comment with its reason
 | `StatusBadge` | `variant` (`done` \| `current` \| `available` \| `locked`), `children`, `className`, `data-testid` | Small mono 11/700 label, 1px border, no radius. `done` = gold fill, ink text; `current` = ink fill, cream text (sits on the inverted cream Current row); `available` = cream border and text; `locked` = smoke border, muted text. Exposes `data-variant`. First user: `CampaignLobby` (`story-badge-<id>`); also planned for `EndingDisplay` (`Success` = done, `Failed` = locked, `Partial Success` = available). |
 | `Modal` | `onClose`, `labelledBy`, `children`, `closeOnBackdrop` (true), `className` (panel size), `data-testid` | The one dialog pattern (Pola M). Portals to `document.body`, so it is never inside `ScaledBoard`. Scrim `fixed inset-0 z-50 bg-ink/90` (the animated root backdrop stays faintly visible). Panel: `ink` fill, 2px `smoke` border, 10px gold corner ticks, no radius, no shadow; phone full screen, desktop centred, max height 80dvh. The panel carries `data-testid`, `role="dialog"`, `aria-modal`, `aria-labelledby`; the scrim is `<testid>-scrim`. Initial focus goes to the child marked `data-autofocus` (else the first focusable); Tab wraps inside the panel; `Esc` and a scrim click call `onClose`; focus returns to the opener on unmount. Callers pass `modalOpen` to `resolveShortcut` so SPACE/F/L are ignored while it is open. First user: `ChatLog` (`STORY LOG`, 720 wide desktop, 44px `Close`). |
 
-### 8.1a `components/home` (Home option B)
+### 11.1a `components/home` (Home option B)
 
 | Component | Props | Notes |
 |---|---|---|
 | `HomeHero` | none | Home option B (§4.7): `ScaledBoard inFlow rootClassName="lore-grid-lines"`. Desktop: `wordmark()` 8px at y 64, Hazel `renderCharacter` 10px at 230,300 (z 20), `DialogueBox` 780×212 at 450,548, formats row + demo link at y 790. Phone: wordmark 5px at y 56, Hazel `renderBust` 9px at 10,150 (z 5, behind), box 366 wide at 12,420, formats at y 726, demo link pinned bottom 28 (52px). State from `useHomeComposer`; the greeting (`hazelGreeting`) turns Hazel `surprised` with a new line when a file is attached and restores both on removal. The file is required: Brew is disabled without it and Enter shows `home-file-required`. Hooks: `home-hazel`, `home-dialogue`, `home-composer`, `home-demo-link`. Draws no static pumpkins; the animated backdrop is the root layout's. |
 | `SavedStories` | none | `01 YOUR STORIES` list in a 680px column (the page wrapper is 680 + 2×16 padding), rows split by 1px `smoke`, `Continue`/`Replay` (primary, 44px) and `Delete` with a two-step `Delete`/`Keep` confirmation. Transparent, no card. Placed below the hero on `/`. Hooks: `saved-stories`, `saved-story-<id>`, `continue-<id>`, `delete-<id>`, `confirm-delete-<id>`. Empty state renders no error. |
 
-### 8.2 Stage (`components/stage`)
+### 11.2 Stage (`components/stage`)
 
 | Component | Props | Notes |
 |---|---|---|
@@ -197,20 +294,17 @@ Reuse these; extend, don't fork. Every file has a header comment with its reason
 | `CanvasPane` | `scene`, `sceneKey`, `pacing`, `layout`, `label`, `puzzle`, `className` | A filled `CanvasFrame`: Remotion player (controls off) + `PlayerBar`, 736×414 desktop / 366×246 phone. Only `lesson`, `visual`, `decision` scenes get a frame; a beat without a canvas is the `ambient` scene on the board (no frame). `label` becomes snake_case, max 24 characters. In puzzle mode on desktop it shows the question, feedback (`ErrorLine`) and a row of `ChoiceButton`s (44px tall, min-width 112, gap 10) plus submit/continue; on phone the choices live in the `DialogueBox`. Right/wrong and HP come only from `usePuzzleInteraction`, never from the pane. |
 | `PuzzleChoices`, `PuzzleActions` (exported from `CanvasPane.tsx`) | `PuzzleChoices`: `puzzle`, `interaction`, `gapClass` (default `gap-2.5`; phone passes `gap-1.5`). `PuzzleActions`: `interaction`, `onComplete`, `className` (default `shrink-0`) | `PuzzleChoices` renders at most four `ChoiceButton`s (letters A-D, `choice-<id>` test ids, `aria-pressed`, disabled once correct) in a `min-w-0 flex-1` group (`puzzle-choices`), so long labels shrink and clamp instead of overflowing the canvas. `PuzzleActions` renders `puzzle-submit` (primary when `canSubmit`, else disabled) until the answer is right, then `puzzle-continue`. Desktop mounts both in the canvas pane; phone passes them to `StageDialogue` as `choices` / `actions`. Right/wrong still comes only from `PuzzleInteraction`. |
 
-### 8.3 Kit extensions (all optional; defaults keep the original Kit look)
+### 11.3 Kit extensions (all optional; defaults keep the original Kit look)
 
 | Component | New props | Behaviour |
 |---|---|---|
 | `AsciiArt` (`components/ascii`) | `pixelRatio` | Canvas backing-store scale. Omitted = `min(devicePixelRatio, 2)`. Layout size is unchanged. `AsciiPre` has no `pixelRatio`. |
-| `CanvasFrame` (`components/story`) | `footerless`, `bodyClassName` | `footerless` drops the footer bar even if `footer` is passed. `bodyClassName` adds classes to the body wrapper. |
-| `DialogueBox` (`components/story`) | `askDisabled`, `onAdvance`, `testIds`, `nameTag` (true), `wrapText` | `askDisabled` disables the ask input. `onAdvance` makes the text area a click / Enter / Space target (`role="button"`, `tabIndex 0`). `testIds` = `{ root, nameTag, text, advance, ask, fast, animate, log, mode }` (`mode` marks the fast\|animate group). `nameTag={false}` hides the speaker tag. `wrapText(paragraph)` wraps the text paragraph (used for `narration-block`, `learning-card`, `character-bubble` hooks).. **Phone (< md):** text 13/1.55 in a scrolling area (`min-h-0`, `overflow-y-auto`) inside the fixed 250px box; `choices` render in a `Choices` group inside the box (1-4 buttons, `flex 1`, gap 6, 44px) directly above the 46px bottom bar `[> Ask.][fast\|animate][log]`; the 8px gap above the bar is desktop only. On desktop the `choices` slot is hidden (`md:hidden`) because choices live in the canvas. |
+| `CanvasFrame` (`components/story`) | `status` (legacy), `footerless`, `bodyClassName` | Kit v2 API is `chip` + `title`; `status` (`paused`\|`playing`\|`resumed`) is a legacy shortcut mapped to a chip, ignored when `chip` is given (used by `CanvasPane` until the answer layer lands). `footerless` drops the footer bar even if `footer` is passed. `bodyClassName` adds classes to the body wrapper. |
+| `DialogueBox` (`components/story`) | `askDisabled`, `onAdvance`, `testIds`, `nameTag` (true), `wrapText` | `askDisabled` disables the ask input. `onAdvance` makes the text area a click / Enter / Space target (`role="button"`, `tabIndex 0`). `testIds` = `{ root, nameTag, text, advance, ask, fast, animate, log, mode }` (`mode` marks the fast\|animate group). `nameTag={false}` hides the speaker tag. `wrapText(paragraph)` wraps the text paragraph (used for `narration-block`, `learning-card`, `character-bubble` hooks). **Phone (< md):** text 13/1.55 in a scrolling area (`min-h-0`, `overflow-y-auto`) inside the fixed 250px box; `choices` render in a `Choices` group inside the box (1-4 buttons, `flex 1`, gap 6, 44px) directly above the 46px bottom bar `[> Ask.][fast\|animate][log]`; the 8px gap above the bar is desktop only. On desktop the `choices` slot is hidden (`md:hidden`) because choices live in the canvas. |
 | `DialogueBox` (`components/story`), Home B | `bottomBar`, `padLeft`, `nameColor` | `bottomBar` replaces the whole bottom bar (ask input, fast\|animate, log) with the given node; Home puts its composer there (file chip + 56px row: `>` input, `Add file`/`Replace`, `Brew it →`; on phone the two buttons form a 50px 2-column row under a 52px input). `padLeft` (px, default 96) is the desktop left inset of the text and name tag via `--dlg-pl`; Home B uses 40. `nameColor` colours the speaker name (Hazel = `--color-cloth-hazel`). |
 | `ChoiceButton` (`components/story`) | `letter`, `title`, `testId`, `ariaPressed`, `disabled` | `letter` is a decorative prefix (A–D). `title` is the tooltip (default: label). The label clamps to 2 lines. Still 44px tall, min-width 112 on desktop. |
 
-### 8.4 Remotion compositions use tokens
+### 11.4 Remotion compositions use tokens
 
 Compositions (`stage/compositions.tsx`, `stage/visual-compositions.tsx`) take colour, gradient and shadow from the Kit tokens, not from literal hex: `GOLD` = `var(--color-gold)`, `GOLD_DIM` = gold mixed 70% with ink, `TEXT` = cream, `TEXT_DIM` = muted, `VOID` = ink, `SURFACE` = smoke. Geometry, data, labels, numbers and the `LessonVisual` content are unchanged.
 
-## 9. Don'ts
-
-Glass/blur/radius/shadows · new colours · emoji · cards · changing generator numbers without updating the golden fixture and this file · hand-drawn character art (always use the generator) · letting the AI send pixels or images.

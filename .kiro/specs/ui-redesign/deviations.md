@@ -461,3 +461,34 @@ Ringkasan penyimpangan untuk task 19 (lima tokoh Kit di backend campaign planner
 - Golden: 40/40.
 - Build: berhasil.
 - Smoke AI: tidak dijalankan (tidak ada key).
+
+## Kit v2 — Task 00 (pasang Kit v2)
+
+Kit v2 (`lore-design-kit/lore-design-kit/`) menggantikan task 10–18 spec ini (keputusan user, 22 Nov 2026). Branch: `feat/design-kit-v2`. Tidak ada commit atau push.
+
+### Keputusan user untuk Kit v2
+
+- Building World: event Brew dibuat di frontend dari 3 POST yang ada (analyze → plan → story). Review konsep menjadi jeda sungguhan di antara analyze dan plan. Tidak ada SSE atau LangGraph.
+- Answer layer: kontrak Puzzle backend mendapat field opsional (`why`, `concept`, `mode`, `voice`, `preview`), dengan fallback untuk cerita lama.
+- Satu task per putaran, lalu laporan.
+
+### Penyimpangan
+
+1. **File digabung, bukan ditimpa.** Kit v2 bersifat aditif. Ekstensi repo dipertahankan: `AsciiArt` (`pixelRatio`, `measuredW`), `PumpkinField` (`PUMPKINS_STAGE_PHONE`), `.lore-grid-lines`, `figure.ts` (param `c, r` dibuang), props `DialogueBox`/`ChoiceButton` repo.
+2. **`CanvasFrame`.** API Kit v2 (`chip`, `title`) ditambah `status` lama sebagai jalan pintas (teks Inggris tetap, belum lewat i18n) sampai `CanvasPane` memakai answer layer. Header sekarang mengikuti Kit v2: tinggi tetap 40px desktop / 30px phone (sebelumnya 38,5 / 29). Teks header bergeser naik sekitar 4px di desktop. Ini satu-satunya perubahan tampilan.
+3. **`DialogueBox`.** `hint`, `extra`, `bare` dari Kit v2 ditambahkan. `extra` memakai `--dlg-pl` (bukan `md:pl-24`) agar ikut `padLeft`. Karakter backspace nyasar di komentar header diperbaiki.
+4. **Lint pada file Kit (seperti Task 0).** Param tidak terpakai dibuang: `cauldron.ts` (`c, r`), `ShapePreview.tsx` (`fs` di `Scalar`), `Ending.tsx` (`_r` di `lessonOf`). Golden tetap hijau.
+5. **Skema Python.** `backend/app/schemas/{visual,brew}.py` dipasang (plus `__init__.py`), belum dipakai. Dirapikan `ruff --fix` + `ruff format` (union `X | Y`, baris dibungkus); isi tidak berubah.
+6. **Penjaga `scene-blueprint-boundary.test.ts` (R13.7) dilonggarkan.** `lib/story/result.ts` (file Kit) diizinkan, dan cek "`backend/app/schemas/visual.py` tidak boleh ada" dihapus. Larangan untuk `lib/generation`, `lib/contracts`, `lib/campaign`, `lib/ingest`, dan `backend/app/ai` tetap berlaku sampai Task 02.
+7. **Tes visual contract** di `ascii-golden.test.ts` dipindah oleh Kit ke `tests/contracts.test.ts`.
+8. **`docs/DESIGN-SYSTEM.md`.** Versi Kit v2 menjadi dasar. §6.1 Cast fallback dan bagian komponen repo (dulu §8, sekarang §11) dipindahkan ke dalamnya. §4.8 diisi catatan "not used" agar nomor §4.9–4.11 yang dirujuk `docs/tasks/*` tetap. Dua paragraf §7 digabung. §11 mencatat bahwa ada dua `ScaledBoard` (`components/stage` dan `components/layout`) sampai disatukan.
+9. **`AGENTS.md` root** diganti versi Kit v2.
+10. **`frontend/AGENTS.md`** dibuat otomatis oleh `next dev` (bukan bagian kit), belum diputuskan.
+
+### Hasil verifikasi
+
+- Lint: 0 error, 0 warning. `tsc`: bersih.
+- Vitest: 81 file, 903 tes lulus (golden 42, contracts, screens.smoke).
+- Build: berhasil.
+- Backend: ruff lulus, pytest 614 lulus, 57 dilewati.
+- Screenshot sebelum/sesudah 1440×900 dan 390×844 (Home, Stage `/game`): sama, kecuali header CanvasFrame (poin 2).

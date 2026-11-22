@@ -7,6 +7,11 @@
  *
  * Follow-up work (out of scope of this spec): adopting SceneBlueprint in the AI flow, i.e. a
  * Story Generator output of that shape or a StoryBlueprint <-> SceneBlueprint adapter.
+ *
+ * Kit v2 (Task 00, approved): `lib/story/result.ts` (ending recap) is a Kit file that imports the
+ * v2 contract types, and `backend/app/schemas/{visual,brew}.py` are installed but not wired.
+ * Both are allowed; the AI flow itself (lib/generation, backend/app/ai) still must not use them
+ * until the answer-layer task adopts the v2 contract.
  */
 
 import { describe, it, expect } from "vitest";
@@ -27,6 +32,9 @@ function walk(dir: string): string[] {
   return out;
 }
 
+/** Kit v2 files that may reference the v2 contract (relative to src/). */
+const ALLOWED = new Set([join(SRC, "lib/story/result.ts")]);
+
 const FORBIDDEN = [
   // lib/schemas/visual (alias or relative form); not contracts/schemas/visual.schema (LessonVisual)
   /(?<!contracts\/)schemas\/visual(?!\.schema)/,
@@ -35,6 +43,7 @@ const FORBIDDEN = [
 
 function offenders(files: string[]): string[] {
   return files.filter((f) => {
+    if (ALLOWED.has(f)) return false;
     const text = readFileSync(f, "utf8");
     return FORBIDDEN.some((re) => re.test(text));
   });
@@ -56,8 +65,7 @@ describe("SceneBlueprint boundary", () => {
     expect(offenders(files)).toEqual([]);
   });
 
-  it("backend AI code does not reference SceneBlueprint, and the Python copy is not added", () => {
+  it("backend AI code does not reference SceneBlueprint", () => {
     expect(offenders(walk(join(REPO, "backend/app/ai")))).toEqual([]);
-    expect(existsSync(join(REPO, "backend/app/schemas/visual.py"))).toBe(false);
   });
 });
