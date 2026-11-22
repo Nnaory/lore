@@ -56,7 +56,7 @@ Pekerjaan dijalankan lewat alur Spec (requirements, design, tasks), satu layar p
 4. IF `git status` sebelum pembuatan branch menunjukkan perubahan yang tidak berasal dari redesign (misalnya `frontend/package.json` dan `frontend/package-lock.json`), THEN THE UI_Redesign_Workflow SHALL menampilkan daftar path file tersebut ke user sebelum membuat branch, meminta konfirmasi user untuk melanjutkan, dan membiarkan isi file tersebut tidak berubah (byte-identik) selama dan setelah pekerjaan redesign.
 5. THE UI_Redesign_Workflow SHALL membatasi file yang dibuat, diubah, atau dihapus pada path berikut: `frontend/src`, `frontend/tests`, `docs/`, `reference/`, `scripts/`, `.kiro/steering`, dan file akar yang disebut di Requirement 2.
 6. IF sebuah perubahan akan mengenai path di luar daftar pada kriteria 5, THEN THE UI_Redesign_Workflow SHALL membatalkan perubahan itu, menyebut path tersebut ke user, dan melanjutkan hanya setelah user menyetujui path itu secara eksplisit.
-7. THE UI_Redesign_Workflow SHALL menyisakan seluruh isi `backend/` tanpa perubahan, termasuk `backend/app/schemas/visual.py` dari Kit, sehingga `git diff --name-only dev -- backend/` menghasilkan keluaran kosong.
+7. THE UI_Redesign_Workflow SHALL menyisakan seluruh isi `backend/` tanpa perubahan, termasuk `backend/app/schemas/visual.py` dari Kit, kecuali path yang diizinkan Requirement 16 (hanya `backend/app/ai/prompts`, `backend/app/ai/validation`, `backend/app/ai/campaign_templates.py`, `backend/app/ai/campaign_planner_engine.py`, `backend/app/ai/campaign_planner.py` bila perlu mengunci nama dan peran, dan tes terkait di `backend/tests`), sehingga `git diff --name-only dev -- backend/` menghasilkan keluaran kosong atau hanya path tersebut.
 
 ### Requirement 2: Task 0, pasang Kit
 
@@ -267,7 +267,7 @@ Pekerjaan dijalankan lewat alur Spec (requirements, design, tasks), satu layar p
 3. THE fungsi murni baru SHALL mengembalikan union `{ ok: true, ... } | { ok: false, ... }` dan tidak throw di batas modul, dibuktikan dengan test untuk setidaknya satu input valid dan satu input tidak valid per fungsi yang mengembalikan `{ ok: false, ... }`.
 4. WHEN UI membaca data dari IndexedDB, localStorage, atau respons backend, THE UI SHALL memvalidasi data tersebut dengan skema Zod sebelum dipakai, seperti perilaku sebelum redesign.
 5. IF data dari IndexedDB, localStorage, atau respons backend gagal validasi Zod, THEN THE UI SHALL menolak data tersebut tanpa crash, menampilkan indikasi error kepada pengguna, dan tidak menimpa data tersimpan yang ada.
-6. THE Kontrak_AI (`StoryBlueprint`, `LessonVisual`) di `frontend/src/lib/contracts` dan `backend/app/ai/contracts` SHALL tetap tidak berubah, dibuktikan dengan 0 baris diff pada kedua direktori tersebut dan test kontrak frontend serta backend yang lulus.
+6. THE Kontrak_AI (`StoryBlueprint`, `LessonVisual`) di `frontend/src/lib/contracts` dan `backend/app/ai/contracts` SHALL tetap tidak berubah, dibuktikan dengan 0 baris diff pada kedua direktori tersebut dan test kontrak frontend serta backend yang lulus; satu-satunya perubahan backend yang diizinkan adalah teks prompt AI, template dan engine planner, serta validasi planner sesuai Requirement 16, dengan direktori `contracts` tetap tanpa diff.
 7. THE `SceneBlueprintSchema` dan `SceneBlueprint` Kit SHALL tidak dipakai di alur AI (tidak diimpor oleh kode di `lib/generation` maupun `backend/app/ai`); THE design SHALL mencatat penggunaannya sebagai pekerjaan lanjutan.
 8. THE UI SHALL tidak menerima, menyimpan, atau merender gambar maupun koordinat yang berasal dari keluaran model AI; IF respons AI memuat field gambar atau koordinat, THEN THE UI SHALL mengabaikan field tersebut dan tidak merendernya.
 9. THE tiap file baru SHALL memiliki komentar header di baris pertama berisi tujuan dan alasan file tersebut dibuat.
@@ -305,3 +305,19 @@ Pekerjaan dijalankan lewat alur Spec (requirements, design, tasks), satu layar p
 8. IF sebuah `eslint-disable` baru ditambahkan pada komponen Kit, THEN THE `eslint-disable` tersebut SHALL memuat komentar satu baris di baris yang sama atau sebelumnya yang menyebutkan nama aturan dan alasannya.
 9. THE `next/font` SHALL memuat font Space Grotesk dan JetBrains Mono dari aset yang dilayani oleh origin aplikasi sendiri, sehingga 0 permintaan jaringan ke domain font eksternal terjadi saat runtime di browser.
 10. IF salah satu font gagal dimuat, THEN THE UI SHALL tetap menampilkan teks dengan font sistem cadangan dan SHALL tidak menyembunyikan teks lebih dari 3000 ms.
+
+### Requirement 16: Tokoh AI memakai cast Kit
+
+**User Story:** Sebagai pemain, saya ingin tokoh pada story hasil AI memakai cast Kit (Eldric, Mira, Hazel, Varr, Nyx), agar sprite ASCII di Stage cocok dengan tokoh yang berbicara tanpa pemetaan acak.
+
+*Pengecualian:* Keputusan user (opsi A, disetujui eksplisit) membuka lingkup `backend/` secara terbatas sebagai pengecualian atas Requirement 1.5, 1.7, 13.6, dan 14.9. Hanya teks prompt, template dan engine planner (`campaign_templates.py`, `campaign_planner_engine.py`, dan `campaign_planner.py` bila perlu mengunci nama dan peran), serta validasi keluaran di `backend/app/ai` yang boleh berubah; kontrak tidak berubah. Keputusan user "Dua tokoh dulu": campaign memakai lima tokoh cast dengan urutan tetap, tetapi story (Layer 3) tetap memakai `characters[0]` (eldric) dan `characters[1]` (mira); `prompts/story_generator.py` tidak berubah.
+
+#### Acceptance Criteria
+
+1. THE AI_Prompt di `backend/app/ai/prompts` SHALL menginstruksikan model untuk memakai hanya lima tokoh cast Kit: `eldric` (Eldric, guide), `mira` (Mira, peer), `hazel` (Hazel, practice), `varr` (Varr, examiner), dan `nyx` (Nyx, rival), sesuai Design_System §6.
+2. THE AI_Prompt SHALL menginstruksikan model untuk mengisi `character_id` dan nama tokoh dengan id dan nama cast tersebut dan menyesuaikan peran tiap tokoh dengan peran Kit-nya.
+3. THE Kontrak_AI (`StoryBlueprint`, `LessonVisual`) di `frontend/src/lib/contracts` dan `backend/app/ai/contracts` SHALL tetap tanpa field yang ditambah atau dihapus, dengan 0 baris diff pada kedua direktori tersebut.
+4. IF keluaran model memuat tokoh di luar lima id cast, THEN THE AI_Validator planner (`validate_planned_campaign`) SHALL menolak keluaran itu dengan galat validasi `INVALID_CAST_CHARACTER` (jalur story tidak memeriksa cast, agar campaign lama `char_01`/`char_02` tetap valid) atau memetakan tokoh itu ke satu id cast secara deterministik, dan SHALL tidak melempar exception di batas modul.
+5. THE UI SHALL mempertahankan pemetaan fallback di `lib/cast` untuk story lama yang sudah tersimpan dengan `character_id` di luar lima id cast, sehingga Stage tetap dapat dirender.
+6. THE tes backend untuk prompt dan validasi SHALL diperbarui untuk mencakup lima id cast, peran Kit, dan tokoh di luar cast, dan `ruff check .`, `ruff format --check .`, serta `pytest -q` dari `backend/` SHALL lulus tanpa tes yang dihapus atau dilewati.
+7. THE perubahan backend SHALL terbatas pada teks prompt dan validasi keluaran, dibuktikan dengan `git diff --name-only dev -- backend/` yang hanya memuat path di `backend/app/ai/prompts`, `backend/app/ai/validation`, `backend/app/ai/campaign_templates.py`, `backend/app/ai/campaign_planner_engine.py`, `backend/app/ai/campaign_planner.py`, dan `backend/tests`.

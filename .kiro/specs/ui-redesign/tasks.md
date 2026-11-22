@@ -4,13 +4,13 @@
 
 Rencana ini mengganti seluruh tampilan web LORE dengan Kit "Black Cat Gold", satu layar per task, dengan urutan tetap sesuai Requirement 5.1: task 0 (pasang Kit), Stage desktop, Stage phone, Preparation desktop, Preparation phone, Home, 11 Layar_Tanpa_Frame (satu task per layar), mode dua karakter, lalu task penutup.
 
-Bahasa implementasi: TypeScript (Next 16, React 19, Vitest 3), mengikuti design.md. Tidak ada perubahan di `backend/`, `lib/contracts`, `lib/game`, `lib/story`, `lib/campaign`, `lib/generation`, `lib/ingest`, `lib/setup`, `lib/state`, dan `project-store.ts` (Requirement 13).
+Bahasa implementasi: TypeScript (Next 16, React 19, Vitest 3), mengikuti design.md. Tidak ada perubahan di `backend/` (kecuali task 19, teks prompt AI dan validasi, Requirement 16), `lib/contracts`, `lib/game`, `lib/story`, `lib/campaign`, `lib/generation`, `lib/ingest`, `lib/setup`, `lib/state`, dan `project-store.ts` (Requirement 13).
 
 ### Aturan yang berlaku di setiap task
 
 - **Verifikasi_Task** (sub-task "Verifikasi", dari `frontend/`): `npm run lint` (0 error, 0 warning), `npx next typegen` lalu `npx tsc --noEmit`, `npx vitest run --testTimeout=60000` (0 gagal), dan `npm run build` tanpa `GOOGLE_API_KEY` dan `GEMINI_API_KEY`. Golden_Test (`tests/ascii-golden.test.ts`) harus tetap 40 dari 40 hijau (Requirement 5.3, 5.5, 14.5). Bila satu perintah gagal, task berstatus belum selesai dan hasilnya dicatat di Ringkasan_Penyimpangan (Requirement 5.4).
 - **Ringkasan_Penyimpangan** (sub-task terakhir): bandingkan hasil dengan Canvas_Frame_File pada Viewport_Desktop 1440x900 dan Viewport_Phone 390x844, lampirkan satu screenshot per viewport bila tersedia, atau catat alasan dan bandingkan secara tertulis per bagian Design_System. Bila nilai Design_System dan canvas berbeda, pakai Design_System dan catat keduanya (Requirement 5.6 sampai 5.10). Tanpa penyimpangan, isinya persis "tidak ada".
-- **Batas git dan file**: tidak ada task commit atau push. Tidak ada commit atau push tanpa permintaan eksplisit user. `git diff --name-only dev -- backend/` harus kosong. `frontend/package.json` dan `frontend/package-lock.json` tetap byte-identik kecuali langkah `fast-check` yang disetujui di task 0 (Requirement 1.3 sampai 1.7).
+- **Batas git dan file**: tidak ada task commit atau push. Tidak ada commit atau push tanpa permintaan eksplisit user. `git diff --name-only dev -- backend/` harus kosong, kecuali path task 19 (`backend/app/ai/prompts`, `backend/app/ai/validation`, `backend/tests`). `frontend/package.json` dan `frontend/package-lock.json` tetap byte-identik kecuali langkah `fast-check` yang disetujui di task 0 (Requirement 1.3 sampai 1.7).
 - **Gerbang persetujuan**: sub-task "Gerbang" adalah titik berhenti. Agen menampilkan isinya, menunggu jawaban eksplisit user, dan tidak mengubah file implementasi terkait sebelum jawaban diterima. Layar yang belum disetujui dilewati dan dilaporkan sebagai belum selesai, sedangkan layar lain yang sudah disetujui tetap dikerjakan (Requirement 12.5).
 - **Komponen Kit**: diperluas lewat props opsional, tidak di-fork. Komponen atau perluasan baru didokumentasikan di `docs/DESIGN-SYSTEM.md` pada task yang sama dan dicatat di Ringkasan_Penyimpangan (Requirement 5.11).
 - **Tes**: tes yang sudah ada diperbarui di sub-task implementasi (tidak opsional) tanpa mengurangi jumlah asersi perilaku dan tanpa mengubah asersi `data-testid` pada Layar_Tanpa_Frame (Requirement 12.12, 14.1, 14.2). Tes baru (properti, contoh, komponen) berbentuk sub-task opsional bertanda `*`.
@@ -556,12 +556,32 @@ Bahasa implementasi: TypeScript (Next 16, React 19, Vitest 3), mengikuti design.
     - Perbarui hanya fakta yang berubah: deskripsi Home, stage (sprite ASCII Kit, `DialogueBox`), dan catatan glass. Bila ditolak, lewati dan catat.
     - _Requirements: 4.5_
   - [~] 18.11 Pemeriksaan akhir
-    - `git diff --name-only dev -- backend/` kosong, 0 baris diff pada `lib/contracts`, `project-store.ts`, dan `backend/app/ai/contracts`, `frontend/package.json` dan `package-lock.json` byte-identik (kecuali `fast-check` yang disetujui), pencarian pola lama 0 kecocokan, dan folder `lore-design-kit/` dihapus hanya bila disetujui di 18.1.
+    - `git diff --name-only dev -- backend/` kosong (atau hanya path task 19), 0 baris diff pada `lib/contracts`, `project-store.ts`, dan `backend/app/ai/contracts`, `frontend/package.json` dan `package-lock.json` byte-identik (kecuali `fast-check` yang disetujui), pencarian pola lama 0 kecocokan, dan folder `lore-design-kit/` dihapus hanya bila disetujui di 18.1.
     - _Requirements: 1.4, 1.7, 4.1, 13.1, 13.6, 13.10, 14.9_
   - [~] 18.12 Ringkasan_Penyimpangan task 18
     - Catat hasil pencarian per file yang dihapus, tes yang dihapus atau diperbarui beserta penggantinya, layar yang belum selesai, `lucide-react` sebagai dependensi tak terpakai, keputusan OQ-11, dan nasib folder `lore-design-kit/`. Tanpa penyimpangan, tulis "tidak ada".
     - _Requirements: 4.2, 4.3, 4.4, 5.8_
 
+- [x] 19. Task 19: Tokoh AI memakai cast Kit (backend prompt)
+  - Rujukan: DESIGN-SYSTEM §6; design.md bagian "Tokoh AI memakai cast Kit"; Requirement 16. Canvas_Frame_File: `Cast.dc.html` hanya untuk cast. Keputusan user (opsi A): pengecualian terbatas atas batas `backend/`. Task ini tidak memblokir task 10 sampai 18 dan tidak bergantung pada task 10 sampai 18; hanya bergantung pada `lib/cast/cast-mapping.ts` (task 1.13).
+  - [x] 19.1 Periksa prompt dan kontrak, laporkan (tanpa edit)
+    - Baca `backend/app/ai/prompts/*`, `backend/app/ai/validation/*`, `backend/app/ai/contracts/*`, dan tes backend yang mengunci teks prompt atau karakter. Laporkan: berkas dan baris yang akan diubah, cara `character_id` dan nama tokoh dibentuk dan divalidasi sekarang, pilihan tolak atau petakan deterministik untuk tokoh di luar cast, dan tes yang terdampak. Tanpa mengubah file apa pun.
+    - _Requirements: 16.1, 16.2, 16.3, 16.4_
+  - [x] 19.2 Ubah prompt dan validasi
+    - Ubah prompt agar model hanya memakai `eldric` (guide), `mira` (peer), `hazel` (practice), `varr` (examiner), `nyx` (rival) beserta nama dan perannya. Sesuaikan validasi keluaran sesuai temuan 19.1. `backend/app/ai/contracts` dan `frontend/src/lib/contracts` tidak berubah (0 baris diff).
+    - _Requirements: 16.1, 16.2, 16.3, 16.4, 16.7_
+  - [x] 19.3 Perbarui tes backend
+    - Perbarui tes prompt dan validasi di `backend/tests`: lima id cast beserta peran Kit, serta tokoh di luar cast. Tanpa menghapus atau melewati tes.
+    - _Requirements: 16.4, 16.6_
+  - [x] 19.4 Sesuaikan tes pemetaan cast frontend bila perlu
+    - Tinjau `frontend/tests/cast/cast-mapping.test.ts` dan fixture AI di `frontend/tests/fixtures/`. Ubah hanya bila tes atau fixture mengunci id lama. Fallback `lib/cast` dipertahankan untuk story lama dan jumlah asersi tidak berkurang. Lewati dan catat bila tidak ada yang perlu diubah.
+    - _Requirements: 16.5_
+  - [x] 19.5 Verifikasi
+    - Dari `backend/`: `ruff check .`, `ruff format --check .`, `pytest -q`. Dari `frontend/`: `npm run lint`, `npx next typegen` lalu `npx tsc --noEmit`, `npx vitest run --testTimeout=60000`, `npm run build` tanpa env AI. Periksa `git diff --name-only dev -- backend/` hanya memuat `backend/app/ai/prompts`, `backend/app/ai/validation`, `backend/tests`, dan `git diff dev -- backend/app/ai/contracts frontend/src/lib/contracts` kosong. Golden_Test tetap 40 dari 40.
+    - _Requirements: 16.3, 16.6, 16.7, 5.3, 5.4_
+  - [x] 19.6 Ringkasan_Penyimpangan task 19
+    - Catat berkas backend yang berubah, pilihan tolak atau petakan, tes yang diperbarui, dan risiko kualitas story dengan lima tokoh serta story lama yang tersimpan. Catat bahwa ini pengecualian atas Requirement 1.5, 1.7, 13.6, dan 14.9 yang disetujui user. Tanpa penyimpangan, tulis "tidak ada".
+    - _Requirements: 5.8, 16.7_
 ## Notes
 
 - Sub-task bertanda `*` bersifat opsional dan dapat dilewati untuk MVP lebih cepat. Requirement 14.3 dan 14.4 mewajibkan tes komponen baru dan tes pemetaan; melewatkannya berarti requirement itu belum terpenuhi.
@@ -692,7 +712,12 @@ Bahasa implementasi: TypeScript (Next 16, React 19, Vitest 3), mengikuti design.
     { "id": 113, "tasks": ["18.8"] },
     { "id": 114, "tasks": ["18.9", "18.10"] },
     { "id": 115, "tasks": ["18.11"] },
-    { "id": 116, "tasks": ["18.12"] }
+    { "id": 116, "tasks": ["18.12"] },
+    { "id": 117, "tasks": ["19.1"] },
+    { "id": 118, "tasks": ["19.2"] },
+    { "id": 119, "tasks": ["19.3", "19.4"] },
+    { "id": 120, "tasks": ["19.5"] },
+    { "id": 121, "tasks": ["19.6"] }
   ]
 }
 ```

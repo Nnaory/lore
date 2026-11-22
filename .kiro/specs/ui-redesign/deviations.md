@@ -414,3 +414,50 @@ Ringkasan penyimpangan untuk task 9 (CampaignLobby). Tidak ada commit atau push.
 1. Labu pada backdrop beranimasi lewat di belakang eyebrow dan judul. Ini mengikuti keputusan backdrop beranimasi (steering pengguna: labu di background berjalan dan beranimasi).
 2. Di phone, label tombol results terbungkus ke baris kedua dan panah berada di baris kedua.
 3. Data di-seed lewat halaman sementara. Halaman itu sudah dihapus.
+
+## Task 19
+
+Ringkasan penyimpangan untuk task 19 (lima tokoh Kit di backend campaign planner). Tidak ada commit atau push. Semua perubahan ada di working tree.
+
+### Keputusan user
+
+- User memilih opsi A (ubah backend), lalu memilih "Dua tokoh dulu".
+
+### Temuan 19.1 dan pelebaran cakupan
+
+- Perubahan prompt saja tidak cukup. Id tokoh datang dari `campaign_templates.py` dan `campaign_planner_engine.py`, bukan dari model.
+- Cakupan melebar melampaui R1.7 dan R16.7. Requirements dan design diperbarui: R1.7, R13.6, R16.4, R16.7.
+
+### Perubahan backend
+
+1. **Cast tetap.** Lima tokoh Kit per genre (id, nama, peran) dalam urutan tetap. Ditambahkan `CAST_IDS` dan `TemplateCharacter.character_id`.
+2. **Deskripsi.** `EXTRA_CAST` berisi deskripsi bersama untuk hazel, varr, dan nyx karena template tidak punya deskripsi untuk mereka. Deskripsi per genre untuk eldric dan mira dipertahankan.
+3. **Judul campaign.** Sekarang "Eldric's Campaign: …" (sebelumnya "The Keeper's Campaign").
+4. **`merge_creative_fields`.** Mengunci `name` dan `role`, hanya menimpa `description`.
+5. **`CreativeCharacter`.** `name` dan `role` dibuat opsional (tidak diminta lagi dari model).
+6. **Prompt planner.** Ditulis ulang untuk cast lima orang dan hanya meminta deskripsi.
+7. **Validator.** Kode baru `INVALID_CAST_CHARACTER`, hanya di `validate_planned_campaign`.
+8. **Tidak diubah.** Validator dan prompt story tidak disentuh (snapshot paritas story tetap valid). Kontrak: 0 diff.
+
+### KETERBATASAN
+
+- Story engine (`story_generator_engine.py`) masih hanya memakai `characters[0]` (eldric, pemandu) dan `characters[1]` (mira, pendamping). Hazel, Varr, dan Nyx ada di campaign tetapi belum pernah berbicara. Perlu pekerjaan lanjutan.
+- Gemini tidak bisa mengganti nama tokoh (diabaikan).
+- Campaign lama yang tersimpan dengan `char_01`/`char_02` tetap valid di jalur story dan dirender lewat fallback frontend.
+
+### Tes
+
+- 20 tes backend diperbarui di `test_ai_campaign_planner.py` dan `test_ai_plan_campaign.py`.
+- Fixture dibuat ulang: `plan-campaign.success.json`, `two-materials.success.json`, `semantic-invalid-blueprint.json`.
+- Tes baru: penolakan cast tidak valid dan campaign lama.
+- Frontend: tes pemetaan cast ditambahkan (id Kit dan id lama).
+
+### Hasil verifikasi
+
+- Ruff: lulus.
+- Pytest: 597 lulus, 57 dilewati (tanpa Postgres).
+- Lint dan `tsc`: lulus.
+- Vitest: 79 file, 896 tes lulus.
+- Golden: 40/40.
+- Build: berhasil.
+- Smoke AI: tidak dijalankan (tidak ada key).

@@ -618,6 +618,16 @@ export function validateHomeFile(f: { name: string; size: number; type: string }
 
 Nilai bawaan dan batas: `MAX_HP` dari `lib/game/hp-manager`, `MAX_FILE_BYTES` (25 × 1024 × 1024) dari `lib/ingest/limits`, `MAX_INSTRUCTIONS_CHARS` (500) dari `lib/setup/create-form`. Tidak ada literal ganda.
 
+### Tokoh AI memakai cast Kit (Requirement 16)
+
+Keputusan user (opsi A): model AI memakai cast Kit langsung, bukan lagi dipetakan di frontend. Ini pengecualian terbatas atas batas `backend/` (Requirement 1.7, 13.6).
+
+- **Berkas yang berubah (keputusan "Dua tokoh dulu", dari laporan 19.1):** `backend/app/ai/prompts/campaign_planner.py`, `backend/app/ai/campaign_templates.py`, `backend/app/ai/campaign_planner_engine.py`, `backend/app/ai/campaign_planner.py` (hanya `merge_creative_fields`, mengunci `name` dan `role`; `description` tetap kreatif), dan `backend/app/ai/validation/planner.py` (galat `INVALID_CAST_CHARACTER`). `prompts/story_generator.py`, `material_analysis.py`, validator story, dan `contracts/` tidak berubah. Campaign berisi lima tokoh dengan urutan tetap eldric, mira, hazel, varr, nyx; Layer 3 tetap memakai `characters[0]` dan `characters[1]` (eldric guide, mira companion), jadi hazel, varr, nyx belum berbicara di story. Template genre mempertahankan isi lainnya.
+- **Batasan tokoh:** prompt menyebut lima tokoh dan perannya: `eldric` guide, `mira` peer, `hazel` practice, `varr` examiner, `nyx` rival (DESIGN-SYSTEM §6). Model hanya boleh memakai id dan nama itu.
+- **Pemetaan ke `character_id`:** `character_id` pada `StoryBlueprint` diisi id cast (huruf kecil). Nama tampilan memakai nama cast. Tidak ada field baru, sehingga `lib/cast/cast-mapping.ts` memetakan id itu ke dirinya sendiri (Property 6).
+- **Validasi:** tokoh di luar lima id ditolak di validator planner saja (kode baru `INVALID_CAST_CHARACTER`; validator story tidak memeriksa cast agar story dan campaign lama tetap valid), bukan dipetakan. Opsi lama: ditolak lewat galat validasi yang sudah ada atau dipetakan deterministik ke satu id cast (hasil `stableHash`-nya sama dengan `resolveCampaignCast`). Pilihan akhir ditetapkan di 19.1 berdasarkan perilaku validasi saat ini.
+- **Fallback dipertahankan:** `mapCharacter` dan `resolveCampaignCast` tetap ada untuk story lama yang tersimpan.
+- **Risiko:** (1) kualitas story dengan lima tokoh tetap bisa turun pada materi dengan banyak tokoh; (2) story tersimpan memakai id lama sehingga tampil lewat fallback, bukan cast hasil AI; (3) tes backend yang mengunci teks prompt lama perlu diperbarui; (4) kontrak tidak berubah, jadi tidak ada migrasi data.
 ## Correctness Properties
 
 *A property is a characteristic or behavior that should hold true across all valid executions of a system-essentially, a formal statement about what the system should do. Properties serve as the bridge between human-readable specifications and machine-verifiable correctness guarantees.*
