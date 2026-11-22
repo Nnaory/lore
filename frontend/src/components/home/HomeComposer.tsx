@@ -20,6 +20,7 @@ import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 import { MAX_INSTRUCTIONS_CHARS } from "@/lib/setup/create-form";
 import { ErrorLine } from "@/components/ui/ErrorLine";
+import { HOME_FILE_MESSAGES } from "@/lib/home/file-check";
 import { useHomeComposer } from "./use-home-composer";
 
 /** Tallest the field grows before it scrolls. */
@@ -135,7 +136,7 @@ export function HomeComposer({ onFileChange }: { onFileChange?: (file: File | nu
         </div>
       </form>
 
-      {fileError && <ErrorLine data-testid="home-file-error">{fileError}</ErrorLine>}
+      {fileError && <ErrorLine data-testid="home-file-error">{HOME_FILE_MESSAGES[fileError]}</ErrorLine>}
       {missingFile && (
         <ErrorLine data-testid="home-file-required">
           Attach a material file first. What you type here is used as extra instructions, not as material.

@@ -492,3 +492,31 @@ Kit v2 (`lore-design-kit/lore-design-kit/`) menggantikan task 10–18 spec ini (
 - Build: berhasil.
 - Backend: ruff lulus, pytest 614 lulus, 57 dilewati.
 - Screenshot sebelum/sesudah 1440×900 dan 390×844 (Home, Stage `/game`): sama, kecuali header CanvasFrame (poin 2).
+
+## Kit v2 — Task 01 (Home B)
+
+### Keputusan user (22 Nov 2026)
+
+- File tetap wajib. Topik saja tidak bisa dipakai (berbeda dengan canvas dan kit).
+- Latar tetap labu animasi bersama (`PumpkinBackdrop`), tanpa labu statis kit dan tanpa `lore-grid-bg`.
+- Judul tetap wordmark ASCII, bukan teks `LORE` 40px.
+- "Your stories" tetap di bawah hero.
+
+### Penyimpangan
+
+1. **`HomeGreeting` (kit) tidak dipakai.** Karena keempat keputusan di atas, `HomeHero` dipertahankan. Isi Task 01 menjadi i18n dan deteksi bahasa. `HomeGreeting.tsx` tetap ada karena dipakai `tests/screens.smoke.test.tsx`.
+2. **Teks kit diubah agar sesuai aturan wajib file.** `home.greeting`, `home.greetingShort`, dan `home.placeholder` (id dan en) tidak lagi menyebut "topik".
+3. **Key baru (id dan en):** `home.inputLabel`, `home.fileInputLabel`, `home.removeFileNamed`, `home.formats`, `home.formatsShort`, `home.placeholderShort`, `home.fileRequired`, `home.file.*`, `home.hazelAlt.*`, `stories.*`.
+4. **Phone memakai versi pendek** (`greetingShort`, `gotFileShort`, `placeholderShort`, `formatsShort`), seperti kit. Placeholder phone sebelumnya terpotong menjadi 2 baris (masalah lama).
+5. **Kalimat Hazel mengikuti kit.** Sekarang memakai tanda kutip “ ” dan `home.gotFile` menyebut nama file (sebelumnya "lecture notes"). Tombol hapus file memakai ✕ (sebelumnya ×).
+6. **Hook baru `lib/i18n/use-ui-lang.ts`.** Urutannya `localStorage['lore.lang']`, lalu bahasa browser, lalu Inggris, lewat `useSyncExternalStore`. Server dan render pertama memakai `en`, jadi pengguna id melihat kedipan singkat. Belum ada UI untuk menyimpan `lore.lang`. `<html lang>` masih `en`.
+7. **`useHomeComposer.fileError`** sekarang berisi alasan (`HomeFileRejection`), bukan pesan. `HomeComposer` lama (hanya dipakai tes) memetakan alasan itu ke `HOME_FILE_MESSAGES`. Karakter `\n` harfiah di komentar `SavedStories.tsx` diperbaiki.
+8. **`lib/home/hazel-greeting.ts`** masih menyimpan kalimat Inggris lama. UI hanya memakai `expression` darinya.
+9. **`reference/`** baru disinkronkan dengan Kit v2 di sini (10 frame baru + `generators/gen.js`). Seharusnya ikut Task 00.
+
+### Hasil verifikasi
+
+- Lint: 0 error, 0 warning. `tsc`: bersih. Build: berhasil.
+- Vitest: 84 file, 930 tes lulus. Ada 26 tes baru: `tests/i18n/use-ui-lang.test.tsx`, `tests/i18n/home-keys.test.ts`, `tests/home/home-i18n.test.tsx`.
+- Screenshot 1440×900 dan 390×844, id dan en, idle dan dengan file: teks sesuai bahasa, placeholder phone satu baris. Tata letak sama dengan sebelumnya.
+- Belum diuji: label "Selesai/Main lagi" untuk cerita yang sudah tamat.

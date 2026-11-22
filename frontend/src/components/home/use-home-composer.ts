@@ -15,13 +15,15 @@
 import { useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { chooseFile, decideSend } from "@/lib/home/composer-state";
+import type { HomeFileRejection } from "@/lib/home/file-check";
 import { setPendingMaterial } from "@/lib/setup/pending-material";
 
 export function useHomeComposer(onFileChange?: (file: File | null) => void) {
   const router = useRouter();
   const [text, setText] = useState("");
   const [file, setFileState] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
+  /** Why the last chosen file was rejected; the layout translates it (`home.file.<reason>`). */
+  const [fileError, setFileError] = useState<HomeFileRejection | null>(null);
   /** Text was typed (or send pressed) without a file. */
   const [needsFile, setNeedsFile] = useState(false);
 
@@ -36,7 +38,7 @@ export function useHomeComposer(onFileChange?: (file: File | null) => void) {
   function pickFile(candidate: File) {
     const result = chooseFile(file, candidate);
     if (!result.ok) {
-      setFileError(result.message);
+      setFileError(result.reason);
       return;
     }
     setFileError(null);

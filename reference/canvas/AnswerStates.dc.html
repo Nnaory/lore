@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>LORE — Lapisan jawaban: status komponen</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&amp;family=Space+Grotesk:wght@500;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0F0F12}
+a{color:#C9A227}a:hover{color:#FF7A18}
+</style>
+</helmet>
+<div style="width: 1440px; min-height: 1060px; box-sizing: border-box; padding: 64px; background-color: #0F0F12; background-image: linear-gradient(rgba(244,239,230,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(244,239,230,0.03) 1px, transparent 1px); background-size: 24px 24px; font-family: 'Space Grotesk', sans-serif; color: #F4EFE6; display: flex; flex-direction: column; gap: 40px">
+
+  <div style="display: flex; flex-direction: column; gap: 10px">
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.24em; color: #FF7A18">LAPISAN JAWABAN · STATUS KOMPONEN</span>
+    <h1 style="margin: 0; font-size: 40px; line-height: 1.1; font-weight: 700">Satu ketuk untuk melihat, ketuk lagi untuk mengunci</h1>
+  </div>
+
+  <!-- rune tiles -->
+  <section aria-label="Batu rune" style="display: flex; flex-direction: column; gap: 18px; padding-top: 28px; border-top: 1px solid #2A2A2E">
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.2em"><span style="color: #C9A227">01</span>  BATU RUNE · WEB</span>
+    <div style="display: flex; gap: 28px; align-items: flex-end">
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 204px; height: 56px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid #F4EFE6; font-family: 'JetBrains Mono', monospace"><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #C9A227; color: #C9A227; font-size: 11px; font-weight: 700">2</span><span style="font-size: 15px; font-weight: 700">AB = [3, 4]</span></div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">idle · border cream</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="position: relative; width: 204px; height: 56px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid #FF7A18; font-family: 'JetBrains Mono', monospace"><span style="position: absolute; left: 50%; top: -11px; transform: translateX(-50%); padding: 1px 6px; background: #FF7A18; color: #0F0F12; font-size: 9px; font-weight: 700; letter-spacing: 0.12em; white-space: nowrap">KLIK LAGI = KUNCI</span><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #C9A227; color: #C9A227; font-size: 11px; font-weight: 700">2</span><span style="font-size: 15px; font-weight: 700">AB = [3, 4]</span></div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">fokus · pratinjau tampil di kanvas</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 204px; height: 56px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; background: #FF7A18; border: 2px solid #FF7A18; color: #0F0F12; font-family: 'JetBrains Mono', monospace"><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0F0F12; font-size: 11px; font-weight: 700">2</span><span style="font-size: 15px; font-weight: 700">AB = [3, 4]</span></div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">terkunci · benar</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 168px; height: 56px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px dashed #2A2A2E; color: #A8A49C; font-family: 'JetBrains Mono', monospace"><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #2A2A2E; font-size: 11px; font-weight: 700">1</span><span style="font-size: 15px; font-weight: 700; text-decoration: line-through">AB = 7</span></div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">ditolak · HP −1, tak bisa dipilih lagi</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 268px; height: 56px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid #2A2A2E; color: #A8A49C; font-family: 'JetBrains Mono', monospace"><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #2A2A2E; font-size: 11px; font-weight: 700">3</span><span style="font-size: 15px; font-weight: 700">AB = [[3], [4], [0]]</span></div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">nonaktif · setelah soal terjawab</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- seal slot -->
+  <section aria-label="Slot segel" style="display: flex; flex-direction: column; gap: 18px; padding-top: 28px; border-top: 1px solid #2A2A2E">
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.2em"><span style="color: #C9A227">02</span>  SLOT SEGEL · KANVAS</span>
+    <div style="display: flex; gap: 40px">
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 160px; height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px dashed #FF7A18; color: #FF7A18; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">?</div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">menunggu</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 160px; height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px dashed #FF7A18; color: #F4EFE6; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">[3, 4]</div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">pratinjau · belum terkunci</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 160px; height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #FF7A18; border: 2px solid #FF7A18; color: #0F0F12; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">[3, 4]</div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">terbuka · cincin segel ember 3px</figcaption>
+      </figure>
+      <figure style="margin: 0; display: flex; flex-direction: column; gap: 10px">
+        <div style="width: 160px; height: 44px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px dashed #F4EFE6; color: #F4EFE6; font-family: 'JetBrains Mono', monospace; font-size: 15px; font-weight: 700">?</div>
+        <figcaption style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">retak · cincin cream + garis retakan</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- phone menu rows (shown on their real cream background) -->
+  <section aria-label="Baris menu HP" style="display: flex; flex-direction: column; gap: 18px; padding-top: 28px; border-top: 1px solid #2A2A2E">
+    <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; letter-spacing: 0.2em"><span style="color: #C9A227">03</span>  BARIS MENU · HP (di dalam kotak dialog krem)</span>
+    <div style="display: flex; gap: 20px; padding: 20px; background: #F4EFE6; color: #0F0F12">
+      <div style="width: 300px; height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 8px; border: 2px solid #0F0F12; font-family: 'JetBrains Mono', monospace"><span style="width: 12px"></span><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0F0F12; font-size: 11px; font-weight: 700">2</span><span style="flex-grow: 1; font-size: 14px; font-weight: 700">AB = [3, 4]</span><span style="font-size: 10px; color: #5A5650">idle</span></div>
+      <div style="width: 300px; height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 8px; background: #0F0F12; color: #F4EFE6; border: 2px solid #0F0F12; font-family: 'JetBrains Mono', monospace"><span style="width: 12px; font-size: 11px; color: #FF7A18">▶</span><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #C9A227; font-size: 11px; font-weight: 700">2</span><span style="flex-grow: 1; font-size: 14px; font-weight: 700">AB = [3, 4]</span><span style="font-size: 10px; font-weight: 700; color: #FF7A18">KETUK LAGI</span></div>
+      <div style="width: 300px; height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 8px; background: #FF7A18; border: 2px solid #FF7A18; font-family: 'JetBrains Mono', monospace"><span style="width: 12px"></span><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #0F0F12; font-size: 11px; font-weight: 700">2</span><span style="flex-grow: 1; font-size: 14px; font-weight: 700">AB = [3, 4]</span><span style="font-size: 10px; font-weight: 700">BENAR</span></div>
+      <div style="width: 300px; height: 48px; box-sizing: border-box; display: flex; align-items: center; gap: 10px; padding: 0 12px 0 8px; border: 2px dashed #A8A49C; color: #5A5650; font-family: 'JetBrains Mono', monospace"><span style="width: 12px"></span><span style="width: 22px; height: 22px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; border: 2px solid #A8A49C; font-size: 11px; font-weight: 700">1</span><span style="flex-grow: 1; font-size: 14px; font-weight: 700; text-decoration: line-through">AB = 7</span><span style="font-size: 10px; font-weight: 700">DITOLAK</span></div>
+    </div>
+  </section>
+
+  <!-- interaction rules -->
+  <section aria-label="Aturan interaksi" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 48px; row-gap: 10px; padding-top: 28px; border-top: 1px solid #2A2A2E; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.55; color: #F4EFE6">
+    <span style="grid-column: 1 / -1; font-size: 12px; font-weight: 700; letter-spacing: 0.2em"><span style="color: #C9A227">04</span>  ATURAN</span>
+    <span><span style="color: #FF7A18">1</span> Ketuk sekali = sorot + pratinjau wujud di kanvas. Tidak ada tombol Submit.</span>
+    <span><span style="color: #FF7A18">2</span> Ketuk item yang sama lagi (atau ENTER) = kunci jawaban.</span>
+    <span><span style="color: #FF7A18">3</span> Salah: HP −1, item DITOLAK (putus-putus + dicoret), karakter worried + satu kalimat alasan.</span>
+    <span><span style="color: #FF7A18">4</span> Benar: item ember, kanvas lanjut, karakter smile + satu kalimat alasan.</span>
+    <span><span style="color: #FF7A18">5</span> Pertanyaan selalu di kotak dialog; kanvas hanya untuk visual.</span>
+    <span><span style="color: #FF7A18">6</span> Pratinjau menjelaskan WUJUD jawaban, tidak pernah membocorkan benar/salah.</span>
+    <span><span style="color: #FF7A18">7</span> Keyboard 1–3 untuk sorot, ENTER untuk kunci; semua target ≥ 44px; fokus memakai aria-pressed.</span>
+    <span><span style="color: #FF7A18">8</span> Dewan Suara untuk soal miskonsepsi: Nyx selalu membawa jawaban salah yang paling menggoda.</span>
+  </section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1060}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

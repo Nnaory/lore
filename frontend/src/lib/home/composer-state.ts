@@ -7,7 +7,7 @@
  * Keeping these out of the component lets any Home layout reuse them.
  */
 
-import { validateHomeFile } from "./file-check";
+import { validateHomeFile, type HomeFileRejection } from "./file-check";
 
 export interface ComposerFile {
   name: string;
@@ -17,7 +17,7 @@ export interface ComposerFile {
 
 export type ChooseFileResult<F extends ComposerFile> =
   | { ok: true; file: F }
-  | { ok: false; reason: string; message: string; file: F | null };
+  | { ok: false; reason: HomeFileRejection; message: string; file: F | null };
 
 /** Accept `candidate` or keep `current` and report why not. */
 export function chooseFile<F extends ComposerFile>(current: F | null, candidate: F): ChooseFileResult<F> {

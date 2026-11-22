@@ -12,6 +12,8 @@
  * Brew it. State and rules come from useHomeComposer and hazelGreeting, so
  * adding a file turns Hazel surprised and changes her line, and removing it
  * restores both. A file is required: her lines and the formats row say so.
+ * Every label comes from lib/i18n/ui.ts (`t`); the language is `useUiLang()`
+ * (saved setting → browser → English), DESIGN-SYSTEM §9. Phone uses the short lines.
  * The animated pumpkins behind come from the root layout's backdrop; only
  * the grid lines are drawn here.
  */
@@ -24,6 +26,8 @@ import { ScaledBoard, useBoardPixelRatio } from "@/components/stage/ScaledBoard"
 import { ErrorLine } from "@/components/ui/ErrorLine";
 import { renderBust, renderCharacter, wordmark } from "@/lib/ascii";
 import { hazelGreeting } from "@/lib/home/hazel-greeting";
+import { t, type UiLang } from "@/lib/i18n/ui";
+import { useUiLang } from "@/lib/i18n/use-ui-lang";
 import { ACCEPTED_FILE_TYPES } from "@/lib/ingest";
 import { MAX_FILE_BYTES } from "@/lib/ingest/limits";
 import { MAX_INSTRUCTIONS_CHARS } from "@/lib/setup/create-form";
@@ -45,7 +49,7 @@ function ClipIcon() {
   );
 }
 
-function FileChip({ file, removeFile, padding }: { file: File; removeFile: () => void; padding: string }) {
+function FileChip({ file, removeFile, padding, lang }: { file: File; removeFile: () => void; padding: string; lang: UiLang }) {
   return (
     <div className={padding}>
       <span
@@ -57,10 +61,10 @@ function FileChip({ file, removeFile, padding }: { file: File; removeFile: () =>
           type="button"
           data-testid="home-file-remove"
           onClick={removeFile}
-          aria-label={`Remove ${file.name}`}
+          aria-label={t(lang, "home.removeFileNamed", { file: file.name })}
           className="h-6 w-6 shrink-0 cursor-pointer border-0 bg-transparent p-0 text-muted"
         >
-          ×
+          ✕
         </button>
       </span>
     </div>
@@ -68,15 +72,16 @@ function FileChip({ file, removeFile, padding }: { file: File; removeFile: () =>
 }
 
 /** The composer: textarea + hidden file input + the two buttons, laid out per layout. */
-function ComposerBar({ layout, c, fileLabel }: { layout: StageLayout; c: Composer; fileLabel: string }) {
+function ComposerBar({ layout, c, lang }: { layout: StageLayout; c: Composer; lang: UiLang }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const phone = layout === "phone";
   const hasFile = c.file !== null;
+  const fileLabel = t(lang, hasFile ? "home.replace" : "home.addFile");
 
   const field = (
     <div className={`flex items-center gap-2 ${phone ? "h-[52px] px-3.5" : "grow gap-2.5 pl-10"}`}>
       <span aria-hidden className="font-mono font-bold">&gt;</span>
-      <label htmlFor="home-ask" className="sr-only">Instructions for the storyteller</label>
+      <label htmlFor="home-ask" className="sr-only">{t(lang, "home.inputLabel")}</label>
       <textarea
         id="home-ask"
         data-testid="home-input"
@@ -85,7 +90,7 @@ function ComposerBar({ layout, c, fileLabel }: { layout: StageLayout; c: Compose
         maxLength={MAX_INSTRUCTIONS_CHARS}
         onChange={(e) => c.setText(e.target.value)}
         onKeyDown={c.handleKeyDown}
-        placeholder="Add instructions (optional), then add a file."
+        placeholder={t(lang, phone ? "home.placeholderShort" : "home.placeholder")}
         className={`h-11 min-w-0 grow resize-none overflow-y-auto border-0 bg-transparent py-[11px] font-mono text-ink outline-none placeholder:text-ink-soft ${phone ? "text-sm" : "text-[15px]"}`}
       />
     </div>
@@ -113,14 +118,14 @@ function ComposerBar({ layout, c, fileLabel }: { layout: StageLayout; c: Compose
         phone ? "border-l-2 border-ink" : "flex items-center gap-2 border-l-2 border-ink px-5"
       }`}
     >
-      Brew it →
+      {t(lang, "home.brew")}
     </button>
   );
 
   return (
     <>
       {c.file && (
-        <FileChip file={c.file} removeFile={c.removeFile} padding={phone ? "px-4 pb-2.5" : "px-10 pb-2.5"} />
+        <FileChip file={c.file} removeFile={c.removeFile} padding={phone ? "px-4 pb-2.5" : "px-10 pb-2.5"} lang={lang} />
       )}
       <form
         data-testid="home-composer"
@@ -133,7 +138,7 @@ function ComposerBar({ layout, c, fileLabel }: { layout: StageLayout; c: Compose
           accept={ACCEPTED_FILE_TYPES}
           className="sr-only"
           tabIndex={-1}
-          aria-label="Material file"
+          aria-label={t(lang, "home.fileInputLabel")}
           data-testid="home-file-input"
           onChange={(e) => {
             const chosen = e.target.files?.[0];
@@ -158,14 +163,12 @@ function ComposerBar({ layout, c, fileLabel }: { layout: StageLayout; c: Compose
   );
 }
 
-function Messages({ c }: { c: Composer }) {
+function Messages({ c, lang }: { c: Composer; lang: UiLang }) {
   return (
     <>
-      {c.fileError && <ErrorLine data-testid="home-file-error">{c.fileError}</ErrorLine>}
+      {c.fileError && <ErrorLine data-testid="home-file-error">{t(lang, `home.file.${c.fileError}`)}</ErrorLine>}
       {c.missingFile && (
-        <ErrorLine data-testid="home-file-required">
-          Attach a material file first. What you type here is used as extra instructions, not as material.
-        </ErrorLine>
+        <ErrorLine data-testid="home-file-required">{t(lang, "home.fileRequired")}</ErrorLine>
       )}
       {c.hasText && (
         <p
@@ -179,7 +182,7 @@ function Messages({ c }: { c: Composer }) {
   );
 }
 
-function DemoLink({ phone }: { phone: boolean }) {
+function DemoLink({ phone, lang }: { phone: boolean; lang: UiLang }) {
   return (
     <Link
       href="/game"
@@ -191,22 +194,26 @@ function DemoLink({ phone }: { phone: boolean }) {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--color-ember)" aria-hidden="true" focusable="false">
         <path d="M6 4l14 8-14 8z" />
       </svg>
-      Play the demo: The Last Beacon
+      {t(lang, "common.playDemoLong")}
     </Link>
   );
 }
 
 function HeroBoard({ layout }: { layout: StageLayout }) {
   const c = useHomeComposer();
+  const lang = useUiLang();
   const phone = layout === "phone";
   const greeting = hazelGreeting(c.file !== null);
+  const line = c.file
+    ? t(lang, phone ? "home.gotFileShort" : "home.gotFile", { file: c.file.name })
+    : t(lang, phone ? "home.greetingShort" : "home.greeting");
   const pixelRatio = useBoardPixelRatio();
   const hazel = useMemo(
     () => (phone ? renderBust("hazel", greeting.expression) : renderCharacter("hazel", greeting.expression)),
     [phone, greeting.expression],
   );
 
-  const formats = `PDF · DOCX · PPTX · TXT · MD · up to ${MAX_MB} MB · file required`;
+  const formats = t(lang, phone ? "home.formatsShort" : "home.formats", { mb: MAX_MB });
 
   return (
     <>
@@ -214,17 +221,17 @@ function HeroBoard({ layout }: { layout: StageLayout }) {
         className="absolute inset-x-0 flex flex-col items-center"
         style={{ top: phone ? 56 : 64, gap: phone ? 6 : 10 }}
       >
-        <h1 className="m-0" aria-label="LORE">
+        <h1 className="m-0" aria-label={t(lang, "common.lore")}>
           <AsciiArt layers={WORDMARK} fontPx={phone ? 5 : 8} pixelRatio={pixelRatio} />
         </h1>
         <p className="m-0 font-display text-muted" style={{ fontSize: phone ? 14 : 16 }}>
-          Learn by Living the Knowledge.
+          {t(lang, "common.tagline")}
         </p>
       </div>
 
       <div
         role="img"
-        aria-label={`Hazel the witch, ${greeting.expression === "smile" ? "smiling" : greeting.expression}`}
+        aria-label={t(lang, `home.hazelAlt.${greeting.expression}`)}
         data-testid="home-hazel"
         data-expression={greeting.expression}
         className="absolute pointer-events-none"
@@ -243,18 +250,18 @@ function HeroBoard({ layout }: { layout: StageLayout }) {
       >
         <DialogueBox
           speakerName="Hazel"
-          speakerRole="Witch of the Ember Marsh"
+          speakerRole={t(lang, "home.hazelRole")}
           nameColor={HAZEL_NAME}
-          text={greeting.line}
+          text={line}
           mode="fast"
           onModeChange={() => {}}
           onOpenLog={() => {}}
           padLeft={40}
           testIds={{ root: "home-dialogue", text: "home-hazel-line" }}
           className={phone ? "" : "h-[212px]"}
-          bottomBar={<ComposerBar layout={layout} c={c} fileLabel={greeting.fileLabel} />}
+          bottomBar={<ComposerBar layout={layout} c={c} lang={lang} />}
         />
-        <Messages c={c} />
+        <Messages c={c} lang={lang} />
       </div>
 
       {phone ? (
@@ -264,10 +271,10 @@ function HeroBoard({ layout }: { layout: StageLayout }) {
       ) : (
         <div className="absolute flex items-center justify-between" style={{ left: 450, width: 780, top: 790 }}>
           <span className="font-mono text-xs text-muted">{formats}</span>
-          <DemoLink phone={false} />
+          <DemoLink phone={false} lang={lang} />
         </div>
       )}
-      {phone && <DemoLink phone />}
+      {phone && <DemoLink phone lang={lang} />}
     </>
   );
 }
