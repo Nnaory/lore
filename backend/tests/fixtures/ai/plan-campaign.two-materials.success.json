@@ -1,0 +1,140 @@
+{
+  "ok": true,
+  "data": {
+    "blueprint": {
+      "campaign_id": "campaign_001",
+      "title": "Signal Drift",
+      "genre": "science_fiction",
+      "tone": "wondrous",
+      "premise": "A research station loses its heading, and two chapters of vector maths bring it back.",
+      "main_conflict": "The campaign's central problem can only be resolved by mastering Dot product.",
+      "setting": "a research frontier where theory decides survival",
+      "characters": [
+        {
+          "character_id": "eldric",
+          "name": "Eldric",
+          "role": "Keeper of the Beacon",
+          "description": "Rigorous and calm under pressure.",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "mira",
+          "name": "Mira",
+          "role": "Apprentice Cartographer",
+          "description": "Turns formulas into working fixes.",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "hazel",
+          "name": "Hazel",
+          "role": "Witch of the Ember Marsh",
+          "description": "A practical experimenter who turns theory into experiments the player can try. (campaign campaign_001)",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "varr",
+          "name": "Varr",
+          "role": "Warden of the Outer Gate",
+          "description": "A stern examiner who tests understanding before letting the player pass. (campaign campaign_001)",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        },
+        {
+          "character_id": "nyx",
+          "name": "Nyx",
+          "role": "The Hollow Voice",
+          "description": "A rival voice that plants plausible misconceptions for the player to catch. (campaign campaign_001)",
+          "expressions": {
+            "neutral": "(-_-)",
+            "worried": "(>_<)",
+            "thinking": "(¬_¬)",
+            "surprised": "(O_O)",
+            "approving": "(^_^)",
+            "stern": "(ಠ_ಠ)"
+          }
+        }
+      ],
+      "world_rules": [
+        "Technology follows the material's principles exactly; sloppy thinking has visible consequences.",
+        "Academic accuracy is never sacrificed for narrative flair."
+      ],
+      "story_sequence": [
+        {
+          "story_id": "story_01",
+          "material_id": "material_1xfqqww",
+          "title": "Reading the Drift",
+          "purpose": "Measure and add vectors.",
+          "main_conflict": "The station's core process is failing; only Vectors can stabilize it.",
+          "required_knowledge": [],
+          "outcomes": [
+            {
+              "outcome_id": "outcome_story_01_success",
+              "description": "The story's central problem is fully resolved.",
+              "world_state_changes": {
+                "stability": 10
+              }
+            }
+          ]
+        },
+        {
+          "story_id": "story_02",
+          "material_id": "material_2abcdef",
+          "title": "Locking the Beam",
+          "purpose": "Use the dot product to align the beam.",
+          "main_conflict": "The station's core process is failing; only Dot product can stabilize it.",
+          "required_knowledge": [
+            "concept_1xfqqww_01"
+          ],
+          "outcomes": [
+            {
+              "outcome_id": "outcome_story_02_success",
+              "description": "The story's central problem is fully resolved.",
+              "world_state_changes": {
+                "stability": 15
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "meta": {
+      "provider": "google",
+      "model": "test-model",
+      "latencyMs": 1234,
+      "warnings": [
+        {
+          "code": "PREREQUISITE_TESTABILITY_PENDING",
+          "message": "Story 02 requires concept \"concept_1xfqqww_01\". Layer 3 must provide a puzzle testing this concept in an earlier story, or the story cannot be unlocked.",
+          "path": "story_sequence[story_02].required_knowledge"
+        }
+      ]
+    }
+  }
+}

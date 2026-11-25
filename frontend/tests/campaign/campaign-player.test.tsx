@@ -85,10 +85,10 @@ describe("CampaignPlayer — Continue Campaign transition", () => {
   it("restores full HP for the next story", () => {
     const view = render(<CampaignPlayer campaign={dummyCampaign} stories={STORIES} />);
     playToStoryComplete(view, { wrongFirst: true });
-    expect(view.getByTestId("hp-value").textContent).toContain("4 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
 
     continueCampaign(view);
-    expect(view.getByTestId("hp-value").textContent).toContain("5 / 5");
+    expect(view.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
   });
 
   it("reaches campaign complete only after both stories are played", () => {
@@ -109,3 +109,36 @@ describe("CampaignPlayer — Continue Campaign transition", () => {
     expect(view.getByTestId("campaign-complete-message")).toBeTruthy();
   });
 });
+
+describe("CampaignPlayer — branch selection (task 10.3)", () => {
+  it("renders CampaignLobby in a scrolling min-h-dvh grid wrapper when at the lobby", () => {
+    const view = render(<CampaignPlayer campaign={dummyCampaign} stories={STORIES} startAtLobby />);
+    const lobby = view.getByTestId("campaign-lobby");
+    expect(lobby).toBeTruthy();
+    expect(view.queryByTestId("story-viewer")).toBeNull();
+    expect(view.queryByTestId("campaign-summary")).toBeNull();
+    expect(lobby.parentElement?.className).toContain("min-h-dvh");
+    expect(lobby.parentElement?.className).toContain("lore-grid-lines");
+  });
+
+  it("renders StoryViewer when playing and switches to CampaignSummary in a min-h-dvh wrapper when viewing results", () => {
+    const view = render(<CampaignPlayer campaign={dummyCampaign} stories={STORIES} />);
+    expect(view.getByTestId("story-viewer")).toBeTruthy();
+    expect(view.queryByTestId("campaign-lobby")).toBeNull();
+
+    playToStoryComplete(view);
+    continueCampaign(view);
+    playToStoryComplete(view);
+    continueCampaign(view);
+    act(() => {
+      fireEvent.click(view.getByTestId("view-results-button"));
+    });
+
+    const summary = view.getByTestId("campaign-summary");
+    expect(summary).toBeTruthy();
+    expect(view.queryByTestId("story-viewer")).toBeNull();
+    expect(summary.parentElement?.className).toContain("min-h-dvh");
+    expect(summary.parentElement?.className).toContain("lore-grid-lines");
+  });
+});
+

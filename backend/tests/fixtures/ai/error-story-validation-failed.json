@@ -1,0 +1,14 @@
+{
+  "ok": false,
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Generated story failed semantic validation.",
+    "detail": [
+      {
+        "code": "REQUIRED_KNOWLEDGE_SELF_REFERENCE",
+        "message": "Story \"story_01\" requires concept \"concept_1xfqqww_01\" but that concept is taught by this story's own material \"material_1xfqqww\".",
+        "path": "story.required_knowledge[concept_1xfqqww_01]"
+      }
+    ]
+  }
+}

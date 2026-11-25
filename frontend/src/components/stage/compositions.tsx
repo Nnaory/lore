@@ -12,13 +12,16 @@
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { CANVAS_HEIGHT, CANVAS_WIDTH, DECISION_NODE, choiceBoxes } from "./canvas-layout";
 
-// The Trick-or-Treat palette, as the canvas needs it (see :root in globals.css).
-// GOLD is Candy Corn Yellow and VOID is Licorice Black; the names are older than the palette.
-export const GOLD = "#f6c84e";
-export const GOLD_DIM = "#c9a23f";
-export const TEXT = "#f3ece3";
-export const TEXT_DIM = "#b8b3ad";
-export const VOID = "#222222";
+// Kit tokens (lore-tokens.css) as the canvas needs them. Decision OQ-9 / D9: only colour,
+// gradient and shadow follow the tokens; geometry, data, labels and numbers are unchanged.
+// The constant names are kept so the compositions read the same as before.
+export const GOLD = "var(--color-gold)";
+export const GOLD_DIM = "color-mix(in srgb, var(--color-gold) 70%, var(--color-ink))";
+export const TEXT = "var(--color-cream)";
+export const TEXT_DIM = "var(--color-muted)";
+export const VOID = "var(--color-ink)";
+/** Fill of boxes and nodes drawn on the canvas. */
+export const SURFACE = "var(--color-smoke)";
 
 /** Deterministic pseudo-random numbers in [0, 1) from a seed. */
 function rand(seed: number): number {
@@ -30,7 +33,7 @@ function rand(seed: number): number {
 export function Field({ seed }: { seed: number }) {
   const frame = useCurrentFrame();
   return (
-    <AbsoluteFill style={{ background: `radial-gradient(ellipse at 50% 35%, #2e2438 0%, ${VOID} 70%)` }}>
+    <AbsoluteFill style={{ background: VOID }}>
       <svg width="100%" height="100%" viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`} style={{ position: "absolute", inset: 0 }}>
         {Array.from({ length: 9 }, (_, i) => (
           <line
@@ -82,7 +85,7 @@ export function AmbientScene({ title, subtitle, seed }: AmbientSceneProps) {
               height: 2,
               margin: "28px auto 0",
               width: interpolate(frame, [10, 50], [0, 320], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }),
-              background: `linear-gradient(90deg, transparent, ${GOLD}, transparent)`,
+              background: GOLD,
             }}
           />
         </div>
@@ -177,8 +180,7 @@ export function DecisionGraph({ label, count, seed }: DecisionGraphProps) {
                 y={(b.y / 100) * CANVAS_HEIGHT}
                 width={(b.w / 100) * CANVAS_WIDTH}
                 height={(b.h / 100) * CANVAS_HEIGHT}
-                rx={12}
-                fill="#2e2438"
+                fill={SURFACE}
                 fillOpacity={0.55 * boxIn}
                 stroke={GOLD_DIM}
                 strokeOpacity={0.5 * boxIn}
@@ -186,7 +188,7 @@ export function DecisionGraph({ label, count, seed }: DecisionGraphProps) {
             </g>
           );
         })}
-        <circle cx={node.x} cy={node.y} r={34 * nodeIn} fill="#2e2438" stroke={GOLD} strokeWidth={2} />
+        <circle cx={node.x} cy={node.y} r={34 * nodeIn} fill={SURFACE} stroke={GOLD} strokeWidth={2} />
         <circle
           cx={node.x}
           cy={node.y}

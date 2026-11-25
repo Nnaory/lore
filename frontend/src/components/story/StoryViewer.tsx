@@ -1,34 +1,39 @@
 /**
- * StoryViewer — the 3-pane story stage (docs/DESIGN.md §4, wireframe)
+ * StoryViewer — the Stage (docs/DESIGN-SYSTEM.md §4.1, §4.3, §4.4)
  *
- *   ┌──────────────────────── navbar ────────────────────────┐
- *   │ character (SVG, emotions) │ canvas (@remotion/player)   │
- *   ├────────────────────── chat box ────────────────────────┤
+ * A fixed 1440x900 (desktop) / 390x844 (phone) board scaled as a whole by
+ * `ScaledBoard`. One tree serves both layouts, so layout switches do not
+ * remount state:
  *
- * - Navbar: story/chapter/location, HP, exit.
- * - Character: the current speaker, whose emotion follows the dialogue
- *   and reacts to answers.
- * - Canvas: ambient scene, the lesson (its illustration when the lesson has
- *   a visual, else its text), or the decision graph puzzle;
- *   endings, completion and failure appear as overlays on it.
- * - Chat box: the current line (typewriter in "animate" pacing), the
- *   fast|animate toggle, the story log, and the (coming soon) question box.
+ *   StageBackdrop, StageHud, then the stage panel with
+ *   StageScene (ASCII), CanvasPane (only for lesson, visual and decision, OQ-12),
+ *   StageSprite (speaker), StageDialogue (typewriter, choices on phone, shortcuts)
+ *   and an overlay for endings, completion, failure and navigation errors.
  *
- * Story logic is unchanged: useStoryPlayer drives navigation/HP/bad
- * branches, and knowledge evidence is reported through onKnowledgeUpdate.
+ * Hoisted above the layout switch: useStoryPlayer, pacing, the story log, the
+ * answer reaction, the log/exit modals and `usePuzzleInteraction` (via
+ * PuzzleScope). Modals render outside the board.
+ *
+ * Story logic is unchanged: useStoryPlayer drives navigation/HP/bad branches,
+ * right and wrong come only from usePuzzleInteraction, and knowledge evidence
+ * is reported through onKnowledgeUpdate.
  */
 
 "use client";
 
-import { useEffect, useCallback, useRef, useState, type ReactNode } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { StoryBlueprint } from "@/lib/types/story";
 import type { Character, Genre } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
 import type { Scene, SceneContent } from "@/lib/types/scene";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
-import { loadPacing, savePacing, type Pacing } from "@/lib/story/pacing";
-import { stableHash } from "@/lib/ai/hash";
+import { loadStoredPacing, motionAllowed, savePacing, type Pacing } from "@/lib/story/pacing";
+import { initialTextMode } from "@/lib/dialogue/typewriter";
+import { resolveCampaignCast, emotionToExpression, pickOtherCharacter } from "@/lib/cast/cast-mapping";
+import { STAGE_BOXES, visibleSprites } from "@/lib/stage/stage-boxes";
+import type { StageLayout } from "@/lib/stage/board-scale";
+import { stableHash } from "@/lib/contracts/hash";
 import {
   getOrCreateKnowledge,
   recordLearningExposure,
@@ -38,18 +43,33 @@ import {
 import { StoryFailure } from "./StoryFailure";
 import { StoryComplete } from "./StoryComplete";
 import { EndingDisplay } from "./EndingDisplay";
-import { StageNavbar } from "@/components/stage/StageNavbar";
-import { StageCharacter } from "@/components/stage/StageCharacter";
-import { StageCanvas, type CanvasScene } from "@/components/stage/StageCanvas";
-import { StagePuzzle } from "@/components/stage/StagePuzzle";
-import { ChatBox, type ChatEntry } from "@/components/stage/ChatBox";
+import { ScaledBoard } from "@/components/stage/ScaledBoard";
+import { StageBackdrop } from "@/components/stage/StageBackdrop";
+import { StageHud } from "@/components/stage/StageHud";
+import { StageScene } from "@/components/stage/StageScene";
+import { StageSprite } from "@/components/stage/StageSprite";
+import { StageDialogue } from "@/components/stage/StageDialogue";
+import { KeyHints } from "@/components/stage/KeyHints";
+import { PuzzleScope } from "@/components/stage/PuzzleScope";
+import {
+  CanvasPane,
+  PuzzleActions,
+  PuzzleChoices,
+  PuzzleFeedback,
+  type FramedScene,
+} from "@/components/stage/CanvasPane";
+import type { ChatEntry } from "@/components/stage/chat-entry";
 import { ChatLog } from "@/components/stage/ChatLog";
 import { emotionFor, type Emotion } from "@/components/stage/emotion";
+import { Button } from "@/components/ui/Button";
+import { ErrorLine } from "@/components/ui/ErrorLine";
+import { Icon } from "@/components/ui/Icon";
+import { Modal } from "@/components/ui/Modal";
 
 type StoryViewerProps = {
   story: StoryBlueprint;
   characters: Character[];
-  /** Campaign genre; picks the character's accessory. */
+  /** Campaign genre. Unused since the ASCII cast replaced the genre accessories; kept so callers compile. */
   genre?: Genre;
   /** Called when the player completes the story and chooses "Continue Campaign". */
   onStoryComplete?: (opts?: {
@@ -110,10 +130,26 @@ function speakerFor(scene: Scene | null, blockIndex: number, characters: Charact
   return { character: (present && byId.get(present)) || characters[0] };
 }
 
-function overlay(children: ReactNode) {
+/** Region above the dialogue box that endings, completion, failure and errors cover. */
+const OVERLAY_BOX: Record<StageLayout, { left: number; top: number; width: number; height: number }> = {
+  desktop: { left: 0, top: 0, width: 1200, height: 466 },
+  phone: { left: 0, top: 56, width: 390, height: 522 },
+};
+
+/** The stage panel in board coordinates: the framed panel on desktop, the whole board on phone. */
+const PANEL_BOX: Record<StageLayout, { left: number; top: number; width: number; height: number }> = {
+  desktop: { left: 120, top: 92, width: 1200, height: 675 },
+  phone: { left: 0, top: 0, width: 390, height: 844 },
+};
+
+function overlay(layout: StageLayout, children: ReactNode) {
   return (
-    <div className="absolute inset-0 overflow-y-auto flex items-start sm:items-center justify-center p-4" style={{ backgroundColor: "rgba(34, 34, 34, 0.55)" }}>
-      <div className="w-full max-w-2xl flex flex-col gap-4">{children}</div>
+    <div
+      data-testid="stage-overlay"
+      className="flex items-start justify-center overflow-y-auto bg-ink/90 p-3 md:p-4"
+      style={{ position: "absolute", ...OVERLAY_BOX[layout], zIndex: 30 }}
+    >
+      <div className="flex w-full max-w-[720px] flex-col items-center gap-4">{children}</div>
     </div>
   );
 }
@@ -125,7 +161,6 @@ function overlay(children: ReactNode) {
 export function StoryViewer({
   story,
   characters,
-  genre,
   onStoryComplete,
   onExit,
   isCampaignComplete = false,
@@ -232,12 +267,13 @@ export function StoryViewer({
   // ── UI state ───────────────────────────────────────────────────────────────
   const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [showLog, setShowLog] = useState(false);
-  const [talking, setTalking] = useState(false);
-  const [pacing, setPacing] = useState<Pacing>("animate");
+  // Starts "fast" so the server render and first client render show the full line (no
+  // hydration mismatch); the saved choice, or "animate" unless reduced motion, is applied after.
+  const [pacing, setPacing] = useState<Pacing>("fast");
   useEffect(() => {
     // The saved preference lives in localStorage (browser only).
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setPacing(loadPacing());
+    setPacing(initialTextMode(loadStoredPacing(), !motionAllowed()));
   }, []);
   function changePacing(next: Pacing) {
     setPacing(next);
@@ -297,225 +333,308 @@ export function StoryViewer({
   if (ending) emotion = ending.type === "success" ? "happy" : "worried";
   if (reaction && reaction.sceneId === currentScene?.scene_id) emotion = reaction.emotion;
   if (isFailed) emotion = "worried";
-  const speakerTalking = talking && entry?.kind === "dialogue" && entry.characterId === speaker.character?.character_id;
 
-  // ── Canvas ─────────────────────────────────────────────────────────────────
+
+  const castMap = useMemo(() => resolveCampaignCast(characters), [characters]);
+  const castId = speaker.character ? castMap.get(speaker.character.character_id)?.castId : undefined;
+  // Same emotion logic as before; the Kit has five expressions, so it maps down.
+  const expression = emotionToExpression(emotion);
+  const otherCharacter = pickOtherCharacter(
+    currentScene?.characters_present,
+    speaker.character?.character_id,
+    characters
+  );
+  const otherCastId = otherCharacter ? castMap.get(otherCharacter.character_id)?.castId : undefined;
+
+  // ── Canvas (OQ-12: a CanvasFrame only for lesson, visual and decision) ─────
   const seed = parseInt(stableHash(story.story_id), 36) % 1000;
   const chapterIndex = Math.max(0, story.chapters.findIndex((c) => c.chapter_id === currentChapter?.chapter_id));
-  const ambient = (title: string, subtitle?: string): CanvasScene => ({ kind: "ambient", props: { title, subtitle, seed } });
+  const canvasLocation = currentScene?.location ?? story.title;
 
-  let canvas: ReactNode;
-  if (navigationError) {
-    canvas = (
-      <StageCanvas scene={ambient(story.title)} sceneKey="error" pacing={pacing}>
-        {overlay(
-          <div
-            data-testid="story-viewer-error"
-            role="alert"
-            aria-live="assertive"
-            className="lore-glass lore-glass-panel rounded-panel p-6 text-center"
-            style={{ borderColor: "var(--danger)" }}
-          >
-            <p className="text-xs font-semibold tracking-widest uppercase mb-2" style={{ color: "var(--danger)" }}>
-              Navigation Error
-            </p>
-            <p className="text-sm" style={{ color: "var(--foreground-muted)" }}>
-              {navigationError.message}
-            </p>
-          </div>
-        )}
-      </StageCanvas>
-    );
-  } else if (isFailed) {
-    canvas = (
-      <StageCanvas scene={ambient(story.title, "Story failed")} sceneKey="failed" pacing={pacing}>
-        {overlay(<StoryFailure storyTitle={story.title} onRetry={handleRetry} />)}
-      </StageCanvas>
-    );
-  } else if (currentScene?.type === "puzzle") {
-    canvas = puzzle ? (
-      <StagePuzzle
-        key={currentScene.scene_id}
-        puzzle={puzzle}
-        pacing={pacing}
-        seed={seed}
-        onComplete={completePuzzle}
-        onIncorrect={onPuzzleIncorrect}
-        onBadBranch={onPuzzleBadBranch}
-        onAnswerSubmitted={handlePuzzleAnswerSubmitted}
-        isFailed={isFailed}
-        badBranchChoiceIds={currentScene.on_incorrect_scene_id ? new Set(Object.keys(currentScene.on_incorrect_scene_id)) : undefined}
-      />
-    ) : (
-      <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
-        Puzzle not found for {currentScene.puzzle_id}.
-      </p>
-    );
-  } else if (currentScene?.type === "ending") {
-    const badEnding = Boolean(playerState.returnToPuzzleSceneId);
-    canvas = (
-      <StageCanvas scene={ambient(ending?.title ?? story.title, badEnding ? "A wrong turn" : "Story complete")} sceneKey={`ending:${currentScene.scene_id}`} pacing={pacing}>
-        {overlay(
-          <>
-            {ending ? (
-              <EndingDisplay ending={ending} />
-            ) : (
-              <p data-testid="scene-error" role="alert" style={{ color: "var(--danger)" }}>
-                Ending not found for {currentScene.ending_id}.
-              </p>
-            )}
-            {badEnding ? (
-              <div className="flex justify-center">
-                <button
-                  type="button"
-                  data-testid="bad-ending-return-btn"
-                  onClick={returnToPuzzle}
-                  className="lore-pill lore-pill-lg lore-pill-accent"
-                  style={{ backgroundColor: "var(--background-panel)" }}
-                >
-                  ↩ Try a different choice
-                </button>
-              </div>
-            ) : (
-              isComplete && (
-                <StoryComplete
-                  storyTitle={story.title}
-                  onContinue={handleContinueCampaign}
-                  onExit={onExit ?? (() => {})}
-                  isCampaignComplete={isCampaignComplete}
-                  onViewResults={onViewResults}
-                />
-              )
-            )}
-          </>
-        )}
-      </StageCanvas>
-    );
-  } else if (currentBlock?.type === "learning_info") {
-    // A concept may be taught in several steps (lesson blocks) in one scene.
-    const lessons = (blocks ?? []).filter((b) => b.type === "learning_info");
-    const step = { index: lessons.indexOf(currentBlock), total: lessons.length };
-    // Illustrated when the lesson has a visual; otherwise its text is written out.
-    canvas = (
-      <StageCanvas
-        scene={
-          currentBlock.visual
-            ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
-            : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } }
-        }
-        sceneKey={entryKey}
-        pacing={pacing}
-      />
-    );
-  } else {
-    canvas = (
-      <StageCanvas
-        scene={ambient(currentScene?.location ?? story.title, currentChapter?.title)}
-        sceneKey={`scene:${currentScene?.scene_id ?? ""}`}
-        pacing={pacing}
-      />
-    );
+  let framed: { scene: FramedScene; key: string; label: string } | null = null;
+  let puzzleMissing = false;
+  if (!navigationError && !isFailed) {
+    if (currentScene?.type === "puzzle") {
+      if (puzzle) {
+        framed = {
+          scene: { kind: "decision", props: { label: "", count: Math.min(puzzle.choices.length, 4), seed } },
+          key: `puzzle:${puzzle.puzzle_id}`,
+          label: canvasLocation,
+        };
+      } else {
+        puzzleMissing = true;
+      }
+    } else if (currentScene?.type !== "ending" && currentBlock?.type === "learning_info") {
+      // A concept may be taught in several steps (lesson blocks) in one scene.
+      const lessons = (blocks ?? []).filter((b) => b.type === "learning_info");
+      const step = { index: lessons.indexOf(currentBlock), total: lessons.length };
+      framed = {
+        scene: currentBlock.visual
+          ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
+          : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } },
+        key: entryKey,
+        label: canvasLocation,
+      };
+    }
   }
 
-  return (
-    <div data-testid="story-viewer" className="h-screen flex flex-col overflow-hidden">
-      <StageNavbar
-        storyTitle={story.title}
-        chapterTitle={currentChapter?.title}
-        chapterIndex={chapterIndex}
-        chapterCount={story.chapters.length}
-        location={currentScene?.location}
-        hp={hp}
-        failed={isFailed}
-        onExit={onExit ? () => setShowExitConfirm(true) : undefined}
-      />
-
-      <div className="flex-1 min-h-0 flex gap-3 p-3">
-        <aside
-          aria-label="Character"
-          className="lore-glass lore-glass-panel rounded-panel hidden md:flex w-[30%] lg:w-[28%] p-4"
+  function overlayFor(layout: StageLayout): ReactNode {
+    if (navigationError) {
+      return overlay(
+        layout,
+        <div
+          data-testid="story-viewer-error"
+          role="alert"
+          aria-live="assertive"
+          className="mx-auto flex w-full max-w-[366px] flex-col items-center gap-3 border-2 border-smoke bg-ink p-5 text-center md:max-w-[720px] md:p-6"
         >
-          {speaker.character && (
-            <StageCharacter
-              characterId={speaker.character.character_id}
-              name={speaker.character.name}
-              role={speaker.character.role}
-              emotion={emotion}
-              talking={speakerTalking}
-              genre={genre}
-            />
-          )}
-        </aside>
-        <div className="flex-1 min-w-0 min-h-0 flex items-center justify-center" style={{ containerType: "size" }}>
-          {canvas}
+          <p className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold">
+            Navigation Error
+          </p>
+          <ErrorLine>{navigationError.message}</ErrorLine>
         </div>
-      </div>
+      );
+    }
+    if (isFailed) return overlay(layout, <StoryFailure storyTitle={story.title} onRetry={handleRetry} />);
+    if (puzzleMissing && currentScene?.type === "puzzle") {
+      return overlay(
+        layout,
+        <ErrorLine data-testid="scene-error">
+          Puzzle not found for {currentScene.puzzle_id}.
+        </ErrorLine>
+      );
+    }
+    if (currentScene?.type === "ending") {
+      const badEnding = Boolean(playerState.returnToPuzzleSceneId);
+      return overlay(
+        layout,
+        <>
+          {ending ? (
+            <EndingDisplay ending={ending} />
+          ) : (
+            <ErrorLine data-testid="scene-error">
+              Ending not found for {currentScene.ending_id}.
+            </ErrorLine>
+          )}
+          {badEnding ? (
+            <div className="flex justify-center">
+              <Button variant="outline" data-testid="bad-ending-return-btn" onClick={returnToPuzzle}>
+                <Icon name="back" size={16} />
+                Try a different choice
+              </Button>
+            </div>
+          ) : (
+            isComplete && (
+              <StoryComplete
+                storyTitle={story.title}
+                onContinue={handleContinueCampaign}
+                onExit={onExit ?? (() => {})}
+                isCampaignComplete={isCampaignComplete}
+                onViewResults={onViewResults}
+              />
+            )
+          )}
+        </>
+      );
+    }
+    return null;
+  }
 
-      <div className="px-3 pb-3">
-        <ChatBox
-          entry={entry}
-          entryKey={entryKey}
-          pacing={pacing}
-          onPacingChange={changePacing}
-          canAdvance={canAdvance}
-          onAdvance={advance}
-          onTypingChange={setTalking}
-          onOpenLog={() => setShowLog(true)}
-          askName={speaker.character?.name}
-          actions={
-            badBranchDone ? (
-              <button
-                type="button"
-                data-testid="bad-branch-return-btn"
-                onClick={returnToPuzzle}
-                className="lore-pill lore-pill-sm lore-pill-accent"
-              >
-                ↩ Try a different choice
-              </button>
-            ) : undefined
-          }
-        />
-      </div>
+  const modalOpen = showLog || showExitConfirm;
+  const puzzleScopeKey = puzzle && !isFailed && !navigationError ? `puzzle:${puzzle.puzzle_id}` : "none";
+  const puzzleCallbacks = {
+    onIncorrect: onPuzzleIncorrect,
+    onBadBranch: onPuzzleBadBranch,
+    onAnswerSubmitted: handlePuzzleAnswerSubmitted,
+    isFailed,
+    badBranchChoiceIds:
+      currentScene?.type === "puzzle" && currentScene.on_incorrect_scene_id
+        ? new Set(Object.keys(currentScene.on_incorrect_scene_id))
+        : undefined,
+  };
+
+  return (
+    <div data-testid="story-viewer">
+      <ScaledBoard>
+        {(layout) => (
+          <PuzzleScope
+            key={puzzleScopeKey}
+            puzzle={puzzleScopeKey === "none" ? undefined : puzzle}
+            callbacks={puzzleCallbacks}
+          >
+            {(interaction) => {
+              const canvasBox = STAGE_BOXES[layout].canvas;
+              const phone = layout === "phone";
+              const sprites = visibleSprites(
+                layout,
+                speaker.character?.character_id,
+                !framed ? otherCharacter?.character_id : null
+              );
+              const showOther =
+                sprites.ok &&
+                sprites.sprites.some((s) => s.role === "other") &&
+                Boolean(otherCharacter && otherCastId);
+              return (
+                <>
+                  <StageBackdrop layout={layout} />
+                  <StageHud
+                    layout={layout}
+                    storyTitle={story.title}
+                    chapterIndex={chapterIndex}
+                    chapterCount={story.chapters.length}
+                    chapterTitle={currentChapter?.title}
+                    location={currentScene?.location}
+                    hp={hp}
+                    failed={isFailed}
+                    onExit={onExit ? () => setShowExitConfirm(true) : undefined}
+                  />
+                  <div
+                    data-testid="stage-panel"
+                    className={phone ? "" : "bg-ink outline outline-2 outline-smoke"}
+                    style={{ position: "absolute", ...PANEL_BOX[layout], overflow: "hidden" }}
+                  >
+                    <StageScene layout={layout} seed={seed + 1} />
+                    {framed && (
+                      <div
+                        style={{
+                          position: "absolute",
+                          left: canvasBox.x,
+                          top: canvasBox.y,
+                          width: canvasBox.width,
+                          height: canvasBox.height,
+                          zIndex: 5,
+                        }}
+                      >
+                        <CanvasPane
+                          scene={framed.scene}
+                          sceneKey={framed.key}
+                          pacing={pacing}
+                          layout={layout}
+                          label={framed.label}
+                          puzzle={
+                            puzzle && interaction
+                              ? { puzzle, interaction, onComplete: completePuzzle }
+                              : undefined
+                          }
+                        />
+                      </div>
+                    )}
+                    {speaker.character && castId && (
+                      <StageSprite
+                        layout={layout}
+                        characterId={speaker.character.character_id}
+                        castId={castId}
+                        name={speaker.character.name}
+                        expression={expression}
+                        emotion={emotion}
+                      />
+                    )}
+                    {showOther && otherCharacter && otherCastId && (
+                      <StageSprite
+                        layout={layout}
+                        role="other"
+                        characterId={otherCharacter.character_id}
+                        castId={otherCastId}
+                        name={otherCharacter.name}
+                        expression="calm"
+                        emotion="idle"
+                      />
+                    )}
+                    <StageDialogue
+                      layout={layout}
+                      entry={entry}
+                      mode={pacing}
+                      onModeChange={changePacing}
+                      canAdvance={canAdvance}
+                      onAdvance={advance}
+                      onOpenLog={() => setShowLog(true)}
+                      speakerRole={speaker.character?.role}
+                      askName={speaker.character?.name}
+                      modalOpen={modalOpen}
+                      choices={
+                        phone && puzzle && interaction ? (
+                          <div
+                            data-testid="puzzle-interaction"
+                            role="region"
+                            aria-label={`Puzzle: ${puzzle.question}`}
+                            className="flex w-full flex-col gap-1.5"
+                          >
+                            <PuzzleChoices puzzle={puzzle} interaction={interaction} gapClass="gap-1.5" />
+                            <PuzzleActions
+                              interaction={interaction}
+                              onComplete={completePuzzle}
+                              className="w-full min-h-11! h-11"
+                            />
+                          </div>
+                        ) : undefined
+                      }
+                      actions={
+                        (phone && puzzle && interaction) || badBranchDone ? (
+                          <>
+                            {phone && puzzle && interaction && (
+                              <PuzzleFeedback puzzle={puzzle} interaction={interaction} />
+                            )}
+                            {badBranchDone && (
+                              <Button variant="outline" data-testid="bad-branch-return-btn" onClick={returnToPuzzle}>
+                                <Icon name="back" size={16} />
+                                Try a different choice
+                              </Button>
+                            )}
+                          </>
+                        ) : undefined
+                      }
+                    />
+                    {overlayFor(layout)}
+                  </div>
+                  {!phone && <KeyHints />}
+                </>
+              );
+            }}
+          </PuzzleScope>
+        )}
+      </ScaledBoard>
 
       {showLog && <ChatLog entries={log} onClose={() => setShowLog(false)} />}
 
       {showExitConfirm && (
-        <div
+        <Modal
+          onClose={() => setShowExitConfirm(false)}
+          labelledBy="exit-confirm-title"
           data-testid="exit-confirm-dialog"
-          className="fixed inset-0 flex items-center justify-center z-50"
-          style={{ backgroundColor: "rgba(34, 34, 34, 0.7)" }}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="exit-confirm-title"
+          className="p-5 md:max-w-[480px] md:p-6"
         >
-          <div
-            className="lore-glass lore-glass-panel rounded-card p-6 max-w-sm w-full mx-4"
+          <h3
+            id="exit-confirm-title"
+            className="mb-3 font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-gold"
           >
-            <h3 id="exit-confirm-title" className="text-sm font-semibold mb-3" style={{ color: "var(--foreground)" }}>
-              Exit Story?
-            </h3>
-            <p className="text-sm mb-4" style={{ color: "var(--foreground-muted)" }}>
-              Your progress in this story will be lost. You can retry the story later, but you&apos;ll start from the beginning.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowExitConfirm(false)}
-                className="lore-pill flex-1"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  setShowExitConfirm(false);
-                  onExit?.();
-                }}
-                className="lore-pill lore-pill-danger flex-1"
-              >
-                Exit Anyway
-              </button>
-            </div>
+            Exit Story?
+          </h3>
+          <p className="mb-5 text-[15px] leading-[1.5] text-muted">
+            Your progress in this story will be lost. You can retry the story later, but you&apos;ll
+            start from the beginning.
+          </p>
+          <div className="flex gap-3">
+            <Button
+              variant="outline"
+              data-testid="exit-confirm-cancel"
+              onClick={() => setShowExitConfirm(false)}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              data-testid="exit-confirm-accept"
+              onClick={() => {
+                setShowExitConfirm(false);
+                onExit?.();
+              }}
+              className="flex-1"
+            >
+              Exit Anyway
+            </Button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

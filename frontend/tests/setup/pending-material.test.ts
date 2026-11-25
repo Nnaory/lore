@@ -9,28 +9,27 @@ beforeEach(() => {
   takePendingMaterial(); // start every test with an empty slot
 });
 
+const fileNamed = (name: string) => new File(["notes"], name, { type: "text/plain" });
+
 describe("pending material", () => {
   it("is empty until something is set", () => {
     expect(takePendingMaterial()).toBeNull();
   });
 
-  it("hands over typed text once", () => {
-    setPendingMaterial({ kind: "text", text: "Vectors have direction." });
-    expect(takePendingMaterial()).toEqual({ kind: "text", text: "Vectors have direction." });
+  it("hands over a file with its instructions, once", () => {
+    const file = fileNamed("notes.txt");
+    setPendingMaterial({ file, instructions: "focus on dot products" });
+
+    const taken = takePendingMaterial();
+    expect(taken?.file).toBe(file);
+    expect(taken?.instructions).toBe("focus on dot products");
     expect(takePendingMaterial()).toBeNull();
   });
 
-  it("hands over a file", () => {
-    const file = new File(["notes"], "notes.txt", { type: "text/plain" });
-    setPendingMaterial({ kind: "file", file });
-    const taken = takePendingMaterial();
-    expect(taken?.kind).toBe("file");
-    expect(taken?.kind === "file" && taken.file).toBe(file);
-  });
-
   it("keeps only the latest handoff", () => {
-    setPendingMaterial({ kind: "text", text: "first" });
-    setPendingMaterial({ kind: "text", text: "second" });
-    expect(takePendingMaterial()).toEqual({ kind: "text", text: "second" });
+    setPendingMaterial({ file: fileNamed("first.txt"), instructions: "" });
+    const second = fileNamed("second.txt");
+    setPendingMaterial({ file: second, instructions: "" });
+    expect(takePendingMaterial()?.file).toBe(second);
   });
 });

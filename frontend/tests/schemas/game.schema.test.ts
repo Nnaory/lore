@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { StoryStateSchema, CampaignStateSchema } from "@/lib/ai/schemas/game.schema";
+import { StoryStateSchema, CampaignStateSchema } from "@/lib/contracts/schemas/game.schema";
 import { dummyStoryState, dummyCampaignState } from "@/data/dummy-campaign";
 
 describe("StoryStateSchema", () => {

@@ -70,6 +70,25 @@ class CheckerScriptsTest(unittest.TestCase):
             self.assertIn("provisioned iops (4000) is disallowed", res.stderr)
             self.assertIn("storage_type 'io1' is disallowed", res.stderr)
 
+    def test_ssm_secure_string_standard_passes_and_advanced_fails(self) -> None:
+        def plan(tier: str) -> str:
+            return (
+                '{"resource_changes":[{"address":"aws_ssm_parameter.api_google_api_key",'
+                '"type":"aws_ssm_parameter","change":{"actions":["create"],'
+                f'"after":{{"type":"SecureString","tier":"{tier}"}}}}}}]}}'
+            )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            ok_plan = Path(tmp) / "ok.json"
+            ok_plan.write_text(plan("Standard"), encoding="utf-8")
+            self.assertEqual(self._run("check-cost", str(ok_plan)).returncode, 0)
+
+            bad_plan = Path(tmp) / "bad.json"
+            bad_plan.write_text(plan("Advanced"), encoding="utf-8")
+            res = self._run("check-cost", str(bad_plan))
+            self.assertNotEqual(res.returncode, 0)
+            self.assertIn("SSM Parameter tier 'Advanced' is disallowed", res.stderr)
+
     def test_static_scan_passes_repo_infra(self) -> None:
         res = self._run("check-cost-static", str(REPO_ROOT / "infra"))
         self.assertEqual(res.returncode, 0, msg=res.stderr)

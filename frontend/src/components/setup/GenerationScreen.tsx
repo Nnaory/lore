@@ -1,15 +1,23 @@
 /**
- * GenerationScreen
+ * GenerationScreen (Pola K, design 6.1; no canvas frame)
  *
  * Shows the real pipeline stages while a story is built, the concept review
  * checkpoint (the player removes concepts that are wrong or irrelevant
  * before any story is written), a preview of the designed world, and a
  * retry that resumes from the stage that failed.
+ *
+ * Built only from Kit parts (Button, ErrorLine, Icon, SectionLabel) and token classes: no
+ * radius, shadow, card or spinner. The surface is transparent so the animated global pumpkin
+ * backdrop stays visible (user decision). Desktop column is 680px; phone uses 20px padding
+ * and full-width 52px buttons. All behaviour and data-testid values are unchanged.
  */
 
 "use client";
 
-import { Check, Circle, LoaderCircle, TriangleAlert } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { ErrorLine } from "@/components/ui/ErrorLine";
+import { Icon } from "@/components/ui/Icon";
+import { SectionLabel } from "@/components/ui/SectionLabel";
 import type { GenerationStage, GenerationState } from "@/lib/generation/generation";
 
 type GenerationScreenProps = {
@@ -41,12 +49,20 @@ function stepStatus(step: Exclude<GenerationStage, "done">, state: GenerationSta
   return state.status === "failed" ? "failed" : "active";
 }
 
-function StepIcon({ status }: { status: StepStatus }) {
-  if (status === "done") return <Check size={16} aria-hidden="true" style={{ color: "var(--accent-gold)" }} />;
-  if (status === "failed") return <TriangleAlert size={16} aria-hidden="true" style={{ color: "var(--danger)" }} />;
-  if (status === "active")
-    return <LoaderCircle size={16} aria-hidden="true" className="animate-spin" style={{ color: "var(--accent-gold-dim)" }} />;
-  return <Circle size={8} aria-hidden="true" style={{ color: "var(--foreground-faint)", margin: "0 4px" }} />;
+/** 12px square marker: done gold, active ember, failed ember outline with "!", pending smoke. */
+function StepMarker({ status }: { status: StepStatus }) {
+  if (status === "failed") {
+    return (
+      <span
+        aria-hidden="true"
+        className="flex h-3 w-3 shrink-0 items-center justify-center border border-ember font-mono text-[9px] font-bold leading-none text-ember"
+      >
+        !
+      </span>
+    );
+  }
+  const fill = status === "done" ? "bg-gold" : status === "active" ? "bg-ember" : "bg-smoke";
+  return <span aria-hidden="true" className={`h-3 w-3 shrink-0 ${fill}`} />;
 }
 
 export function GenerationScreen({
@@ -58,21 +74,40 @@ export function GenerationScreen({
   onBack,
 }: GenerationScreenProps) {
   const reviewing = state.stage === "reviewing";
+  const failed = state.status === "failed";
   const selectedCount = state.selectedConceptIds.length;
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10" data-testid="generation-screen">
-      <main className="lore-glass lore-glass-panel rounded-card w-full max-w-xl p-6 sm:p-8 flex flex-col gap-8">
-        <div className="text-center">
-          <p className="text-xs tracking-[0.3em] uppercase mb-2" style={{ color: "var(--accent-gold-dim)" }}>
-            Building your world
-          </p>
-          <p className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-            Read from your material: {sourceLabel}
-          </p>
+    <div
+      className="lore-grid-lines relative min-h-screen overflow-clip font-display text-cream"
+      data-testid="generation-screen"
+    >
+      <main className="relative mx-auto flex min-h-screen w-full max-w-full flex-col bg-transparent px-5 pb-10 md:w-[680px] md:px-0">
+        <div className="flex h-14 items-center justify-between md:mt-6 md:h-11">
+          {reviewing || failed ? (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label="Back to edit"
+              data-testid="generation-back"
+              className="flex h-11 w-11 items-center justify-center text-cream"
+            >
+              <Icon name="back" size={20} />
+            </button>
+          ) : (
+            <span aria-hidden="true" />
+          )}
+          <span className="font-mono text-[13px] font-bold leading-[1.32] tracking-[0.4em] text-gold">LORE</span>
         </div>
 
-        <ol className="flex flex-col gap-3" aria-label="Progress" data-testid="generation-steps">
+        <div className="mt-8 flex flex-col gap-1.5">
+          <span className="font-mono text-[11px] font-bold uppercase leading-[1.32] tracking-[0.24em] text-ember md:text-[12px]">
+            Building your world
+          </span>
+          <p className="m-0 font-mono text-[12px] text-muted">Read from your material: {sourceLabel}</p>
+        </div>
+
+        <ol className="m-0 mt-6 flex list-none flex-col p-0" aria-label="Progress" data-testid="generation-steps">
           {STEPS.map((step) => {
             const status = stepStatus(step.stage, state);
             let detail = "";
@@ -84,21 +119,13 @@ export function GenerationScreen({
                 key={step.stage}
                 data-testid={`step-${step.stage}`}
                 data-status={status}
-                className="flex items-center gap-3 text-sm"
-                style={{
-                  color:
-                    status === "pending" ? "var(--foreground-faint)" : status === "failed" ? "var(--danger)" : "var(--foreground)",
-                }}
+                className={`flex min-h-[44px] items-center gap-3 font-mono text-[14px] ${
+                  status === "pending" ? "text-muted" : "text-cream"
+                }`}
               >
-                <span className="w-5 flex justify-center">
-                  <StepIcon status={status} />
-                </span>
+                <StepMarker status={status} />
                 <span className="flex-1">{step.label}</span>
-                {detail && (
-                  <span className="text-xs truncate max-w-[45%]" style={{ color: "var(--foreground-faint)" }}>
-                    {detail}
-                  </span>
-                )}
+                {detail && <span className="max-w-[45%] truncate text-[12px] text-muted">{detail}</span>}
               </li>
             );
           })}
@@ -109,37 +136,43 @@ export function GenerationScreen({
           <section
             data-testid="concept-review"
             aria-labelledby="concept-review-heading"
-            className="lore-tile rounded-panel p-4 flex flex-col gap-3"
+            className="mt-8 flex flex-col gap-4"
           >
+            <SectionLabel number="01" title="REVIEW" />
             <div>
-              <h2 id="concept-review-heading" className="text-sm font-medium" style={{ color: "var(--foreground)" }}>
+              <h2 id="concept-review-heading" className="m-0 text-[17px] font-bold leading-snug text-cream">
                 These are the concepts your story will teach
               </h2>
-              <p className="text-xs mt-1" style={{ color: "var(--foreground-muted)" }}>
+              <p className="m-0 mt-2 text-[15px] leading-normal text-muted">
                 Untick anything that is wrong or not worth learning. Each concept becomes one chapter.
               </p>
             </div>
-            <ul className="flex flex-col">
+            <ul className="m-0 flex list-none flex-col p-0">
               {state.material.concepts.map((concept) => {
                 const checked = state.selectedConceptIds.includes(concept.concept_id);
                 return (
                   <li key={concept.concept_id}>
-                    <label
-                      className="flex items-start gap-3 py-2.5 border-b cursor-pointer"
-                      style={{ borderBottomColor: "var(--border-dim)", opacity: checked ? 1 : 0.5 }}
-                    >
+                    <label className="flex min-h-[56px] cursor-pointer items-start gap-3 border-b border-smoke py-3">
                       <input
                         type="checkbox"
                         data-testid={`concept-checkbox-${concept.concept_id}`}
                         checked={checked}
                         onChange={() => onToggleConcept(concept.concept_id)}
-                        className="mt-1 accent-[var(--accent-gold)]"
+                        className="peer sr-only"
                       />
-                      <span className="flex-1 min-w-0">
-                        <span className="block text-sm" style={{ color: "var(--foreground)" }}>
+                      <span
+                        aria-hidden="true"
+                        className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center border-2 border-cream peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-gold ${
+                          checked ? "bg-ember text-ink" : "bg-transparent"
+                        }`}
+                      >
+                        {checked && <Icon name="check" size={14} />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className={`block text-[15px] font-bold ${checked ? "text-cream" : "text-muted"}`}>
                           {concept.name}
                         </span>
-                        <span className="block text-xs leading-5" style={{ color: "var(--foreground-faint)" }}>
+                        <span className="line-clamp-2 block font-mono text-[12px] leading-[1.5] text-muted">
                           {concept.definition}
                         </span>
                       </span>
@@ -148,46 +181,34 @@ export function GenerationScreen({
                 );
               })}
             </ul>
-            <div className="flex items-center justify-between gap-3 pt-1">
-              <button type="button" onClick={onBack} className="text-xs underline underline-offset-2" style={{ color: "var(--foreground-muted)" }}>
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <Button variant="outline" onClick={onBack} className="w-full md:w-auto">
                 Back to edit
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
                 data-testid="confirm-concepts"
                 onClick={onConfirmConcepts}
                 disabled={selectedCount === 0}
-                className="lore-pill lore-pill-lg lore-pill-primary"
+                className="w-full md:w-auto"
               >
                 Write the story →
-              </button>
+              </Button>
             </div>
-            {selectedCount === 0 && (
-              <p className="text-xs" style={{ color: "var(--danger)" }}>
-                Keep at least one concept.
-              </p>
-            )}
+            {selectedCount === 0 && <ErrorLine>Keep at least one concept.</ErrorLine>}
           </section>
         )}
 
         {/* World preview */}
         {state.campaign && (
-          <section
-            data-testid="world-preview"
-            aria-label="Your world"
-            className="lore-tile rounded-panel p-4 flex flex-col gap-2 animate-fade-in-up"
-          >
-            <p className="text-base font-semibold tracking-wide" style={{ color: "var(--accent-gold)" }}>
-              {state.campaign.title}
-            </p>
-            <p className="text-sm leading-6" style={{ color: "var(--foreground-muted)" }}>
-              {state.campaign.premise}
-            </p>
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+          <section data-testid="world-preview" aria-label="Your world" className="mt-8 flex flex-col gap-3">
+            <SectionLabel number="02" title="YOUR WORLD" />
+            <p className="m-0 text-[17px] font-bold leading-snug text-gold">{state.campaign.title}</p>
+            <p className="m-0 text-[15px] leading-normal text-muted">{state.campaign.premise}</p>
+            <ul className="m-0 flex list-none flex-wrap gap-x-4 gap-y-1 p-0">
               {state.campaign.characters.map((c) => (
-                <li key={c.character_id} className="text-xs" style={{ color: "var(--foreground-faint)" }}>
-                  <span style={{ color: "var(--foreground)" }}>{c.name}</span> · {c.role}{" "}
-                  <span className="font-mono">{Object.values(c.expressions)[0]}</span>
+                <li key={c.character_id} className="font-mono text-[12px] text-muted">
+                  <span className="text-cream">{c.name}</span> · {c.role}{" "}
+                  <span>{Object.values(c.expressions)[0]}</span>
                 </li>
               ))}
             </ul>
@@ -195,29 +216,22 @@ export function GenerationScreen({
         )}
 
         {/* Failure */}
-        {state.status === "failed" && (
-          <div role="alert" data-testid="generation-error" className="flex flex-col items-center gap-3 text-center">
-            <p className="text-sm" style={{ color: "var(--danger)" }}>
-              {state.error}
-            </p>
-            <div className="flex gap-3">
-              <button
-                type="button"
-                data-testid="generation-retry"
-                onClick={onRetry}
-                className="lore-pill lore-pill-primary"
-              >
+        {failed && (
+          <div className="mt-8 flex flex-col gap-4">
+            <ErrorLine data-testid="generation-error">{state.error}</ErrorLine>
+            <div className="flex flex-col gap-3 md:flex-row">
+              <Button data-testid="generation-retry" onClick={onRetry} className="w-full md:w-auto">
                 Try again
-              </button>
-              <button type="button" onClick={onBack} className="lore-pill">
+              </Button>
+              <Button variant="outline" onClick={onBack} className="w-full md:w-auto">
                 Back to edit
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         {state.status === "running" && (
-          <p className="text-xs text-center" style={{ color: "var(--foreground-faint)" }} aria-live="polite">
+          <p className="m-0 mt-8 font-mono text-[11px] text-muted" aria-live="polite">
             This usually takes a few seconds per step.
           </p>
         )}

@@ -3,7 +3,7 @@
  *
  * @vitest-environment jsdom
  *
- * The hook runs against the real AI route handlers (dummy provider).
+ * The hook runs against a fake backend that serves the backend fixtures\n * (tests/fixtures/backend-fetch.ts).
  */
 
 import { describe, it, expect, vi } from "vitest";
@@ -15,20 +15,21 @@ import {
   selectConcepts,
 } from "@/lib/generation/generation";
 import { useGeneration, type GenerationResult } from "@/lib/generation/use-generation";
-import { MaterialBlueprintSchema } from "@/lib/ai/schemas/material.schema";
-import { BUILD_MESSAGES } from "@/lib/setup/request-campaign";
-import type { FullWorkflowRequestBody } from "@/lib/ai/full-workflow-schema";
+import { MaterialBlueprintSchema } from "@/lib/contracts/schemas/material.schema";
+import { BUILD_MESSAGES, messageForCode } from "@/lib/contracts/error-messages";
+import { aiUrl } from "@/lib/generation/ai-endpoints";
+import type { GenerationRequest } from "@/lib/contracts/generation-request";
 import { dummyMaterial } from "@/data/dummy-campaign";
-import { routeFetch } from "../fixtures/route-fetch";
+import { backendFetch, errorResponse, stepPath } from "../fixtures/backend-fetch";
 
-// The dummy provider recognises linear-algebra material and returns two concepts.
-const input: FullWorkflowRequestBody = {
+// The fake backend answers every request with its fixtures (two concepts, one story).
+const input: GenerationRequest = {
   materials: [{ material: "Linear algebra notes: a linear combination scales vectors; the vector span is every combination." }],
   campaignOptions: { genre: "fantasy" },
   storyOptions: { conceptsPerChapter: 1 },
 };
 
-const busy = () => new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_UNAVAILABLE", message: "x" } }), { status: 503 });
+const busy = () => errorResponse("PROVIDER_UNAVAILABLE", 503);
 
 describe("selectConcepts", () => {
   it("keeps only the chosen concepts and drops prerequisites to removed ones", () => {
@@ -65,6 +66,29 @@ describe("postBlueprint", () => {
     expect(await postBlueprint("/x", {}, MaterialBlueprintSchema, { fetchImpl })).toEqual({ ok: false, message: BUILD_MESSAGES.busy });
   });
 
+  it("maps a 429 RATE_LIMITED envelope from the backend to the busy message", async () => {
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ ok: false, error: { code: "RATE_LIMITED", message: "x" } }), { status: 429 })
+    ) as unknown as typeof fetch;
+    const url = aiUrl("analyze-material");
+    expect(await postBlueprint(url, {}, MaterialBlueprintSchema, { fetchImpl })).toEqual({
+      ok: false,
+      message: messageForCode("RATE_LIMITED"),
+    });
+    expect(fetchImpl).toHaveBeenCalledWith("/api/v1/ai/analyze-material", expect.objectContaining({ method: "POST" }));
+    expect(messageForCode("RATE_LIMITED")).toBe(BUILD_MESSAGES.busy);
+  });
+
+  it("maps a 503 PROVIDER_NOT_CONFIGURED envelope from the backend to the not-set-up message", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ ok: false, error: { code: "PROVIDER_NOT_CONFIGURED", message: "x" } }), { status: 503 })
+    ) as unknown as typeof fetch;
+    const result = await postBlueprint(aiUrl("plan-campaign"), {}, MaterialBlueprintSchema, { fetchImpl });
+    expect(result).toEqual({ ok: false, message: BUILD_MESSAGES.notConfigured });
+    expect(BUILD_MESSAGES.notConfigured).toMatch(/isn't set up/);
+  });
+
   it("rejects a success envelope whose blueprint is invalid", async () => {
     const fetchImpl = vi.fn(async () => new Response(JSON.stringify({ ok: true, data: { blueprint: { title: "?" } } }))) as unknown as typeof fetch;
     expect(await postBlueprint("/x", {}, MaterialBlueprintSchema, { fetchImpl })).toEqual({ ok: false, message: BUILD_MESSAGES.unexpected });
@@ -72,8 +96,8 @@ describe("postBlueprint", () => {
 });
 
 describe("useGeneration", () => {
-  function setup(override?: Parameters<typeof routeFetch>[0]) {
-    const route = routeFetch(override);
+  function setup(override?: Parameters<typeof backendFetch>[0]) {
+    const route = backendFetch(override);
     const onDone = vi.fn<(result: GenerationResult) => void>();
     const hook = renderHook(() => useGeneration({ onDone, fetchImpl: route.fetchImpl }));
     return { ...route, onDone, hook };
@@ -83,7 +107,7 @@ describe("useGeneration", () => {
     const { hook, calls, onDone } = setup();
     act(() => hook.result.current.start(input));
     await waitFor(() => expect(hook.result.current.state.stage).toBe("reviewing"));
-    expect(calls.map((c) => c.path)).toEqual(["/api/ai/analyze-material"]); // nothing written yet
+    expect(calls.map((c) => c.path)).toEqual([stepPath("analyze-material")]); // nothing written yet
 
     const [first, second] = hook.result.current.state.material!.concepts;
     act(() => hook.result.current.toggleConcept(first.concept_id));
@@ -91,23 +115,26 @@ describe("useGeneration", () => {
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
 
     expect(calls.map((c) => c.path)).toEqual([
-      "/api/ai/analyze-material",
-      "/api/ai/plan-campaign",
-      "/api/ai/generate-story",
+      stepPath("analyze-material"),
+      stepPath("plan-campaign"),
+      stepPath("generate-story"),
     ]);
     const planned = calls[1].body as { materials: Array<{ concepts: Array<{ concept_id: string }> }> };
     expect(planned.materials[0].concepts.map((c) => c.concept_id)).toEqual([second.concept_id]);
 
+    // the story writer also only sees the kept concept
+    const written = calls[2].body as { material: { concepts: Array<{ concept_id: string }> } };
+    expect(written.material.concepts.map((c) => c.concept_id)).toEqual([second.concept_id]);
+
     const result = onDone.mock.calls[0][0];
-    const story = [...result.stories.values()][0];
-    expect(story.knowledge_mapping.map((m) => m.concept_id)).toEqual([second.concept_id]);
+    expect([...result.stories.keys()]).toEqual(["story_01"]);
     expect(hook.result.current.state.stage).toBe("done");
   });
 
   it("retries only the failed stage", async () => {
     let failPlanning = true;
     const { hook, calls, onDone } = setup((call) => {
-      if (call.path === "/api/ai/plan-campaign" && failPlanning) {
+      if (call.path === stepPath("plan-campaign") && failPlanning) {
         failPlanning = false;
         return busy();
       }
@@ -123,7 +150,7 @@ describe("useGeneration", () => {
     act(() => hook.result.current.retry());
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1));
     // analysis was not repeated
-    expect(calls.filter((c) => c.path === "/api/ai/analyze-material")).toHaveLength(1);
+    expect(calls.filter((c) => c.path === stepPath("analyze-material"))).toHaveLength(1);
   });
 
   it("ignores results that arrive after cancel", async () => {

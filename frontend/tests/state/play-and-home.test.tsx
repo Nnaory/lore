@@ -6,8 +6,9 @@
 
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
-import { PlayProject as PlayPage } from "@/components/play/PlayProject";
+import { PlayProject as PlayPage, PlayLoading } from "@/components/play/PlayProject";
 import { SavedStories } from "@/components/home/SavedStories";
+import * as projectStore from "@/lib/state/project-store";
 import { createProject, loadProject } from "@/lib/state/project-store";
 import { createInitialCampaignState, completeStory } from "@/lib/game/campaign-manager";
 import { saveCampaignState } from "@/lib/state/project-store";
@@ -95,6 +96,45 @@ describe("/play/[projectId]", () => {
     expect(await screen.findByTestId("campaign-lobby")).toBeTruthy();
     expect(screen.getByTestId("story-badge-story_01").textContent).toBe("Completed");
     expect(screen.getByTestId("lobby-home-link").getAttribute("href")).toBe("/");
+  });
+
+  it("renders PlayLoading without animation and play-missing with a link home (task 16.3)", async () => {
+    const loadingView = render(<PlayLoading />);
+    const loading = loadingView.getByTestId("play-loading");
+    expect(loading.textContent).toContain("Opening your story…");
+    expect(loading.innerHTML).not.toContain("animate-");
+    loadingView.unmount();
+
+    params.projectId = "nonexistent-id";
+    render(<PlayPage />);
+    const missing = await screen.findByTestId("play-missing");
+    expect(missing.textContent).toContain("Not found");
+    expect(missing.textContent).toContain("This story isn't saved in this browser.");
+    const backLink = missing.querySelector('a[href="/"]');
+    expect(backLink).toBeTruthy();
+    expect(backLink?.textContent).toBe("Back to your stories");
+  });
+
+  it("shows play-save-error banner when saving campaign progress fails (task 16.3)", async () => {
+    const project = await saveDemoProject();
+    params.projectId = project.id;
+    const spy = vi
+      .spyOn(projectStore, "saveCampaignState")
+      .mockResolvedValueOnce({ ok: false, message: "Browser storage is full." });
+
+    render(<PlayPage />);
+    await screen.findByTestId("story-viewer");
+    playToStoryComplete();
+    act(() => {
+      fireEvent.click(screen.getByTestId("continue-campaign-button"));
+    });
+
+    const banner = await screen.findByTestId("play-save-error");
+    expect(banner.getAttribute("role")).toBe("alert");
+    expect(banner.textContent).toBe("Browser storage is full.");
+    expect(banner.className).toContain("bg-ember");
+    expect(banner.className).toContain("text-ink");
+    spy.mockRestore();
   });
 });
 
