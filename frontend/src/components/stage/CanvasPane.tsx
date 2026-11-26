@@ -6,12 +6,14 @@
  * the `PlayerBar` inside it, at 736x414 (desktop) or 366x246 (phone) with a
  * 40 px footer and no overflow. Everything is Kit tokens and Kit components.
  *
- * Puzzle mode (desktop): under the decision canvas sit the question, the
- * feedback (`ErrorLine` for a wrong or empty answer) and one row of
- * `ChoiceButton`s (44 px, min width 112, gap 10) plus `puzzle-submit` /
- * `puzzle-continue`. On phone the choices live in the dialogue box, so the
- * pane shows only the canvas and the caller renders `PuzzleChoices` and
- * `PuzzleActions` itself.
+ * Puzzle mode (desktop): the canvas draws the AI's picture of the problem and the
+ * question itself (`kind: "puzzle"`, or `"decision"` when there is no picture), so
+ * under it sit only the feedback (`ErrorLine` for a wrong or empty answer) and one
+ * row of `ChoiceButton`s (at least 44 px tall, they grow to four lines so no answer
+ * is cut off, min width 112, gap 10) plus `puzzle-submit` / `puzzle-continue`. The
+ * question stays in the DOM for screen readers. On phone the choices live in the
+ * dialogue box, so the pane shows only the canvas and the caller renders
+ * `PuzzleChoices` and `PuzzleActions` itself.
  *
  * Right and wrong come only from `usePuzzleInteraction` (which calls
  * `validateMultipleChoice`). The interaction is passed in, so state can be
@@ -89,49 +91,97 @@ export function CanvasPane({
   const named = canvasLabel(label);
   const status = puzzle ? (puzzle.interaction.isCorrect ? "resumed" : "paused") : "playing";
   const showControls = puzzle !== undefined && layout === "desktop";
+  const keyframes = scene.kind === "puzzle" || scene.kind === "decision" ? [100] : [];
 
   return (
-    <CanvasFrame
-      label={named.ok ? named.label : "scene"}
-      status={status}
-      className={`${SIZE[layout]} shrink-0 overflow-hidden ${className ?? ""}`}
-      footer={<PlayerBar progress={playback.progress} keyframes={[]} time={playback.time} onPlay={onPlay} />}
-    >
-      <div className="absolute inset-0 flex min-h-0 flex-col">
-        <div className="min-h-0 flex-1 px-2 py-2" style={{ containerType: "size" }}>
-          <StageCanvas scene={scene} sceneKey={sceneKey} pacing={pacing} playerRef={setPlayer} bare />
-        </div>
-        {showControls && puzzle && (
-          <div
-            data-testid="puzzle-interaction"
-            role="region"
-            aria-label={`Puzzle: ${puzzle.puzzle.question}`}
-            className="flex shrink-0 flex-col items-center gap-2.5 px-4 pb-2"
-          >
-            <PuzzleFeedback puzzle={puzzle.puzzle} interaction={puzzle.interaction} />
-            <div className="flex max-h-24 max-w-full items-center justify-center gap-2.5 overflow-y-auto">
-              <PuzzleChoices puzzle={puzzle.puzzle} interaction={puzzle.interaction} />
-              <PuzzleActions interaction={puzzle.interaction} onComplete={puzzle.onComplete} />
-            </div>
+    <div className={showControls ? "flex w-[736px] flex-col items-center gap-2.5" : undefined}>
+      <CanvasFrame
+        label={named.ok ? named.label : "scene"}
+        status={status}
+        className={`${SIZE[layout]} shrink-0 overflow-hidden ${className ?? ""}`}
+        footer={<PlayerBar progress={playback.progress} keyframes={keyframes} time={playback.time} onPlay={onPlay} />}
+      >
+        <div className="absolute inset-0 flex min-h-0 flex-col">
+          <div className="min-h-0 flex-1 px-1 py-1" style={{ containerType: "size" }}>
+            <StageCanvas scene={scene} sceneKey={sceneKey} pacing={pacing} playerRef={setPlayer} bare />
           </div>
-        )}
-      </div>
-    </CanvasFrame>
+        </div>
+      </CanvasFrame>
+      {showControls && puzzle && (
+        <div
+          data-testid="puzzle-interaction"
+          role="region"
+          aria-label={`Puzzle: ${puzzle.puzzle.question}`}
+          className="flex w-full flex-col items-center gap-2.5"
+        >
+          <PuzzleFeedback
+            puzzle={puzzle.puzzle}
+            interaction={puzzle.interaction}
+            hideQuestion
+            surfaceClassName="border border-smoke bg-ink px-3 py-1.5"
+            maxHeightClassName="max-h-[76px]"
+          />
+          <div className="flex max-w-full flex-wrap items-center justify-center gap-2.5">
+            <PuzzleChoices puzzle={puzzle.puzzle} interaction={puzzle.interaction} />
+            <PuzzleActions interaction={puzzle.interaction} onComplete={puzzle.onComplete} />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
-/** Question line plus the answer feedback (`aria-live`). */
-export function PuzzleFeedback({ puzzle, interaction }: { puzzle: Puzzle; interaction: PuzzleInteraction }) {
+function splitLeadPrefix(text: string, pattern: RegExp, fallback: string): [string, string] {
+  const m = text.match(pattern);
+  return m ? [m[1], text.slice(m[1].length)] : [fallback, text];
+}
+
+/**
+ * Question line plus the answer feedback (`aria-live`). `hideQuestion` keeps the question for
+ * screen readers only, for when the canvas already draws it large.
+ */
+export function PuzzleFeedback({
+  puzzle,
+  interaction,
+  hideQuestion = false,
+  surfaceClassName = "",
+  maxHeightClassName = "max-h-24",
+}: {
+  puzzle: Puzzle;
+  interaction: PuzzleInteraction;
+  hideQuestion?: boolean;
+  /** Visible panel backing applied when a result banner is shown. */
+  surfaceClassName?: string;
+  maxHeightClassName?: string;
+}) {
   const r = interaction.lastResult;
+  const correctParts =
+    r && r.outcome === "correct"
+      ? splitLeadPrefix(r.feedback, /^(correct[.!]?\s*)/i, "Correct. ")
+      : null;
+  const incorrectText =
+    r && r.outcome === "incorrect"
+      ? /^(not quite|incorrect)\b/i.test(r.feedback)
+        ? r.feedback
+        : `Not quite. ${r.feedback}`
+      : "";
+
   return (
-    <div aria-live="polite" className="max-h-14 w-full overflow-y-auto text-center font-mono text-xs leading-[1.5]">
-      <p data-testid="puzzle-question" className="text-muted">
+    <div
+      aria-live="polite"
+      className={
+        r
+          ? `${maxHeightClassName} w-full overflow-y-auto text-center font-mono text-xs leading-[1.5] ${surfaceClassName}`
+          : "text-center font-mono text-xs"
+      }
+    >
+      <p data-testid="puzzle-question" className={hideQuestion ? "sr-only" : "text-muted"}>
         {puzzle.question}
       </p>
-      {r && r.outcome === "correct" && (
+      {correctParts && r && r.outcome === "correct" && (
         <div data-testid="puzzle-feedback" role="status">
-          <span className="text-gold">Correct. </span>
-          <span className="text-cream">{r.feedback}</span>
+          <span className="text-gold">{correctParts[0]}</span>
+          <span className="text-cream">{correctParts[1]}</span>
           <span data-testid="puzzle-explanation" className="block text-muted">
             {r.explanation}
           </span>
@@ -139,7 +189,7 @@ export function PuzzleFeedback({ puzzle, interaction }: { puzzle: Puzzle; intera
       )}
       {r && r.outcome === "incorrect" && (
         <ErrorLine data-testid="puzzle-feedback" className="justify-center text-left">
-          Not quite. {r.feedback}
+          {incorrectText}
         </ErrorLine>
       )}
       {r && (r.outcome === "empty" || r.outcome === "unknown_choice") && (
@@ -151,7 +201,7 @@ export function PuzzleFeedback({ puzzle, interaction }: { puzzle: Puzzle; intera
   );
 }
 
-/** The answer chips, at most four, as `aria-pressed` toggle buttons. */
+/** The answer chips, at most four, stacked on phone and wrapped row on desktop. */
 export function PuzzleChoices({
   puzzle,
   interaction,
@@ -163,7 +213,12 @@ export function PuzzleChoices({
   gapClass?: string;
 }) {
   return (
-    <div data-testid="puzzle-choices" role="group" aria-label="Answer choices" className={`flex min-w-0 flex-1 ${gapClass}`}>
+    <div
+      data-testid="puzzle-choices"
+      role="group"
+      aria-label="Answer choices"
+      className={`flex min-w-0 flex-1 flex-col md:flex-row ${gapClass}`}
+    >
       {puzzle.choices.slice(0, MAX_CHOICES).map((choice, i) => {
         const selected = interaction.selectedChoiceId === choice.choice_id;
         return (

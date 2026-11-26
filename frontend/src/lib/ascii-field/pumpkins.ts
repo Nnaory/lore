@@ -42,7 +42,7 @@ export interface Pumpkin extends Creature {
 
 /** The night behind them: Licorice Black with a faint grape-purple grid. */
 export const HALLOWEEN_NIGHT: FieldPalette = {
-  background: [34, 34, 34],
+  background: [15, 15, 18],
   grid: [150, 110, 200, 0.07],
   trailAlpha: 0.85,
 };

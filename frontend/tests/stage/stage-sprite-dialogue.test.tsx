@@ -64,7 +64,61 @@ describe("StageDialogue", () => {
 
   it("maps entries to name tags and text", () => {
     expect(dialogueParts({ kind: "narration", text: "x" }).tag).toBe("NARRATION");
-    expect(dialogueParts({ kind: "lesson", title: "T", text: "b" })).toEqual({ tag: "LESSON", text: "T\nb" });
+    // The lesson title is not a text line: the three lines of the box are for the body.
+    expect(dialogueParts({ kind: "lesson", title: "T", text: "b" })).toEqual({ tag: "LESSON", text: "b" });
+  });
+
+  it("shows the lesson title beside the LESSON tag on desktop, not in the text", () => {
+    setup({ kind: "lesson", title: "Crystal Vector Resonance", text: "Body" }, "fast");
+    expect(screen.getByTestId("character-name").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("scene-content").textContent).toBe("Body");
+  });
+
+  describe("text longer than the box", () => {
+    const long =
+      "Each crystal emits energy as a vector: a quantity with both direction and magnitude. " +
+      "Crystal A points toward the east gate with a strength of two. " +
+      "Crystal B points toward the north tower with a strength of one. " +
+      "To produce a target resonance, you scale each crystal by how many times it is used.";
+    const narration: ChatEntry = { kind: "narration", text: long };
+
+    it("shows one page at a time and pages before it advances the story", () => {
+      const onAdvance = setup(narration, "fast");
+      const first = screen.getByTestId("scene-content").textContent ?? "";
+      expect(first.length).toBeGreaterThan(0);
+      expect(first.length).toBeLessThan(long.length);
+      const target = screen.getByTestId("story-main");
+
+      fireEvent.click(target);
+      const second = screen.getByTestId("scene-content").textContent ?? "";
+      expect(second).not.toBe(first);
+      expect(onAdvance).not.toHaveBeenCalled();
+
+      // Keep paging; the story advances only after the last page.
+      for (let i = 0; i < 10 && onAdvance.mock.calls.length === 0; i++) fireEvent.click(target);
+      expect(onAdvance).toHaveBeenCalledTimes(1);
+    });
+
+    it("never shows more than three lines of the desktop box", () => {
+      setup(narration, "fast");
+      const text = screen.getByTestId("scene-content").textContent ?? "";
+      expect(text.length).toBeLessThanOrEqual(68 * 3);
+    });
+
+    it("does not page on the phone, where the text area scrolls", () => {
+      render(
+        <StageDialogue
+          layout="phone"
+          entry={narration}
+          mode="fast"
+          onModeChange={() => {}}
+          canAdvance
+          onAdvance={() => {}}
+          onOpenLog={() => {}}
+        />,
+      );
+      expect(screen.getByTestId("scene-content").textContent).toBe(long);
+    });
   });
 
   it("shows the line at once in fast mode, advances on click, keeps hooks", () => {
@@ -97,5 +151,40 @@ describe("StageDialogue", () => {
     const ask = screen.getByTestId("ask-input") as HTMLInputElement;
     expect(ask.disabled).toBe(true);
     expect(ask.placeholder).toContain("coming soon");
+  });
+
+  it("resets pagination to page 0 when entryKey changes even with identical text", () => {
+    const long = Array.from({ length: 10 }, (_, i) => `Sentence ${i} keeps repeating steadily.`).join(" ");
+    const beat: ChatEntry = { kind: "narration", text: long };
+    const onAdvance = vi.fn();
+    const { rerender } = render(
+      <StageDialogue
+        layout="desktop"
+        entry={beat}
+        entryKey="beat-1"
+        mode="fast"
+        onModeChange={() => {}}
+        canAdvance
+        onAdvance={onAdvance}
+        onOpenLog={() => {}}
+      />,
+    );
+    const page0 = screen.getByTestId("scene-content").textContent;
+    fireEvent.click(screen.getByTestId("story-main"));
+    expect(screen.getByTestId("scene-content").textContent).not.toBe(page0);
+
+    rerender(
+      <StageDialogue
+        layout="desktop"
+        entry={beat}
+        entryKey="beat-2"
+        mode="fast"
+        onModeChange={() => {}}
+        canAdvance
+        onAdvance={onAdvance}
+        onOpenLog={() => {}}
+      />,
+    );
+    expect(screen.getByTestId("scene-content").textContent).toBe(page0);
   });
 });

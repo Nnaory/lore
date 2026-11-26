@@ -79,9 +79,9 @@ export function PlayProject() {
         <main className="mx-auto flex min-h-dvh w-full max-w-[680px] flex-col px-5 pb-12 md:px-0">
           <div className="flex min-h-[56px] items-center justify-between md:min-h-[44px]">
             <span aria-hidden="true" />
-            <span className="font-mono text-[13px] font-bold tracking-[0.4em] text-gold">LORE</span>
+            <span className="bg-ink px-2 py-0.5 font-mono text-[13px] font-bold tracking-[0.4em] text-gold">LORE</span>
           </div>
-          <div className="my-auto flex flex-col items-start gap-3 py-12">
+          <div className="my-auto flex flex-col items-start gap-3 border border-smoke bg-ink p-6 md:p-8">
             <p className="font-mono text-[11px] font-bold uppercase tracking-[0.2em] text-ember md:text-[12px]">
               Not found
             </p>

@@ -10,6 +10,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { useBoardScale } from "@/components/stage/ScaledBoard";
 import type { StageLayout } from "@/lib/stage/board-scale";
 import { hpSquares } from "@/lib/stage/hud";
 import { STAGE_BOXES } from "@/lib/stage/stage-boxes";
@@ -25,6 +26,8 @@ export interface StageHudProps {
   hp: number;
   failed?: boolean;
   onExit?: () => void;
+  /** Span 100% of the viewport width (rendered inside ScaledBoard fullBleed). */
+  fullWidth?: boolean;
 }
 
 export function StageHud({
@@ -37,11 +40,14 @@ export function StageHud({
   hp,
   failed = false,
   onExit,
+  fullWidth = false,
 }: StageHudProps) {
   const phone = layout === "phone";
   const box = STAGE_BOXES[layout].hud;
+  const scale = useBoardScale();
   const hpView = hpSquares(hp);
   const squareSize = phone ? 7 : 12;
+  const headerHeight = fullWidth ? Math.max(44, Math.round(box.height * scale)) : box.height;
 
   const progress = phone
     ? `Ch ${chapterIndex + 1}/${chapterCount}`
@@ -51,13 +57,14 @@ export function StageHud({
   return (
     <header
       data-testid="stage-hud"
-      className="bg-ink border-smoke"
+      className="border-smoke bg-ink"
       style={{
         position: "absolute",
-        left: box.x,
+        left: fullWidth ? 0 : box.x,
+        right: fullWidth ? 0 : undefined,
         top: box.y,
-        width: box.width,
-        height: box.height,
+        width: fullWidth ? "100%" : box.width,
+        height: headerHeight,
         boxSizing: "border-box",
         padding: phone ? "0 12px 0 6px" : "0 24px",
         display: "flex",
@@ -65,7 +72,7 @@ export function StageHud({
         justifyContent: "space-between",
         borderBottomWidth: 1,
         borderBottomStyle: "solid",
-        zIndex: 50,
+        zIndex: fullWidth ? 20 : 50,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12, width: phone ? 44 : 300 }}>
@@ -75,14 +82,13 @@ export function StageHud({
           aria-label="Exit story"
           onClick={onExit}
           disabled={!onExit}
-          className={phone ? "text-cream" : "border-2 border-smoke text-cream"}
+          className={phone ? "bg-ink text-cream" : "border-2 border-smoke bg-ink text-cream"}
           style={{
             width: 44,
             height: 44,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            background: "transparent",
             padding: 0,
             cursor: onExit ? "pointer" : "default",
           }}
@@ -103,41 +109,52 @@ export function StageHud({
         data-testid="story-header"
         style={{
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 4,
+          justifyContent: "center",
           minWidth: 0,
           flex: 1,
         }}
       >
-        <span
-          data-testid="sidebar-story-title"
-          className="text-cream"
+        <div
+          className="bg-ink"
           style={{
-            fontSize: phone ? 14 : 16,
-            fontWeight: 700,
-            letterSpacing: "0.02em",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 4,
+            minWidth: 0,
             maxWidth: "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
+            padding: "2px 12px",
           }}
         >
-          {storyTitle}
-        </span>
-        <span
-          className="font-mono text-muted"
-          style={{
-            fontSize: phone ? 11 : 12,
-            maxWidth: "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span data-testid="chapter-progress">{progress}</span>
-          {extras.map((part) => ` · ${part}`).join("")}
-        </span>
+          <span
+            data-testid="sidebar-story-title"
+            className="text-cream"
+            style={{
+              fontSize: phone ? 14 : 16,
+              fontWeight: 700,
+              letterSpacing: "0.02em",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {storyTitle}
+          </span>
+          <span
+            className="font-mono text-muted"
+            style={{
+              fontSize: phone ? 11 : 12,
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span data-testid="chapter-progress">{progress}</span>
+            {extras.map((part) => ` · ${part}`).join("")}
+          </span>
+        </div>
       </div>
 
       <div

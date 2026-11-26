@@ -16,6 +16,7 @@ const { CanvasPane } = await import("@/components/stage/CanvasPane");
 const { usePuzzleInteraction } = await import("@/components/story/use-puzzle-interaction");
 const { dummyStory } = await import("@/data/dummy-campaign");
 import type { FramedScene } from "@/components/stage/CanvasPane";
+import type { Puzzle } from "@/lib/types/puzzle";
 
 const puzzle = dummyStory.puzzles[0]; // correct: choice_B, wrong: choice_A / choice_C
 
@@ -23,7 +24,7 @@ const lesson: FramedScene = { kind: "lesson", props: { title: "Vectors", body: "
 
 function Harness({ layout = "desktop", onComplete = () => {} }: { layout?: "desktop" | "phone"; onComplete?: () => void }) {
   const interaction = usePuzzleInteraction(puzzle, {});
-  const scene: FramedScene = { kind: "decision", props: { label: "", count: puzzle.choices.length, seed: 1 } };
+  const scene: FramedScene = { kind: "decision", props: { label: "", seed: 1 } };
   return (
     <CanvasPane
       scene={scene}
@@ -96,5 +97,53 @@ describe("CanvasPane puzzle mode", () => {
     const view = render(<Harness layout="phone" />);
     expect(view.queryByTestId("puzzle-choices")).toBeNull();
     expect(view.queryByTestId("puzzle-submit")).toBeNull();
+  });
+
+  it("places desktop puzzle-interaction outside the 736x414 CanvasFrame", () => {
+    const view = render(<Harness />);
+    const frame = view.getByRole("region", { name: "Interactive canvas" });
+    const interaction = view.getByTestId("puzzle-interaction");
+    expect(frame.contains(interaction)).toBe(false);
+    expect(frame.className).toContain("w-[736px]");
+    expect(frame.className).toContain("h-[414px]");
+  });
+
+  it("does not duplicate Correct. or Not quite. when puzzle feedback already begins with it", () => {
+    const prefixed: Puzzle = {
+      ...puzzle,
+      correct_feedback: "Correct. That scales crystal A directly.",
+      incorrect_feedback: "Not quite. Remember scalar multiplication.",
+    };
+    function PrefixedHarness() {
+      const interaction = usePuzzleInteraction(prefixed, {});
+      const scene: FramedScene = { kind: "decision", props: { label: "", seed: 1 } };
+      return (
+        <CanvasPane
+          scene={scene}
+          sceneKey="p-prefixed"
+          pacing="fast"
+          layout="desktop"
+          label="p"
+          puzzle={{ puzzle: prefixed, interaction, onComplete: vi.fn() }}
+        />
+      );
+    }
+    const view = render(<PrefixedHarness />);
+    fireEvent.click(view.getByTestId("choice-choice_A"));
+    fireEvent.click(view.getByTestId("puzzle-submit"));
+    expect(view.getByTestId("puzzle-feedback").textContent).toContain(prefixed.incorrect_feedback);
+    expect(view.getByTestId("puzzle-feedback").textContent).not.toContain("Not quite. Not quite.");
+
+    fireEvent.click(view.getByTestId("choice-choice_B"));
+    fireEvent.click(view.getByTestId("puzzle-submit"));
+    expect(view.getByTestId("puzzle-feedback").textContent).toContain(prefixed.correct_feedback);
+    expect(view.getByTestId("puzzle-feedback").textContent).not.toContain("Correct. Correct.");
+  });
+
+  it("shows a pause diamond on puzzle beats and none on lessons", () => {
+    const lessonView = render(<CanvasPane scene={lesson} sceneKey="l" pacing="fast" layout="desktop" label="x" />);
+    expect(lessonView.container.querySelectorAll(".rotate-45.bg-gold")).toHaveLength(0);
+    const puzzleView = render(<Harness />);
+    expect(puzzleView.container.querySelectorAll(".rotate-45.bg-gold")).toHaveLength(1);
   });
 });

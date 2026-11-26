@@ -6,7 +6,8 @@
  * Click on the text (or SPACE/Enter while it has focus) first shows a line
  * that is still typing in full, then calls `onAdvance` when `canAdvance`.
  * Name tag: the speaker's `Character.name`, `NARRATION` for narration and
- * `LESSON` for lessons (the lesson title becomes the first text line). The
+ * `LESSON` for lessons (the lesson title sits beside the tag on desktop; the text is the
+ * body only). Text longer than the desktop box is paged (`paginateText`). The
  * `type something` input stays disabled ("coming soon"). Placed at the
  * layout's dialogue box (STAGE_BOXES) with z 10: the desktop sprite (z 20) is
  * in front of it, the phone sprite (z 5) behind it. Existing test hooks:
@@ -16,9 +17,10 @@
 
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { DialogueBox } from "@/components/story/DialogueBox";
 import { NARRATION_TAG } from "@/lib/cast/cast-mapping";
+import { DIALOGUE_CAPACITY, paginateText } from "@/lib/dialogue/pagination";
 import { useTypewriter } from "@/lib/dialogue/use-typewriter";
 import type { TextMode } from "@/lib/dialogue/typewriter";
 import type { StageLayout } from "@/lib/stage/board-scale";
@@ -31,6 +33,8 @@ export const LESSON_TAG = "LESSON";
 export interface StageDialogueProps {
   layout: StageLayout;
   entry: ChatEntry | null;
+  /** Unique identifier of the active beat so adjacent identical text still resets to page 0. */
+  entryKey?: string;
   /** Text mode (fast | animate). */
   mode: TextMode;
   onModeChange: (mode: TextMode) => void;
@@ -43,25 +47,33 @@ export interface StageDialogueProps {
   speakerRole?: string;
   /** Who the (disabled) ask input would address. */
   askName?: string;
+  /** Non-scrolled puzzle feedback rendered above choices on phone. */
+  feedback?: ReactNode;
   /** Choice buttons shown inside the box on phone. */
   choices?: ReactNode;
   /** Extra controls under the text (e.g. the bad-branch "try again" button). */
   actions?: ReactNode;
+  /** Optional bounding box override (used on mobile puzzle beats to expand upward). */
+  boxOverride?: { x: number; y: number; width: number; height: number };
   /** A modal is open: SPACE, F and L are ignored. */
   modalOpen?: boolean;
 }
 
-/** Tag and text for an entry. A lesson's title is the first text line. */
+/**
+ * Tag and text for an entry. A lesson's text is its body only: the title is drawn in the canvas
+ * heading and beside the name tag, so the three lines of the box are all for the text.
+ */
 export function dialogueParts(entry: ChatEntry | null): { tag: string; text: string } {
   if (!entry) return { tag: NARRATION_TAG, text: "" };
   if (entry.kind === "dialogue") return { tag: entry.name, text: entry.text };
-  if (entry.kind === "lesson") return { tag: LESSON_TAG, text: `${entry.title}\n${entry.text}` };
+  if (entry.kind === "lesson") return { tag: LESSON_TAG, text: entry.text };
   return { tag: NARRATION_TAG, text: entry.text };
 }
 
 export function StageDialogue({
   layout,
   entry,
+  entryKey,
   mode,
   onModeChange,
   canAdvance,
@@ -70,13 +82,26 @@ export function StageDialogue({
   onOpenLog,
   speakerRole,
   askName,
+  feedback,
   choices,
   actions,
+  boxOverride,
   modalOpen = false,
 }: StageDialogueProps) {
-  const box = STAGE_BOXES[layout].dialogue;
+  const box = boxOverride ?? STAGE_BOXES[layout].dialogue;
   const { tag, text } = dialogueParts(entry);
-  const { visible, done, skip } = useTypewriter(text, mode);
+  const pageKey = entryKey ?? text;
+
+  // Text longer than the desktop box is shown page by page (the AI side keeps chunks short, this
+  // is the safety net for saved projects and the demo). Tagging pageState with pageKey resets it
+  // to page 0 whenever the active beat or text changes without a synchronous setState in an effect.
+  const pages = useMemo(() => paginateText(text, DIALOGUE_CAPACITY[layout]), [text, layout]);
+  const [pageState, setPageState] = useState({ key: pageKey, index: 0 });
+  const pageIndex = pageState.key === pageKey ? Math.min(pageState.index, pages.length - 1) : 0;
+  const lastPage = pageIndex >= pages.length - 1;
+  const pageText = pages[pageIndex] ?? text;
+
+  const { visible, done, skip } = useTypewriter(pageText, mode);
   const typing = !done;
 
   useEffect(() => {
@@ -86,6 +111,10 @@ export function StageDialogue({
   function handleAdvance() {
     if (typing) {
       skip();
+      return;
+    }
+    if (!lastPage) {
+      setPageState({ key: pageKey, index: pageIndex + 1 });
       return;
     }
     if (canAdvance) onAdvance();
@@ -151,8 +180,11 @@ export function StageDialogue({
       <DialogueBox
         className="h-full"
         speakerName={tag}
-        speakerRole={entry?.kind === "dialogue" ? speakerRole : undefined}
+        speakerRole={
+          entry?.kind === "dialogue" ? speakerRole : entry?.kind === "lesson" ? entry.title : undefined
+        }
         text={visible}
+        feedback={feedback}
         choices={choices}
         mode={mode}
         onModeChange={onModeChange}
