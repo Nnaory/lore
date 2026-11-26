@@ -903,7 +903,7 @@ export const dummyStory: StoryBlueprint = {
         },
         {
           choice_id: "choice_B",
-          text: "2 Crystal A + 1 Crystal B  →  2×(2,1) + 1×(1,2) = (5, 4)  ✓",
+          text: "2 Crystal A + 1 Crystal B  →  2×(2,1) + 1×(1,2) = (5, 4)",
         },
         {
           choice_id: "choice_C",
@@ -918,6 +918,15 @@ export const dummyStory: StoryBlueprint = {
       correct_feedback:
         "Correct. 2×(2,1) + 1×(1,2) = (4,2) + (1,2) = (5,4). The beacon is stable.",
       retry_allowed: true,
+      visual: {
+        kind: "vectors",
+        vectors: [
+          { from: [0, 0], to: [2, 1], label: "Crystal A (2, 1)", tone: "primary" },
+          { from: [0, 0], to: [1, 2], label: "Crystal B (1, 2)", tone: "secondary" },
+          { from: [0, 0], to: [5, 4], label: "target (5, 4)", tone: "muted" },
+        ],
+        caption: "Which mix of the two crystals lands exactly on the dashed target?",
+      },
     },
     {
       puzzle_id: "puzzle_02",
@@ -933,7 +942,7 @@ export const dummyStory: StoryBlueprint = {
         },
         {
           choice_id: "choice_Q",
-          text: "2 Crystal C + 1 Crystal D  →  2×(1,1) + 1×(2,3) = (4, 5)  ✓",
+          text: "2 Crystal C + 1 Crystal D  →  2×(1,1) + 1×(2,3) = (4, 5)",
         },
         {
           choice_id: "choice_R",

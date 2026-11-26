@@ -7,6 +7,8 @@
  */
 
 import { z } from "zod";
+import type { LessonVisual } from "@/lib/types/visual";
+import { LessonVisualSchema } from "./visual.schema";
 
 export const PuzzleChoiceSchema = z.object({
   choice_id: z.string().min(1, "choice_id must not be empty"),
@@ -31,6 +33,18 @@ export const PuzzleSchema = z
     incorrect_feedback: z.string().min(1, "incorrect_feedback must not be empty"),
     correct_feedback: z.string().min(1, "correct_feedback must not be empty"),
     retry_allowed: z.boolean(),
+    /**
+     * Optional picture of the problem, designed by the AI (same primitives as a lesson visual).
+     * An invalid one is dropped, not an error, so a bad drawing spec never makes a story or a
+     * saved project unreadable; projects saved before this field existed stay valid.
+     */
+    visual: z
+      .unknown()
+      .transform((value): LessonVisual | undefined => {
+        const parsed = LessonVisualSchema.safeParse(value);
+        return parsed.success ? parsed.data : undefined;
+      })
+      .optional(),
   })
   .refine(
     (data) =>

@@ -5,6 +5,8 @@
  * The game engine is responsible for evaluating answers — not the AI.
  */
 
+import type { LessonVisual } from "./visual";
+
 /** One selectable option within a puzzle. */
 export type PuzzleChoice = {
   choice_id: string;
@@ -36,4 +38,9 @@ export type Puzzle = {
   /** Feedback shown to the player when they choose correctly. */
   correct_feedback: string;
   retry_allowed: boolean;
+  /**
+   * Optional picture of the problem, drawn on the stage canvas. The AI picks one primitive and
+   * fills in the data; it must not show the answer. Without it the canvas shows the question only.
+   */
+  visual?: LessonVisual;
 };
