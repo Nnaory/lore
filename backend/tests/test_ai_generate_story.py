@@ -21,7 +21,10 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 import app.ai.routes as routes
+from app.ai.chunking import MAX_CHUNK_CHARS
+from app.ai.contracts.story import StoryBlueprint
 from app.ai.limits import GENERATE_STORY_BODY_BYTES, AiLimits
+from app.ai.prompts.story_generator import SYSTEM_PROMPT
 from app.ai.story_generator_engine import StoryEngineError, build_story_blueprint
 from app.owner import COOKIE_NAME
 from tests.ai_support import (
@@ -74,8 +77,7 @@ def test_invalid_illustration_is_dropped_with_a_warning(monkeypatch: pytest.Monk
     assert data["meta"]["warnings"] == [
         {
             "code": "VISUAL_DROPPED",
-            "message": "Lesson illustrations were invalid and are shown as text for: "
-            "concept_1xfqqww_01.",
+            "message": "Illustrations were invalid and are shown as text for: concept_1xfqqww_01.",
             "path": "story",
         }
     ]
@@ -91,6 +93,77 @@ def test_invalid_illustration_is_dropped_with_a_warning(monkeypatch: pytest.Monk
     # the fifth step is cut. Concept 2: the single-lesson form with a table.
     assert kinds == ["vectors", "table", None, None, "table"]
     assert blocks[0]["visual"]["vectors"][0]["label"] == "v"  # trimmed like Zod does
+
+
+def _text_blocks(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        b
+        for chapter in blueprint["chapters"]
+        for scene in chapter["scenes"]
+        for b in scene.get("content", [])
+        if b["type"] in ("narration", "dialogue", "learning_info")
+    ]
+
+
+def test_long_text_is_split_and_a_puzzle_visual_reaches_the_client(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    content = json.loads(json.dumps(CONTENT))
+    first = content["concepts"][0]
+    long_body = " ".join(
+        f"Idea {i} says that a vector keeps its length when moved." for i in range(12)
+    )
+    first["lesson_steps"][0]["body"] = long_body
+    first["puzzle"]["visual"] = {
+        "kind": "table",
+        "headers": ["Side", "Length"],
+        "rows": [["a", "3"], ["b", "4"], ["c", "?"]],
+    }
+    app, *_ = build_app(monkeypatch, content_handler(content))
+    response = call(app)
+    assert response.status_code == 200
+    blueprint = response.json()["data"]["blueprint"]
+    StoryBlueprint.model_validate(blueprint)
+
+    # No text block is longer than the dialogue box, and the long step became several blocks.
+    blocks = _text_blocks(blueprint)
+    assert all(len(b.get("text", b.get("body", ""))) <= MAX_CHUNK_CHARS for b in blocks)
+    step = [b for b in blocks if b["type"] == "learning_info" and b["body"].startswith("Idea 0")]
+    assert step and step[0]["title"] == "Vector and magnitude: the idea"
+    chunks = [b for b in blocks if b["type"] == "learning_info" and b["title"] == step[0]["title"]]
+    assert len(chunks) >= 3
+    assert " ".join(b["body"] for b in chunks) == long_body
+    assert all(
+        b["visual"] == chunks[0]["visual"] and b["visual"]["kind"] == "vectors" for b in chunks
+    )
+
+    # The puzzle's picture is on the puzzle; puzzles without one have no `visual` key at all.
+    puzzles = {p["puzzle_id"]: p for p in blueprint["puzzles"]}
+    assert puzzles["puzzle_story_01_c01"]["visual"] == {
+        "kind": "table",
+        "headers": ["Side", "Length"],
+        "rows": [["a", "3"], ["b", "4"], ["c", "?"]],
+    }
+    assert "visual" not in puzzles["puzzle_story_01_c02"]
+
+
+def test_an_invalid_puzzle_visual_is_dropped_with_the_same_warning_as_a_lesson_visual(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    content = json.loads(json.dumps(CONTENT))
+    # Concept 2 has no lesson visual problems; only its puzzle picture is bad.
+    content["concepts"][1]["puzzle"]["visual"] = {"kind": "plot", "series": []}
+    app, *_ = build_app(monkeypatch, content_handler(content))
+    data = call(app).json()["data"]
+    puzzle = next(
+        p for p in data["blueprint"]["puzzles"] if p["puzzle_id"] == "puzzle_story_01_c02"
+    )
+    assert "visual" not in puzzle
+    assert (
+        puzzle["question"] != "Which statement correctly describes Vector addition?"
+    )  # still written
+    warning = next(w for w in data["meta"]["warnings"] if w["code"] == "VISUAL_DROPPED")
+    assert warning["message"].endswith("concept_1xfqqww_01, concept_1xfqqww_02.")
 
 
 def test_two_stories_with_summaries_match_contract_fixture(
@@ -149,9 +222,12 @@ def test_gemini_call_carries_prompt_key_header_and_settings(
     assert sent.headers["x-goog-api-key"] == KEY
     assert KEY not in str(sent.url)
     body = gemini.sent_json()
-    assert body["systemInstruction"]["parts"][0]["text"] == (
+    system = body["systemInstruction"]["parts"][0]["text"]
+    assert system == SYSTEM_PROMPT
+    assert system.startswith(
         "You write accurate, engaging educational visual-novel content. Respond with JSON only."
     )
+    assert f"holds about {MAX_CHUNK_CHARS} characters" in system
     prompt = body["contents"][0]["parts"][0]["text"]
     assert prompt.startswith(
         "Write the text for one story of an interactive learning visual novel."

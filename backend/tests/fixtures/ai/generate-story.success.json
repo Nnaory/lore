@@ -373,7 +373,7 @@
       "warnings": [
         {
           "code": "VISUAL_DROPPED",
-          "message": "Lesson illustrations were invalid and are shown as text for: concept_1xfqqww_01.",
+          "message": "Illustrations were invalid and are shown as text for: concept_1xfqqww_01.",
           "path": "story"
         }
       ]

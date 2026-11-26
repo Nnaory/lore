@@ -1,14 +1,33 @@
 """Cross-language parity of the Story Generator with the TypeScript implementation.
 
 Why: the backend must give the same answers as the Next.js route it replaces. The snapshot
-`fixtures/ai/story-parity.snapshot.json` was produced by running the REAL TypeScript code (story
-engine, Gemini provider, service, both validators and `seededShuffle`) on the same inputs, with a
-fake Gemini, so these tests compare Python with TypeScript without needing Node. Each run feeds
-the same request and the same Gemini reply to the endpoint and compares the whole answer
+`fixtures/ai/story-parity.snapshot.json` was first produced by running the REAL TypeScript code
+(story engine, Gemini provider, service, both validators and `seededShuffle`) on the same inputs,
+with a fake Gemini, so these tests compare Python with TypeScript without needing Node. Each run
+feeds the same request and the same Gemini reply to the endpoint and compares the whole answer
 (blueprint, warnings, errors with `detail`) and the prompt sent to Gemini.
 
-Regenerate the snapshot with the helper script when the TypeScript code changes (it is not part
-of the repo: it needs Node 22+ and the frontend's `typescript` and `zod` packages).
+On 25 Nov 2026 the `runs` of the snapshot (the prompt fields `prompt`, `promptSha256`,
+`promptLength`, and `result`) were regenerated from the Python implementation, so they no longer
+come from TypeScript. Python now differs from the TypeScript original on purpose in three ways:
+the prompt asks for short text with character limits (`prompts/story_generator.py`), long
+narration, dialogue and lesson text is split into dialogue-box sized blocks (`app/ai/chunking.py`),
+and a puzzle may carry a `visual`. Before regenerating, the old and new results were compared:
+only scene `content` differs, and only by split blocks. `cases`, `validators`, `shuffles`,
+`validatorBase` and each run's `content` are still the TypeScript output. The engine, validators
+and `seeded_shuffle` tests below therefore remain true parity tests; the endpoint test is a
+regression snapshot of the Python behaviour. The regeneration script was a one-off and is not
+kept in the repo: change the Python code, review the diff of `runs`, then regenerate by feeding
+each run's `cases[...]["request"]` and `content` to the endpoint again.
+
+On 26 Nov 2026 the `runs` were regenerated once more after `MAX_CHUNK_CHARS` was lowered so that
+a box always fits in 3 lines of 68 columns. The prompt differs only in the two numbers derived
+from the constant, and the results differ only where a block between `MAX_CHUNK_CHARS` and the old
+limit was split further.
+
+On 27 Nov 2026 the `runs` were regenerated after adding `puzzle.narrative_context` chunking
+(`app/ai/chunking.py`), tightening puzzle/feedback prompt limits (`prompts/story_generator.py`),
+and wording `VISUAL_DROPPED` neutrally for both lesson and puzzle illustrations.
 """
 
 from __future__ import annotations

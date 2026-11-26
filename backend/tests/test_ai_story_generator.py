@@ -18,6 +18,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
+from app.ai.chunking import MAX_CHUNK_CHARS
 from app.ai.contracts.requests import GenerateStoryRequest
 from app.ai.contracts.story import (
     Ending,
@@ -26,6 +27,7 @@ from app.ai.contracts.story import (
     StoryBlueprint,
 )
 from app.ai.hash import seeded_shuffle
+from app.ai.prompts.story_generator import SYSTEM_PROMPT, VISUAL_GUIDE, build_story_prompt
 from app.ai.story_generator import (
     MAX_LESSON_STEPS,
     StoryContent,
@@ -442,9 +444,10 @@ def test_without_usable_steps_the_single_lesson_form_is_used() -> None:
 
 def test_without_a_lesson_body_the_template_body_stays_and_is_reported() -> None:
     result = merge({"concepts": [{"concept_id": C1, "lesson_title": "Only a title"}]})
-    lesson = learning_blocks(result.blueprint, L1)[-1]
-    assert lesson["title"] == "Only a title"
-    assert lesson["body"].startswith("A vector is a quantity")
+    # The template body is longer than one dialogue box, so it comes as several blocks.
+    lessons = [b for b in learning_blocks(result.blueprint, L1) if b["type"] == "learning_info"]
+    assert {b["title"] for b in lessons} == {"Only a title"}
+    assert lessons[0]["body"].startswith("A vector is a quantity")
     assert f"lesson:{C1}" in result.templated
 
 
@@ -586,6 +589,388 @@ def test_model_text_is_trimmed_and_length_checked_like_zod() -> None:
     StoryContent.model_validate({"intro": {"narration": "\U0001f600" * 800}})
 
 
+# --- merge: long text is split into dialogue-box sized blocks ---------------------------------
+
+
+def body_of(length: int) -> str:
+    """Sentences of about 60 characters, joined, until the text is at least `length` long."""
+    sentences: list[str] = []
+    while len(" ".join(sentences)) < length:
+        sentences.append(
+            f"Idea {len(sentences) + 1} says that a vector keeps its length when moved."
+        )
+    return " ".join(sentences)
+
+
+def text_of(block: dict[str, Any]) -> str:
+    return block["body"] if block["type"] == "learning_info" else block["text"]
+
+
+def all_text_blocks(blueprint: dict[str, Any]) -> list[dict[str, Any]]:
+    return [
+        b
+        for s in scenes_of(blueprint)
+        for b in s.get("content", [])
+        if b["type"] in ("narration", "dialogue", "learning_info")
+    ]
+
+
+def test_a_700_character_lesson_body_becomes_several_blocks_and_the_story_stays_valid() -> None:
+    body = body_of(700)
+    assert 700 <= len(body) < 780
+    request, skeleton = skeleton_of()
+    content = StoryContent.model_validate(
+        {"concepts": [{"concept_id": C1, "lesson_steps": [{"title": "Long step", "body": body}]}]}
+    )
+    result = merge_story_content(skeleton, content)
+
+    lessons = [b for b in learning_blocks(result.blueprint, L1) if b["type"] == "learning_info"]
+    assert len(lessons) >= 4
+    assert all(0 < len(b["body"]) <= MAX_CHUNK_CHARS for b in lessons)
+    assert {b["title"] for b in lessons} == {"Long step"}
+    assert all(b["concept_ids"] == [C1] for b in lessons)
+    assert " ".join(b["body"] for b in lessons) == body
+
+    model = StoryBlueprint.model_validate(result.blueprint)
+    assert validate_generated_story(model, request.material, request.story, []) == []
+    assert validate_story(model, request.material) == []
+    # One scene still teaches the concept (several blocks do not count as several scenes).
+    assert [m.introduced_in_scene_id for m in model.knowledge_mapping][0] == L1
+
+
+def test_a_long_lesson_step_keeps_its_visual_on_every_chunk_and_steps_stay_apart() -> None:
+    steps = [
+        {"title": "First", "body": body_of(500), "visual": GOOD_VISUAL},
+        {"title": "Second", "body": "Short.", "companion_line": "Go on."},
+    ]
+    result = merge({"concepts": [{"concept_id": C1, "lesson_steps": steps}]})
+    blocks = learning_blocks(result.blueprint, L1)
+    first = [b for b in blocks if b["type"] == "learning_info" and b["title"] == "First"]
+    assert len(first) >= 3
+    assert all(b["visual"]["kind"] == "formula" for b in first)
+    # Order: opening line, the chunks of step 1, the companion's line, step 2.
+    assert [b["type"] for b in blocks][-2:] == ["dialogue", "learning_info"]
+    assert blocks[-1]["title"] == "Second" and "visual" not in blocks[-1]
+
+
+def test_a_long_dialogue_line_is_split_and_keeps_its_speaker() -> None:
+    line = body_of(380)
+    assert len(line) <= 400  # the model may write up to 400 characters for a dialogue line
+    result = merge(
+        {"intro": {"guide_line": line}, "concepts": [{"concept_id": C1, "companion_line": line}]}
+    )
+    intro = next(s for s in scenes_of(result.blueprint) if s["scene_id"].endswith("_intro"))
+    guide = [b for b in intro["content"] if b["type"] == "dialogue"]
+    assert len(guide) >= 2
+    assert {(b["character_id"], b["expression"]) for b in guide} == {
+        (guide[0]["character_id"], guide[0]["expression"])
+    }
+    assert " ".join(b["text"] for b in guide) == line
+    companion = [b for b in learning_blocks(result.blueprint, L1) if b["type"] == "dialogue"]
+    assert len(companion) >= 2 and all(len(b["text"]) <= MAX_CHUNK_CHARS for b in companion)
+
+
+def test_long_narration_in_the_intro_and_result_scenes_is_split() -> None:
+    text = body_of(380)
+    result = merge(
+        {
+            "intro": {"narration": text},
+            "concepts": [{"concept_id": C1, "result_narration": text}],
+        }
+    )
+    scenes = {s["scene_id"]: s for s in scenes_of(result.blueprint)}
+    for scene_id in ("scene_story_01_intro", "scene_story_01_c01_result"):
+        narration = [b for b in scenes[scene_id]["content"] if b["type"] == "narration"]
+        assert len(narration) >= 2
+        assert " ".join(b["text"] for b in narration) == text
+
+
+@pytest.mark.parametrize("index", STORIES)
+def test_no_text_block_of_a_template_only_story_is_longer_than_a_dialogue_box(index: int) -> None:
+    request = dummy_request(index)
+    result = merge_story_content(build(request), StoryContent())
+    blocks = all_text_blocks(result.blueprint)
+    assert blocks
+    assert all(len(text_of(b)) <= MAX_CHUNK_CHARS for b in blocks)
+    model = StoryBlueprint.model_validate(result.blueprint)
+    assert validate_generated_story(model, request.material, request.story, []) == []
+
+
+def test_the_text_of_a_template_story_is_split_not_changed() -> None:
+    from app.ai.chunking import PUZZLE_SUFFIX_CHARS
+
+    request = dummy_request(0)
+    skeleton = build(request)
+    merged = merge_story_content(skeleton, StoryContent()).blueprint
+
+    def stream_words(blueprint: dict[str, Any]) -> list[str]:
+        by_id = {p["puzzle_id"]: p for p in blueprint["puzzles"]}
+        parts: list[str] = []
+        for scene in scenes_of(blueprint):
+            parts.extend(text_of(b) for b in scene.get("content", []))
+            if scene.get("type") == "puzzle":
+                parts.append(by_id[scene["puzzle_id"]]["narrative_context"])
+        return " ".join(parts).split()
+
+    assert stream_words(merged) == stream_words(skeleton)
+    for puzzle in merged["puzzles"]:
+        assert len(puzzle["narrative_context"]) + PUZZLE_SUFFIX_CHARS <= MAX_CHUNK_CHARS
+
+
+def test_puzzle_and_ending_text_is_not_split() -> None:
+    long = body_of(600)
+    result = merge(
+        {
+            "concepts": [
+                {"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "explanation": long}},
+            ],
+            "ending": {"narration": long},
+        }
+    )
+    puzzle = next(p for p in result.blueprint["puzzles"] if p["puzzle_id"] == "puzzle_story_01_c01")
+    assert puzzle["explanation"] == long
+    assert result.blueprint["endings"][0]["narration"] == long
+
+
+# --- merge: a puzzle may carry a picture of its question --------------------------------------
+
+PUZZLE_VISUAL = {
+    "kind": "table",
+    "headers": ["Side", "Length"],
+    "rows": [["a", "3"], ["b", "4"], ["c", "?"]],
+    "caption": "A right triangle.",
+}
+P1 = "puzzle_story_01_c01"
+
+
+def puzzle_in(result: Any, puzzle_id: str = P1) -> dict[str, Any]:
+    return next(p for p in result.blueprint["puzzles"] if p["puzzle_id"] == puzzle_id)
+
+
+def test_a_valid_puzzle_visual_is_attached_in_its_normalised_form() -> None:
+    result = merge(
+        {"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "visual": PUZZLE_VISUAL}}]}
+    )
+    puzzle = puzzle_in(result)
+    assert puzzle["visual"] == PUZZLE_VISUAL
+    assert puzzle["question"] == "Q?"  # the wording is replaced as well
+    assert result.dropped_visuals == []
+    assert P1 not in "".join(result.templated)
+    dumped = StoryBlueprint.model_validate(result.blueprint).dump()
+    assert next(p for p in dumped["puzzles"] if p["puzzle_id"] == P1)["visual"] == PUZZLE_VISUAL
+
+
+def test_a_puzzle_visual_is_normalised_like_a_lesson_visual() -> None:
+    visual = {
+        "kind": "vectors",
+        "vectors": [{"from": [0, 0], "to": [3, 4], "label": "  ?  ", "extra": 1}],
+        "extra": True,
+    }
+    result = merge({"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "visual": visual}}]})
+    assert puzzle_in(result)["visual"] == {
+        "kind": "vectors",
+        "vectors": [{"from": [0.0, 0.0], "to": [3.0, 4.0], "label": "?"}],
+    }
+
+
+def test_the_visual_stays_with_its_puzzle_when_choices_are_shuffled() -> None:
+    result = merge(
+        {"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "visual": PUZZLE_VISUAL}}]}
+    )
+    assert [p["puzzle_id"] for p in result.blueprint["puzzles"] if "visual" in p] == [P1]
+    assert sorted(c["text"] for c in puzzle_in(result)["choices"]) == [
+        "Right",
+        "Wrong one",
+        "Wrong two",
+    ]
+
+
+@pytest.mark.parametrize(
+    "visual",
+    [
+        {"kind": "plot", "series": []},
+        {"kind": "table", "headers": ["a"], "rows": [["x", "y"]]},  # row wider than the header
+        {"kind": "diagram", "layout": "flow", "nodes": [{"id": "a", "label": "A"}]},  # one node
+        {"kind": "unknown"},
+        "a picture of a triangle",
+        5,
+        [],
+        {},
+    ],
+)
+def test_an_invalid_puzzle_visual_is_dropped_and_recorded_but_the_puzzle_is_kept(
+    visual: Any,
+) -> None:
+    result = merge({"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "visual": visual}}]})
+    puzzle = puzzle_in(result)
+    assert "visual" not in puzzle
+    assert puzzle["question"] == "Q?" and puzzle["correct_choice_id"] == "choice_story_01_c01_a"
+    assert result.dropped_visuals == [C1]
+    assert f"puzzle:{P1}" not in result.templated
+    StoryBlueprint.model_validate(result.blueprint)
+
+
+def test_dropped_visuals_are_listed_once_per_concept_across_lesson_and_puzzle() -> None:
+    bad = {"kind": "plot", "series": []}
+    result = merge(
+        {
+            "concepts": [
+                {
+                    "concept_id": C1,
+                    "lesson_steps": [{**STEP, "visual": bad}, {**STEP, "visual": bad}],
+                    "puzzle": {**GOOD_PUZZLE, "visual": bad},
+                },
+                {"concept_id": C2, "puzzle": {**GOOD_PUZZLE, "visual": bad}},
+            ]
+        }
+    )
+    assert result.dropped_visuals == [C1, C2]
+
+
+def test_a_dropped_puzzle_visual_alone_is_enough_to_record_the_concept() -> None:
+    result = merge(
+        {
+            "concepts": [
+                {
+                    "concept_id": C1,
+                    "lesson_steps": [{**STEP, "visual": GOOD_VISUAL}],
+                    "puzzle": {**GOOD_PUZZLE, "visual": "nope"},
+                }
+            ]
+        }
+    )
+    assert result.dropped_visuals == [C1]
+    lessons = [b for b in learning_blocks(result.blueprint, L1) if b["type"] == "learning_info"]
+    assert "visual" in lessons[0]  # the valid lesson visual is not affected
+
+
+@pytest.mark.parametrize("extra", [{}, {"visual": None}], ids=["absent", "null"])
+def test_a_puzzle_without_a_visual_has_no_visual_key_and_nothing_is_recorded(
+    extra: dict[str, Any],
+) -> None:
+    result = merge({"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, **extra}}]})
+    assert "visual" not in puzzle_in(result)
+    assert result.dropped_visuals == []
+    assert f"puzzle:{P1}" not in result.templated
+    for puzzle in result.blueprint["puzzles"]:
+        assert "visual" not in puzzle
+    assert all(
+        "visual" not in p for p in StoryBlueprint.model_validate(result.blueprint).dump()["puzzles"]
+    )
+
+
+def test_an_unusable_puzzle_keeps_the_template_and_gets_no_visual_even_if_the_visual_is_fine() -> (
+    None
+):
+    puzzle = {**GOOD_PUZZLE, "wrong_answers": ["only one"], "visual": PUZZLE_VISUAL}
+    result = merge({"concepts": [{"concept_id": C1, "puzzle": puzzle}]})
+    assert f"puzzle:{P1}" in result.templated
+    assert "visual" not in puzzle_in(result)
+    # A bad picture on a puzzle that is thrown away anyway is not worth a warning.
+    bad = {**puzzle, "visual": {"kind": "plot", "series": []}}
+    assert merge({"concepts": [{"concept_id": C1, "puzzle": bad}]}).dropped_visuals == []
+
+
+def test_the_puzzle_model_accepts_a_null_or_absent_visual_but_not_a_wrong_type_elsewhere() -> None:
+    from app.ai.story_generator import PuzzleContent
+
+    assert PuzzleContent.model_validate({**GOOD_PUZZLE, "visual": None}).visual is None
+    with pytest.raises(ValidationError):
+        PuzzleContent.model_validate({**GOOD_PUZZLE, "question": None})
+
+
+def test_a_puzzle_visual_does_not_change_which_choice_is_correct() -> None:
+    plain = merge({"concepts": [{"concept_id": C1, "puzzle": GOOD_PUZZLE}]})
+    drawn = merge(
+        {"concepts": [{"concept_id": C1, "puzzle": {**GOOD_PUZZLE, "visual": PUZZLE_VISUAL}}]}
+    )
+    without = {k: v for k, v in puzzle_in(drawn).items() if k != "visual"}
+    assert without == puzzle_in(plain)
+
+
+# --- prompt: length limits and the puzzle picture ---------------------------------------------
+
+
+def story_prompt() -> str:
+    request, skeleton = skeleton_of()
+    return build_story_prompt(request, skeleton)
+
+
+def test_the_system_prompt_states_the_dialogue_box_limit_with_the_shared_constant() -> None:
+    assert (
+        "visual-novel content" in SYSTEM_PROMPT
+    )  # the story flow test tells the steps apart by it
+    assert "Respond with JSON only." in SYSTEM_PROMPT
+    assert f"holds about {MAX_CHUNK_CHARS} characters" in SYSTEM_PROMPT
+    assert "under about 120 characters" in SYSTEM_PROMPT
+    assert "narrative designer" not in SYSTEM_PROMPT  # that marks the campaign planner
+
+
+def test_the_prompt_states_the_chunk_limit_and_the_per_field_limits() -> None:
+    prompt = story_prompt()
+    assert f"in chunks of at most {MAX_CHUNK_CHARS} characters split at sentence ends" in prompt
+    assert "Never write a sentence longer than about 120 characters" in prompt
+    for limit in (
+        "(2-4 short sentences, at most 400 characters, shown to the player in chunks of at most "
+        f"{MAX_CHUNK_CHARS}",
+        f"at most {2 * MAX_CHUNK_CHARS} characters",  # intro narration
+        "at most 140 characters",  # puzzle narrative_context & feedbacks
+        '" Choose your answer on the board."',  # what the UI appends to it
+        "at most 200 characters",  # question
+        "at most 80 characters",  # answers
+        f'"explanation": string (why the correct answer is right, academically, at most '
+        f"{MAX_CHUNK_CHARS} characters)",
+        f'"result_narration": string (1-2 short sentences, at most {MAX_CHUNK_CHARS} characters',
+        "at most two short sentences",  # dialogue lines
+    ):
+        assert limit in prompt, limit
+    # narrative_context + correct_feedback + incorrect_feedback
+    assert prompt.count("at most 140 characters") == 3
+    assert prompt.count("at most 80 characters") == 2  # correct_answer and each wrong answer
+    assert prompt.count("at most 400 characters") == 2  # lesson body and ending narration
+    assert "60-110 words" not in prompt and "words, aim for" not in prompt
+
+
+def test_the_prompt_still_asks_for_why_and_worked_steps_and_allows_up_to_four_steps() -> None:
+    prompt = story_prompt()
+    assert "explain WHY, not only WHAT" in prompt
+    assert "NEW example solved step by step" in prompt
+    assert "(2-4 steps; skip step 2 or 4 only when it truly does not apply)" in prompt
+    assert "another lesson step (4 at most) instead of a longer body" in prompt
+
+
+def test_the_prompt_offers_a_puzzle_picture_that_must_not_leak_the_answer() -> None:
+    prompt = story_prompt()
+    assert '"visual": VISUAL (optional: a picture of the problem or question' in prompt
+    assert 'Puzzle picture ("visual" inside "puzzle", optional)' in prompt
+    for kind in ("vectors", "plot", "diagram", "table", "formula"):
+        assert f"{kind} for " in prompt
+    assert 'Use "?" as the label of the part the player is asked to find' in prompt
+    assert (
+        "must NOT show or hint at the correct answer, and not at any wrong answer either" in prompt
+    )
+    assert "match the narrative_context and the question exactly" in prompt
+
+
+def test_the_visual_guide_is_included_once_and_before_the_puzzle_rules() -> None:
+    prompt = story_prompt()
+    for line in VISUAL_GUIDE:
+        assert prompt.count(line) == 1
+    heading = 'Puzzle picture ("visual" inside "puzzle", optional)'
+    assert prompt.count(heading) == 1
+    assert prompt.index(VISUAL_GUIDE[0]) < prompt.index(heading) < prompt.index("Rules:")
+
+
+def test_the_prompt_stays_in_the_requested_language_and_keeps_its_data_sections() -> None:
+    request, skeleton = skeleton_of()
+    prompt = build_story_prompt(request, skeleton)
+    assert prompt.startswith(
+        "Write the text for one story of an interactive learning visual novel."
+    )
+    assert '"concept_id": "concept_1xfqqww_01"' in prompt
+    assert "Return JSON with this shape" in prompt
+
+
 # --- models -----------------------------------------------------------------------------------
 
 
@@ -644,6 +1029,51 @@ def test_a_learning_visual_that_is_invalid_or_null_is_dropped_not_rejected() -> 
         }
     )
     assert kept.dump()["visual"]["kind"] == "formula"
+
+
+@pytest.mark.parametrize("visual", [{"kind": "plot", "series": []}, None, 5, "x", [], {}], ids=repr)
+def test_a_puzzle_visual_that_is_invalid_or_null_is_dropped_not_rejected(visual: Any) -> None:
+    puzzle = blueprint_dict()["puzzles"][0]
+    model = Puzzle.model_validate({**puzzle, "visual": visual})
+    assert model.visual is None
+    assert "visual" not in model.dump()
+    assert model.dump() == puzzle
+
+
+def test_a_valid_puzzle_visual_is_kept_and_written_in_its_wire_form() -> None:
+    puzzle = blueprint_dict()["puzzles"][0]
+    visual = {
+        "kind": "vectors",
+        "vectors": [{"from": [0, 0], "to": [3, 4], "label": "?"}],
+        "caption": "Find the length.",
+    }
+    dumped = Puzzle.model_validate({**puzzle, "visual": visual}).dump()
+    assert dumped["visual"] == {
+        "kind": "vectors",
+        "vectors": [{"from": [0.0, 0.0], "to": [3.0, 4.0], "label": "?"}],
+        "caption": "Find the length.",
+    }
+    assert {k: v for k, v in dumped.items() if k != "visual"} == puzzle
+
+
+def test_a_puzzle_without_a_visual_is_written_exactly_as_before() -> None:
+    puzzle = blueprint_dict()["puzzles"][0]
+    model = Puzzle.model_validate(puzzle)
+    assert model.visual is None
+    assert json.dumps(model.dump()) == json.dumps(puzzle)
+    story = StoryBlueprint.model_validate(blueprint_dict())
+    assert all("visual" not in p for p in story.dump()["puzzles"])
+    assert story.dump() == blueprint_dict()
+
+
+def test_a_puzzle_still_rejects_what_it_rejected_before_when_it_has_a_visual() -> None:
+    puzzle = {**blueprint_dict()["puzzles"][0], "visual": GOOD_VISUAL}
+    with pytest.raises(ValidationError):
+        Puzzle.model_validate({**puzzle, "choices": puzzle["choices"][:1]})
+    with pytest.raises(ValidationError):
+        Puzzle.model_validate({**puzzle, "correct_choice_id": "nope"})
+    with pytest.raises(ValidationError):
+        Puzzle.model_validate({**puzzle, "question": None})
 
 
 def test_scene_union_is_discriminated_by_type_and_content_is_required() -> None:
