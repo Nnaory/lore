@@ -24,13 +24,16 @@ import {
   type DecisionGraphProps,
   type LessonBoardProps,
 } from "./compositions";
-import { LessonVisualBoard, type LessonVisualBoardProps } from "./visual-compositions";
+import { LessonVisualBoard, PuzzleBoard, type LessonVisualBoardProps, type PuzzleBoardProps } from "./visual-compositions";
 import { visualDuration } from "./visual-layout";
 
 export type CanvasScene =
   | { kind: "ambient"; props: AmbientSceneProps }
   | { kind: "lesson"; props: LessonBoardProps }
   | { kind: "visual"; props: LessonVisualBoardProps }
+  /** A puzzle with a picture of its own: the AI-designed visual plus the question. */
+  | { kind: "puzzle"; props: PuzzleBoardProps }
+  /** A puzzle without a picture (older projects, or an invalid visual): the question alone. */
   | { kind: "decision"; props: DecisionGraphProps };
 
 function sceneSpec(scene: CanvasScene) {
@@ -46,6 +49,12 @@ function sceneSpec(scene: CanvasScene) {
     case "visual":
       return {
         component: LessonVisualBoard as React.ComponentType<Record<string, unknown>>,
+        duration: visualDuration(scene.props.visual),
+        loop: false,
+      };
+    case "puzzle":
+      return {
+        component: PuzzleBoard as React.ComponentType<Record<string, unknown>>,
         duration: visualDuration(scene.props.visual),
         loop: false,
       };

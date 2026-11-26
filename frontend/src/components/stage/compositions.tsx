@@ -5,12 +5,12 @@
  *
  *   AmbientScene  — location/chapter title over a drifting gold field
  *   LessonBoard   — a lesson's title and text revealed word by word
- *   DecisionGraph — a question node with lines to the answer boxes
- *                   (answers themselves are clickable HTML overlays)
+ *   DecisionGraph — a question node and the question itself (the fallback canvas of a puzzle
+ *                   that has no visual of its own; answers are chips under the canvas)
  */
 
 import { AbsoluteFill, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { CANVAS_HEIGHT, CANVAS_WIDTH, DECISION_NODE, choiceBoxes } from "./canvas-layout";
+import { CANVAS_HEIGHT, CANVAS_WIDTH, DECISION_NODE } from "./canvas-layout";
 
 // Kit tokens (lore-tokens.css) as the canvas needs them. Decision OQ-9 / D9: only colour,
 // gradient and shadow follow the tokens; geometry, data, labels and numbers are unchanged.
@@ -141,53 +141,23 @@ export function LessonBoard({ title, body, seed, step }: LessonBoardProps) {
 }
 
 export type DecisionGraphProps = {
+  /** The question, drawn large under the node. Empty draws the node alone. */
   label: string;
-  count: number;
   seed: number;
 };
 
 export const DECISION_DURATION = 50;
 
-export function DecisionGraph({ label, count, seed }: DecisionGraphProps) {
+export function DecisionGraph({ label, seed }: DecisionGraphProps) {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const boxes = choiceBoxes(count);
   const node = { x: (DECISION_NODE.x / 100) * CANVAS_WIDTH, y: (DECISION_NODE.y / 100) * CANVAS_HEIGHT };
   const nodeIn = spring({ frame, fps, config: { damping: 14, stiffness: 120 } });
+  const textIn = interpolate(frame, [12, 30], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <AbsoluteFill>
       <Field seed={seed} />
       <svg width="100%" height="100%" viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`} style={{ position: "absolute", inset: 0 }}>
-        {boxes.map((b, i) => {
-          const tx = ((b.x + b.w / 2) / 100) * CANVAS_WIDTH;
-          const ty = (b.y / 100) * CANVAS_HEIGHT;
-          const length = Math.hypot(tx - node.x, ty - node.y);
-          const drawn = interpolate(frame, [8 + i * 4, 30 + i * 4], [length, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-          const boxIn = interpolate(frame, [24 + i * 4, 40 + i * 4], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
-          return (
-            <g key={i}>
-              <path
-                d={`M ${node.x} ${node.y} Q ${(node.x + tx) / 2} ${node.y + 40} ${tx} ${ty}`}
-                fill="none"
-                stroke={GOLD}
-                strokeOpacity={0.55}
-                strokeWidth={2}
-                strokeDasharray={length * 1.2}
-                strokeDashoffset={drawn * 1.2}
-              />
-              <rect
-                x={(b.x / 100) * CANVAS_WIDTH}
-                y={(b.y / 100) * CANVAS_HEIGHT}
-                width={(b.w / 100) * CANVAS_WIDTH}
-                height={(b.h / 100) * CANVAS_HEIGHT}
-                fill={SURFACE}
-                fillOpacity={0.55 * boxIn}
-                stroke={GOLD_DIM}
-                strokeOpacity={0.5 * boxIn}
-              />
-            </g>
-          );
-        })}
         <circle cx={node.x} cy={node.y} r={34 * nodeIn} fill={SURFACE} stroke={GOLD} strokeWidth={2} />
         <circle
           cx={node.x}
@@ -197,16 +167,24 @@ export function DecisionGraph({ label, count, seed }: DecisionGraphProps) {
           stroke={GOLD}
           strokeOpacity={0.25}
         />
+        <text x={node.x} y={node.y + 12} fill={GOLD} fontSize={34} fontWeight={700} textAnchor="middle" opacity={nodeIn}>
+          ?
+        </text>
       </svg>
       <AbsoluteFill style={{ alignItems: "center" }}>
         <div
           style={{
-            marginTop: (DECISION_NODE.y / 100) * CANVAS_HEIGHT + 44,
+            marginTop: node.y + 70,
             color: TEXT,
-            fontSize: 26,
-            maxWidth: 900,
+            fontSize: 44,
+            lineHeight: 1.3,
+            maxWidth: 1040,
             textAlign: "center",
-            opacity: nodeIn,
+            opacity: textIn,
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 5,
+            overflow: "hidden",
           }}
         >
           {label}

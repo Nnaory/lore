@@ -117,6 +117,202 @@ export function vectorLabelPosition(from: Point, to: Point, offset = 18): Point 
 }
 
 // ---------------------------------------------------------------------------
+// Vector labels that stay clear of the arrows
+// ---------------------------------------------------------------------------
+
+/** The rectangle a label occupies, centred on `at` (width accounts for proportional capitals/parens). */
+export function labelBox(label: string, at: Point, fontSize: number): Area {
+  const w = Array.from(label).length * fontSize * 0.68 + 14;
+  const h = fontSize * 1.3;
+  return { x: at.x - w / 2, y: at.y - h / 2, w, h };
+}
+
+/** True when the segment a→b touches `box` (Liang–Barsky clipping). */
+export function segmentIntersectsBox(a: Point, b: Point, box: Area): boolean {
+  let t0 = 0;
+  let t1 = 1;
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const edges: Array<[number, number]> = [
+    [-dx, a.x - box.x],
+    [dx, box.x + box.w - a.x],
+    [-dy, a.y - box.y],
+    [dy, box.y + box.h - a.y],
+  ];
+  for (const [p, q] of edges) {
+    if (p === 0) {
+      if (q < 0) return false;
+      continue;
+    }
+    const r = q / p;
+    if (p < 0) {
+      if (r > t1) return false;
+      if (r > t0) t0 = r;
+    } else {
+      if (r < t0) return false;
+      if (r < t1) t1 = r;
+    }
+  }
+  return true;
+}
+
+function boxesOverlap(a: Area, b: Area): boolean {
+  return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+function inside(box: Area, bounds: Area): boolean {
+  return box.x >= bounds.x && box.y >= bounds.y && box.x + box.w <= bounds.x + bounds.w && box.y + box.h <= bounds.y + bounds.h;
+}
+
+function segmentsIntersect(a: Point, b: Point, c: Point, d: Point): boolean {
+  const cross = (p: Point, q: Point, r: Point) => (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x);
+  const d1 = cross(c, d, a);
+  const d2 = cross(c, d, b);
+  const d3 = cross(a, b, c);
+  const d4 = cross(a, b, d);
+  return ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0));
+}
+
+function distPointToSegment(p: Point, a: Point, b: Point): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+  const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / lenSq));
+  return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+}
+
+export type VectorLabelSpec = { from: Point; to: Point; label?: string };
+export type PointLabelSpec = { at: Point; label?: string };
+
+/**
+ * Where each vector's label goes so it stays tethered near its own arrow and clear of
+ * every arrow, tick/point obstacle, other label, and canvas bounds.
+ */
+export function placeVectorLabels(
+  vectors: readonly VectorLabelSpec[],
+  options: {
+    fontSize?: number;
+    bounds?: Area;
+    obstacles?: readonly Area[];
+    segments?: readonly { from: Point; to: Point }[];
+  } = {}
+): Array<Point | null> {
+  const fontSize = options.fontSize ?? 22;
+  const bounds = options.bounds;
+  const obstacles = options.obstacles ?? [];
+  const extraSegments = options.segments ?? [];
+  const along = [0.5, 0.65, 0.35, 0.78, 0.25];
+  const gaps = [8, 16, 26, 38];
+  const placed: Area[] = [];
+
+  return vectors.map((v, idx) => {
+    if (!v.label) return null;
+    const dx = v.to.x - v.from.x;
+    const dy = v.to.y - v.from.y;
+    const len = Math.hypot(dx, dy) || 1;
+    // Unit normal on the arrow's left-hand side (screen coordinates).
+    const nx = dy / len;
+    const ny = -dx / len;
+
+    let best: { at: Point; box: Area; penalty: number } | null = null;
+    outer: for (const gap of gaps) {
+      for (const t of along) {
+        for (const side of [1, -1]) {
+          const base = { x: v.from.x + dx * t, y: v.from.y + dy * t };
+          // Push the box out by its own half extent along the normal, then by the gap.
+          const probe = labelBox(v.label, base, fontSize);
+          const support = (Math.abs(nx) * probe.w) / 2 + (Math.abs(ny) * probe.h) / 2;
+          const offset = support + gap;
+          const at = { x: base.x + side * nx * offset, y: base.y + side * ny * offset };
+          const box = labelBox(v.label, at, fontSize);
+
+          let penalty = 0;
+          for (const s of vectors) if (segmentIntersectsBox(s.from, s.to, box)) penalty += 200;
+          const ownDist = distPointToSegment(at, v.from, v.to);
+          for (let j = 0; j < vectors.length; j++) {
+            if (j === idx) continue;
+            if (segmentsIntersect(base, at, vectors[j].from, vectors[j].to)) penalty += 250;
+            if (distPointToSegment(at, vectors[j].from, vectors[j].to) < ownDist * 0.85) penalty += 150;
+          }
+          for (const other of placed) if (boxesOverlap(box, other)) penalty += 120;
+          for (const obs of obstacles) if (boxesOverlap(box, obs)) penalty += 80;
+          if (bounds && !inside(box, bounds)) penalty += 80;
+          for (const seg of extraSegments) if (segmentIntersectsBox(seg.from, seg.to, box)) penalty += 5;
+
+          if (best === null || penalty < best.penalty) best = { at, box, penalty };
+          if (penalty === 0) break outer;
+        }
+      }
+    }
+    const chosen = best as { at: Point; box: Area };
+    placed.push(chosen.box);
+    return chosen.at;
+  });
+}
+
+const POINT_DIRS: readonly [number, number][] = [
+  [1, -1],
+  [-1, -1],
+  [1, 1],
+  [-1, 1],
+  [0, -1],
+  [1, 0],
+  [-1, 0],
+  [0, 1],
+];
+
+/**
+ * Place labels around point markers clear of arrows, axes, tick labels,
+ * vector labels, other points, and canvas bounds. Returns centered label coordinates.
+ */
+export function placePointLabels(
+  points: readonly PointLabelSpec[],
+  options: {
+    fontSize?: number;
+    bounds?: Area;
+    obstacles?: readonly Area[];
+    segments?: readonly { from: Point; to: Point }[];
+    axes?: readonly { from: Point; to: Point }[];
+  } = {}
+): Array<Point | null> {
+  const fontSize = options.fontSize ?? 20;
+  const bounds = options.bounds;
+  const obstacles = options.obstacles ?? [];
+  const segments = options.segments ?? [];
+  const axes = options.axes ?? [];
+  const gaps = [12, 24, 38];
+  const placed: Area[] = [];
+
+  return points.map((pt) => {
+    if (!pt.label) return null;
+    const probe = labelBox(pt.label, pt.at, fontSize);
+    let best: { at: Point; box: Area; penalty: number } | null = null;
+    outer: for (const gap of gaps) {
+      for (const [dx, dy] of POINT_DIRS) {
+        const at = {
+          x: pt.at.x + dx * (dx === 0 ? 0 : probe.w / 2 + gap * 0.75),
+          y: pt.at.y + dy * (dy === 0 ? 0 : probe.h / 2 + gap * 0.65),
+        };
+        const box = labelBox(pt.label, at, fontSize);
+        let penalty = 0;
+        for (const s of segments) if (segmentIntersectsBox(s.from, s.to, box)) penalty += 120;
+        for (const a of axes) if (segmentIntersectsBox(a.from, a.to, box)) penalty += 35;
+        for (const other of placed) if (boxesOverlap(box, other)) penalty += 100;
+        for (const obs of obstacles) if (boxesOverlap(box, obs)) penalty += 90;
+        if (bounds && !inside(box, bounds)) penalty += 60;
+
+        if (best === null || penalty < best.penalty) best = { at, box, penalty };
+        if (penalty === 0) break outer;
+      }
+    }
+    const chosen = best as { at: Point; box: Area };
+    placed.push(chosen.box);
+    return chosen.at;
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Diagrams
 // ---------------------------------------------------------------------------
 
