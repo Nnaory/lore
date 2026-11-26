@@ -24,9 +24,9 @@ inclusion: always
 - Jangan pernah menaruh API key atau password di kode atau di steering ini. Pakai `.env`.
 
 ## Test
-- **Frontend:** 85 file `*.test.ts(x)` di `frontend/tests/` (922 test, 22 Nov 2026, dijalankan dengan Zod 3). Dikelompokkan per domain: contracts, story, schemas, ingest, campaign, knowledge, setup, stage, game, generation, state, api health, ascii, cast, dialogue, home, ui, lib. Fixture di `frontend/tests/fixtures/`; `backend-fetch.ts` melayani fixture AI backend.
+- **Frontend:** Vitest di `frontend/tests/` (dijalankan dengan Zod 3). Dikelompokkan per domain: contracts, story, schemas, ingest, campaign, knowledge, setup, stage, game, generation, state, api health, ascii, cast, dialogue, home, ui, lib. Fixture di `frontend/tests/fixtures/`; `backend-fetch.ts` melayani fixture AI backend.
 - Environment default `node`. File yang butuh DOM memakai docblock `@vitest-environment jsdom`.
 - `frontend/tests/setup.ts` memuat jest-dom dan `fake-indexeddb/auto`, menambah polyfill `Blob.text/arrayBuffer`, dan memperbaiki localStorage di Node 25.
-- **Backend:** `backend/tests/` (595 passed + 57 skip tanpa Postgres, 21 Nov 2026). Test DB memakai service container `postgres:16-alpine` di CI (`alembic upgrade head` + `pytest`); test AI tidak butuh Postgres atau jaringan.
+- **Backend:** `backend/tests/` (suite AI berjalan tanpa Postgres atau jaringan; 57 tes DB memakai service container `postgres:16-alpine` di CI dengan `alembic upgrade head` + `pytest`).
 - **Infra checkers:** `scripts/ci/test-checkers.py` (`7` unit test) + `check-cost-static`.
-- Status (22 Nov 2026, lokal): lint web 0 error / 0 warning, `tsc --noEmit`, `npm run build`, Vitest 922 passed (85 file, golden 40/40), ruff clean, Pytest 595 passed. Terraform belum divalidasi lokal untuk perubahan AI (CI `ci/terraform`).
+- Status lokal saat rilis terbaru: lint web 0 error / 0 warning, `tsc --noEmit`, `npm run build`, Vitest & golden parity 40/40 lulus, ruff clean, Pytest AI lulus. Terraform divalidasi di CI `ci/terraform`.

@@ -20,12 +20,13 @@ fileMatchPattern: ["frontend/src/lib/game/**", "frontend/src/lib/story/**", "fro
 - **`use-story-player.ts`**: state React plus HP. `retryStory` me-reset posisi dan HP; knowledge tetap.
 - **`src/lib/campaign/use-campaign.ts`**: CampaignState, lobby, `onKnowledgeUpdate`.
 - **`CampaignPlayer`** merender `CampaignSummary`, `CampaignLobby`, atau `StoryViewer`. `StoryViewer` di-key dengan `story_id` supaya remount tiap ganti story.
-- **`StoryViewer`** adalah stage 3 panel:
-  - `StageNavbar`;
-  - `StageCharacter`: SVG berlapis. Emosi diturunkan dari kata kunci ekspresi lewat `emotion.ts`, aksesori dipilih per genre;
-  - `StageCanvas`: Remotion Player 1280×720 @30fps dengan komposisi `ambient` (loop 300 frame), `lesson`, `visual`, `decision`. Mode `fast` langsung membuka frame terakhir. Player hanya di-mount di client;
-  - `StagePuzzle`: maksimal 4 pilihan, berupa tombol HTML di atas `DecisionGraph`;
-  - `ChatBox`: efek typewriter, toggle `fast|animate`, tombol `log chat` yang membuka `ChatLog`.
+- **`StoryViewer`** adalah stage penuh layar (`lore-grid-bg` tanpa labu):
+  - `StageHud` (bar penuh lebar layar, `bg-ink`);
+  - `StageScene`: scene ASCII prosedural (`city_gate`) penuh layar di bawah HUD;
+  - `StageSprite`: figur ASCII `renderCharacter` (desktop `z 20` di depan kotak dialog; phone `z 5` di belakang);
+  - `StageCanvas`: Remotion Player 1280×720 @30fps dengan komposisi `ambient` (loop 300 frame), `lesson`, `visual`, `puzzle` (gambar rancangan AI + pertanyaan besar), dan `decision` (hanya pertanyaan, tanpa kotak jawaban). Mode `fast` langsung membuka frame terakhir. Player hanya di-mount di client;
+  - Puzzle di Stage: `CanvasPane` menggambar `CanvasFrame` (`puzzle` bila `puzzle.visual` ada, atau `decision`), dan pada desktop meletakkan `PuzzleFeedback`, `ChoiceButton` (maksimal 4, tumbuh sampai 4 baris), dan `PuzzleActions` di bawah `CanvasFrame`. Di mobile, kotak dialog membesar dengan `PuzzleFeedback` tersemat di atas pilihan vertikal (`flex-col`). `StagePuzzle` (overlay lama) tidak dipakai UI;
+  - `StageDialogue` / `DialogueBox`: efek typewriter, paginasi `3×68` desktop (`entryKey`), toggle `fast|animate`, tombol `log chat` yang membuka `ChatLog`.
 - Ending "baik" adalah scene ending pertama di story. Ending bad branch ditaruh setelahnya.
 - Fitur avatar pemain (kartu di home, `src/lib/avatar`, `src/lib/ascii`, figur di `AmbientScene`/`DecisionGraph`) dihapus 17 Nov 2026. Key `lore:avatar` yang mungkin tersisa di localStorage pengguna lama tidak dibaca lagi.
 

@@ -21,21 +21,10 @@ button:focus-visible,input:focus-visible{outline:2px solid #FF7A18;outline-offse
 </helmet>
 <div style="position: relative; width: 1440px; height: 900px; overflow: hidden; background-color: #0F0F12; background-image: linear-gradient(rgba(244,239,230,0.035) 1px, transparent 1px), linear-gradient(90deg, rgba(244,239,230,0.035) 1px, transparent 1px); background-size: 24px 24px; font-family: 'Space Grotesk', sans-serif; color: #F4EFE6">
 
-  <!-- background jack-o'-lanterns (procedural ASCII) -->
-  <sc-if value="{{showPumpkins}}" hint-placeholder-val="{{ true }}">
-  <sc-for list="{{pumpkins}}" as="p" hint-placeholder-count="5">
-    <div aria-hidden="true" style="position: absolute; left: {{p.x}}px; top: {{p.y}}px">
-      <sc-for list="{{p.layers}}" as="l" hint-placeholder-count="4">
-        <pre style="position: absolute; left: 0; top: 0; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: {{p.fs}}px; line-height: {{p.fs}}px; white-space: pre; color: {{l.color}}; opacity: {{l.op}}">{{l.text}}</pre>
-      </sc-for>
-    </div>
-  </sc-for>
-  </sc-if>
-
   <!-- HUD -->
-  <header style="position: absolute; left: 0; top: 0; width: 1440px; height: 64px; box-sizing: border-box; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; background: #0F0F12; border-bottom: 1px solid #2A2A2E">
+  <header style="position: absolute; left: 0; top: 0; width: 1440px; height: 64px; box-sizing: border-box; padding: 0 24px; display: flex; align-items: center; justify-content: space-between; background: #0F0F12; border-bottom: 1px solid #2A2A2E; z-index: 50">
     <div style="display: flex; align-items: center; gap: 12px; width: 300px">
-      <button aria-label="Leave story" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: transparent; border: 2px solid #2A2A2E; color: #F4EFE6; cursor: pointer; padding: 0">
+      <button aria-label="Exit story" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: #0F0F12; border: 2px solid #2A2A2E; color: #F4EFE6; cursor: pointer; padding: 0">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>
       </button>
       <span style="font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 14px; letter-spacing: 0.4em; color: #C9A227">LORE</span>
@@ -57,69 +46,68 @@ button:focus-visible,input:focus-visible{outline:2px solid #FF7A18;outline-offse
     </div>
   </header>
 
-  <!-- STAGE 16:9 -->
-  <main style="position: absolute; left: 120px; top: 92px; width: 1200px; height: 675px; overflow: hidden; background: #0F0F12; outline: 2px solid #2A2A2E">
+  <!-- FULL-SCREEN STAGE -->
+  <main style="position: absolute; left: 0; top: 64px; width: 1440px; height: 836px; overflow: hidden">
 
-    <!-- procedural scene: Outer Gate, Veiled City -->
-    <div aria-hidden="true" style="position: absolute; left: 0; top: 0; opacity: {{sceneDim}}">
+    <!-- procedural scene: Outer Gate, Veiled City (scaled to fill stage) -->
+    <div aria-hidden="true" style="position: absolute; left: 0; right: 0; bottom: 0; top: 0; opacity: {{sceneDim}}; overflow: hidden">
       <sc-for list="{{scene}}" as="l" hint-placeholder-count="8">
-        <pre style="position: absolute; left: 0; top: 0; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 12px; white-space: pre; color: {{l.color}}; opacity: {{l.op}}">{{l.text}}</pre>
+        <pre style="position: absolute; left: 0; bottom: 0; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14.37px; line-height: 14.37px; white-space: pre; color: {{l.color}}; opacity: {{l.op}}">{{l.text}}</pre>
       </sc-for>
     </div>
 
-    <!-- Remotion canvas window -->
-    <section aria-label="Interactive canvas" style="position: absolute; left: 432px; top: 32px; width: 736px; height: 414px; box-sizing: border-box; background: #0F0F12; border: 2px solid #2A2A2E">
-      <span aria-hidden="true" style="position: absolute; left: -2px; top: -2px; width: 14px; height: 14px; border-left: 2px solid #C9A227; border-top: 2px solid #C9A227"></span>
-      <span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 14px; height: 14px; border-right: 2px solid #C9A227; border-top: 2px solid #C9A227"></span>
-      <span aria-hidden="true" style="position: absolute; left: -2px; bottom: -2px; width: 14px; height: 14px; border-left: 2px solid #C9A227; border-bottom: 2px solid #C9A227"></span>
-      <span aria-hidden="true" style="position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-right: 2px solid #C9A227; border-bottom: 2px solid #C9A227"></span>
+    <!-- Remotion canvas window + external puzzle controls below -->
+    <div style="position: absolute; left: 472px; top: 14px; width: 736px; display: flex; flex-direction: column; align-items: center; gap: 10px">
+      <section aria-label="Interactive canvas" style="position: relative; width: 736px; height: 414px; box-sizing: border-box; background: #0F0F12; border: 2px solid #2A2A2E">
+        <span aria-hidden="true" style="position: absolute; left: -2px; top: -2px; width: 14px; height: 14px; border-left: 2px solid #C9A227; border-top: 2px solid #C9A227"></span>
+        <span aria-hidden="true" style="position: absolute; right: -2px; top: -2px; width: 14px; height: 14px; border-right: 2px solid #C9A227; border-top: 2px solid #C9A227"></span>
+        <span aria-hidden="true" style="position: absolute; left: -2px; bottom: -2px; width: 14px; height: 14px; border-left: 2px solid #C9A227; border-bottom: 2px solid #C9A227"></span>
+        <span aria-hidden="true" style="position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-right: 2px solid #C9A227; border-bottom: 2px solid #C9A227"></span>
 
-      <div style="position: absolute; left: 18px; top: 14px; right: 18px; display: flex; align-items: center; justify-content: space-between">
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #C9A227">CANVAS <span style="color: #A8A49C; letter-spacing: 0">/ beacon_ignition</span></span>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; padding: 4px 8px; background: {{chipBg}}; color: #0F0F12">{{chip}}</span>
-      </div>
+        <div style="position: absolute; left: 18px; top: 14px; right: 18px; display: flex; align-items: center; justify-content: space-between">
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.18em; color: #C9A227">CANVAS <span style="color: #A8A49C; letter-spacing: 0">/ beacon_ignition</span></span>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700; letter-spacing: 0.12em; padding: 4px 8px; background: {{chipBg}}; color: #0F0F12">{{chip}}</span>
+        </div>
 
-      <!-- fire triangle puzzle -->
-      <svg aria-hidden="true" width="320" height="214" viewBox="0 0 320 214" style="position: absolute; left: 206px; top: 52px">
-        <path d="M160 18 L22 196" stroke="#F4EFE6" stroke-opacity="0.45" stroke-width="2" fill="none"></path>
-        <path d="M22 196 L298 196" stroke="#F4EFE6" stroke-opacity="0.45" stroke-width="2" fill="none"></path>
-        <path d="M160 18 L298 196" stroke="#FF7A18" stroke-width="2" stroke-dasharray="{{edgeDash}}" fill="none"></path>
-      </svg>
-      <pre aria-hidden="true" style="position: absolute; left: 335px; top: 122px; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 14px; white-space: pre; color: #FF7A18; opacity: {{flameOp}}">   *
+        <!-- fire triangle puzzle -->
+        <svg aria-hidden="true" width="320" height="214" viewBox="0 0 320 214" style="position: absolute; left: 206px; top: 72px">
+          <path d="M160 18 L22 196" stroke="#F4EFE6" stroke-opacity="0.45" stroke-width="2" fill="none"></path>
+          <path d="M22 196 L298 196" stroke="#F4EFE6" stroke-opacity="0.45" stroke-width="2" fill="none"></path>
+          <path d="M160 18 L298 196" stroke="#FF7A18" stroke-width="2" stroke-dasharray="{{edgeDash}}" fill="none"></path>
+        </svg>
+        <pre aria-hidden="true" style="position: absolute; left: 335px; top: 142px; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 14px; line-height: 14px; white-space: pre; color: #FF7A18; opacity: {{flameOp}}">   *
   ***
  **@**
  *@@@*
   *@*</pre>
-      <div style="position: absolute; left: 314px; top: 50px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #0F0F12; border: 2px solid #C9A227; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #C9A227">HEAT</div>
-      <div style="position: absolute; left: 176px; top: 230px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #0F0F12; border: 2px solid #C9A227; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #C9A227">FUEL</div>
-      <div style="position: absolute; left: 452px; top: 230px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: {{slotBg}}; border: 2px {{slotBorder}} #FF7A18; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: {{slotInk}}">{{slotText}}</div>
+        <div style="position: absolute; left: 314px; top: 70px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #0F0F12; border: 2px solid #C9A227; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #C9A227">HEAT</div>
+        <div style="position: absolute; left: 176px; top: 250px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: #0F0F12; border: 2px solid #C9A227; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: #C9A227">FUEL</div>
+        <div style="position: absolute; left: 452px; top: 250px; width: 104px; height: 36px; box-sizing: border-box; display: flex; align-items: center; justify-content: center; background: {{slotBg}}; border: 2px {{slotBorder}} #FF7A18; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; color: {{slotInk}}">{{slotText}}</div>
 
-      <div style="position: absolute; left: 0; right: 0; top: 284px; display: flex; flex-direction: column; align-items: center; gap: 10px">
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">Pick the element that completes the beacon's flame</span>
-        <div style="display: flex; gap: 10px">
-          <sc-for list="{{tokens}}" as="t" hint-placeholder-count="3">
-            <button onClick="{{t.pick}}" style="height: 44px; min-width: 112px; padding: 0 16px; box-sizing: border-box; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; background: {{t.bg}}; color: {{t.ink}}; border: 2px solid {{t.line}}">{{t.label}}</button>
-          </sc-for>
+        <!-- player bar -->
+        <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 40px; box-sizing: border-box; padding: 0 12px 0 4px; display: flex; align-items: center; gap: 12px; border-top: 1px solid #2A2A2E">
+          <button aria-label="Play animation" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #F4EFE6; cursor: pointer; padding: 0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg>
+          </button>
+          <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A8A49C">{{time}}</span>
+          <div aria-hidden="true" style="position: relative; flex-grow: 1; height: 4px; background: #2A2A2E">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{progress}}%; background: #FF7A18"></div>
+            <span style="position: absolute; left: 20%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
+            <span style="position: absolute; left: 47%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
+            <span style="position: absolute; left: 82%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- player bar -->
-      <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 40px; box-sizing: border-box; padding: 0 12px 0 4px; display: flex; align-items: center; gap: 12px; border-top: 1px solid #2A2A2E">
-        <button aria-label="Play animation" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; color: #F4EFE6; cursor: pointer; padding: 0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"></path></svg>
-        </button>
-        <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A8A49C">{{time}}</span>
-        <div aria-hidden="true" style="position: relative; flex-grow: 1; height: 4px; background: #2A2A2E">
-          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{progress}}%; background: #FF7A18"></div>
-          <span style="position: absolute; left: 20%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
-          <span style="position: absolute; left: 47%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
-          <span style="position: absolute; left: 82%; top: -3px; width: 8px; height: 8px; margin-left: -4px; background: #C9A227; transform: rotate(45deg)"></span>
-        </div>
+      <div style="display: flex; gap: 10px; align-items: center; justify-content: center">
+        <sc-for list="{{tokens}}" as="t" hint-placeholder-count="3">
+          <button onClick="{{t.pick}}" style="min-height: 44px; min-width: 112px; max-width: 220px; padding: 6px 12px; box-sizing: border-box; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.08em; background: {{t.bg}}; color: {{t.ink}}; border: 2px solid {{t.line}}">{{t.label}}</button>
+        </sc-for>
       </div>
-    </section>
+    </div>
 
     <!-- dialogue box -->
-    <section aria-label="Dialogue" style="position: absolute; left: 300px; top: 470px; width: 876px; height: 181px; box-sizing: border-box; background: #F4EFE6; border: 3px solid #0F0F12; box-shadow: 0 0 0 2px #F4EFE6; color: #0F0F12; display: flex; flex-direction: column">
+    <section aria-label="Dialogue" style="position: absolute; left: 344px; top: 614px; width: 960px; height: 181px; box-sizing: border-box; background: #F4EFE6; border: 3px solid #0F0F12; box-shadow: 0 0 0 2px #F4EFE6; color: #0F0F12; display: flex; flex-direction: column">
       <div style="position: absolute; left: 96px; top: -18px; height: 30px; box-sizing: border-box; padding: 0 12px; display: flex; align-items: center; gap: 10px; background: #0F0F12; border: 2px solid #F4EFE6">
         <span style="font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 700; letter-spacing: 0.16em; color: #C9A227">ELDRIC</span>
         <span style="font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #A8A49C">Keeper of the Beacon</span>
@@ -143,23 +131,20 @@ button:focus-visible,input:focus-visible{outline:2px solid #FF7A18;outline-offse
     </section>
 
     <!-- Eldric (paper-doll -> ASCII), in front of the box like a VN sprite -->
-    <div aria-label="Eldric" role="img" style="position: absolute; left: 20px; top: 99px; width: 317px; height: 576px">
+    <div aria-label="Eldric" role="img" style="position: absolute; left: 64px; top: 260px; width: 317px; height: 576px">
       <sc-for list="{{eldric}}" as="l" hint-placeholder-count="10">
         <pre aria-hidden="true" style="position: absolute; left: 0; top: 0; margin: 0; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 12px; white-space: pre; color: {{l.color}}; opacity: {{l.op}}">{{l.text}}</pre>
       </sc-for>
     </div>
-  </main>
 
-  <!-- footer hints -->
-  <div style="position: absolute; left: 0; width: 1440px; top: 800px; display: flex; justify-content: center; gap: 28px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">
-    <span><span style="color: #F4EFE6">SPACE</span> next line</span>
-    <span><span style="color: #F4EFE6">F</span> fast / animate</span>
-    <span><span style="color: #F4EFE6">L</span> log chat</span>
-    <span><span style="color: #F4EFE6">/</span> ask Eldric</span>
-  </div>
+    <!-- footer hints -->
+    <div style="position: absolute; left: 0; width: 1440px; top: 806px; display: flex; justify-content: center; gap: 28px; font-family: 'JetBrains Mono', monospace; font-size: 12px; color: #A8A49C">
+      <span style="background: #0F0F12; padding: 2px 10px"><span style="color: #F4EFE6">SPACE</span> next line · <span style="color: #F4EFE6">F</span> fast / animate · <span style="color: #F4EFE6">L</span> log chat</span>
+    </div>
+  </main>
 </div>
 </x-dc>
-<script type="text/x-dc" data-dc-script data-props='{"expression":{"editor":"enum","options":["auto","calm","worried","smile"],"default":"auto","section":"Character"},"sceneSeed":{"editor":"int","min":1,"max":999,"default":7,"section":"Scene"},"sceneDim":{"editor":"range","min":0.2,"max":1,"step":0.05,"default":0.85,"section":"Scene"},"showPumpkins":{"editor":"boolean","default":true,"section":"Background"},"$preview":{"width":1440,"height":900}}'>
+<script type="text/x-dc" data-dc-script data-props='{"expression":{"editor":"enum","options":["auto","calm","worried","smile"],"default":"auto","section":"Character"},"sceneSeed":{"editor":"int","min":1,"max":999,"default":7,"section":"Scene"},"sceneDim":{"editor":"range","min":0.2,"max":1,"step":0.05,"default":0.85,"section":"Scene"},"showPumpkins":{"editor":"boolean","default":false,"section":"Background"},"$preview":{"width":1440,"height":900}}'>
 class Component extends DCLogic {
   state = { pick: null, mode: 'animate' };
 

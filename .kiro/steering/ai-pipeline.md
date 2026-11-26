@@ -38,7 +38,7 @@ Bentuk data penting:
   - `puzzle` punya `puzzle_id` dan `on_incorrect_scene_id` (peta pilihan salah ke scene bad branch);
   - `ending` punya `ending_id`.
 - **`LessonVisual`** (`types/visual.ts`): `vectors | plot | diagram | table | formula`. Berupa JSON yang digambar Remotion, jadi label dan angka selalu persis seperti yang ditulis.
-- **Puzzle**: hanya pilihan ganda (`correct_choice_id`, `retry_allowed`).
+- **Puzzle**: hanya pilihan ganda (`correct_choice_id`, `retry_allowed`). Boleh membawa `visual?` (salah satu dari lima primitif `LessonVisual`, dirancang AI sebagai gambar masalahnya, bagian yang ditanyakan ditandai `?`, tidak boleh membocorkan jawaban). Visual tidak valid dibuang tanpa menggagalkan puzzle, dan project lama tanpa `visual` tetap valid (field opsional di Zod dan Pydantic).
 
 ## Generasi
 **Client** (`frontend/src/lib/generation/{generation.ts,use-generation.ts,ai-endpoints.ts}`), berjalan bertahap:
@@ -72,6 +72,7 @@ Catatan client:
 | 503 | `PROVIDER_UNAVAILABLE`, `PROVIDER_NOT_CONFIGURED`, `RATE_LIMITED`/`TIMEOUT` dari Gemini |
 | 500 | `UNKNOWN` |
 
+- **Batas panjang teks:** semua teks cerita tampil di kotak dialog yang muat 3 baris × 68 karakter, jadi `MAX_CHUNK_CHARS = 180` (`backend/app/ai/chunking.py`, kembar di `frontend/src/lib/dialogue/pagination.ts`, dijaga satu tes). System prompt dan prompt menyebut batas itu serta batas per field (lesson body 400, intro 360, ending 400, `narrative_context` 140, `question` 200, jawaban 80, `explanation` 180, `correct_feedback`/`incorrect_feedback` 140 karakter). `merge_story_content` memecah `narration`, `dialogue`, `learning_info.body`, serta `puzzle.narrative_context` yang melebihi `limit - 33` (memindahkan potongan awal ke narasi scene sebelumnya). Teks legacy/demo yang masih panjang dipaginasi frontend (`paginateText`).
 - Batas (env, `limits.py`): `AI_RATE_PER_MINUTE_IP=12`, `AI_RATE_PER_MINUTE_OWNER=12`, `AI_DAILY_PER_IP=200`, `AI_MAX_CONCURRENT_PER_IP=2`, `AI_MAX_CONCURRENT_GLOBAL=8`. Limiter di memori proses.
 - Tidak ada provider dummy di runtime. Tanpa key: `PROVIDER_NOT_CONFIGURED` (503), pesan UI "AI belum diatur". Analisis tanpa konsep atau tanpa `source_evidence`: `MATERIAL_ANALYSIS_FAILED` (422).
 

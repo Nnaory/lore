@@ -16,8 +16,8 @@ Web app "interactive learning visual novel". Pengguna memberi materi berupa file
 - Fitur v2 seperti LangGraph, SSE, AI grilling, credit simulation, route `/stage`, dan `/api/chat/in-character` belum ada.
 - Pipeline AI (hanya Gemini) berjalan di backend `backend/app/ai/` (`/api/v1/ai/*`), port 1:1 dari route Next.js lama. Tanpa key proses berhenti dengan peringatan, tidak ada konsep palsu. Kode Next.js lama tersimpan di branch `backup/dev-before-fe-ai-removal`. Rilis production dengan key di SSM belum dilakukan (lihat `docs/infra/11-ai-backend-migration.md`).
 - Input `type something` sudah ada, tapi disabled ("coming soon").
-- Puzzle belum berupa primitive Remotion interaktif (`pause_for_interaction_at_frame` tidak ada). Puzzle saat ini adalah pilihan ganda: tombol HTML di atas komposisi `DecisionGraph`.
-- Yang sudah ada: stage 3 panel, toggle `fast | animate`, `log chat`, Remotion player, serta infra Terraform + GitHub Actions CI/CD di `infra/`, `deploy/`, dan `.github/workflows/`.
+- Puzzle berupa pilihan ganda dengan kontrol `ChoiceButton` di bawah kanvas Remotion (`PuzzleBoard` bila AI mengirim `puzzle.visual`, atau `DecisionGraph` bila tidak). `StagePuzzle` tidak dipakai UI.
+- Yang sudah ada: stage penuh layar (`StageHud`, `StageScene`, `CanvasPane`, `StageSprite`, `StageDialogue`), toggle `fast | animate`, `log chat`, Remotion player, serta infra Terraform + GitHub Actions CI/CD di `infra/`, `deploy/`, dan `.github/workflows/`.
 
 Jadikan kode sumber kebenaran. Docs desain v2 adalah visi.
 
