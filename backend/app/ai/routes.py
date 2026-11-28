@@ -14,7 +14,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse, Response
 
 from app.ai.animation.endpoint import create_animation
+from app.ai.ask_question import ask_question
 from app.ai.campaign_planner import plan_campaign
+from app.ai.contracts.ask import AskQuestionRequest
 from app.ai.contracts.requests import (
     AnalyzeMaterialRequest,
     GenerateStoryRequest,
@@ -22,6 +24,7 @@ from app.ai.contracts.requests import (
 )
 from app.ai.limits import (
     ANALYZE_MATERIAL_BODY_BYTES,
+    ASK_QUESTION_BODY_BYTES,
     GENERATE_STORY_BODY_BYTES,
     PLAN_CAMPAIGN_BODY_BYTES,
 )
@@ -52,6 +55,13 @@ GENERATE_STORY = AiEndpoint(
     run=generate_story,
 )
 
+ASK_QUESTION = AiEndpoint(
+    name="ask-question",
+    request_model=AskQuestionRequest,
+    body_limit=ASK_QUESTION_BODY_BYTES,
+    run=ask_question,
+)
+
 
 # No body parameter: FastAPI would read the whole body before our cap runs.
 @router.post("/analyze-material", include_in_schema=False)
@@ -70,6 +80,12 @@ async def plan_campaign_route(request: Request) -> JSONResponse:
 async def generate_story_route(request: Request) -> JSONResponse:
     """Story Generator (Layer 3): campaign + one story entry + material -> StoryBlueprint."""
     return await handle_ai_request(request, GENERATE_STORY)
+
+
+@router.post("/ask", include_in_schema=False)
+async def ask_question_route(request: Request) -> JSONResponse:
+    """Mid-story Q&A: learner question + materials/story/scene context -> tutor reply."""
+    return await handle_ai_request(request, ASK_QUESTION)
 
 
 @router.post("/animations", include_in_schema=False)

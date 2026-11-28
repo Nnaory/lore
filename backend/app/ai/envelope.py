@@ -62,6 +62,9 @@ _UNPROCESSABLE = frozenset(
         "CONCEPT_COVERAGE",
         "REQUIRED_KNOWLEDGE_SELF_REFERENCE",
         "REQUIRED_KNOWLEDGE_UNTESTABLE",
+        # Mid-story Q&A: invalid scene pointer or asking while a puzzle/ending is active.
+        "SCENE_NOT_IN_STORY",
+        "ASK_NOT_ALLOWED_IN_SCENE",
         # Lesson animations: the policy refused (per-owner quota) or the code never verified.
         "ANIMATION_QUOTA_EXCEEDED",
         "ANIMATION_VERIFICATION_FAILED",

@@ -16,4 +16,13 @@ export type ChatEntry =
       expressionKey: string;
       text: string;
     }
-  | { kind: "lesson"; title: string; text: string };
+  | { kind: "lesson"; title: string; text: string }
+  | { kind: "question"; text: string }
+  | {
+      kind: "answer";
+      characterId: string;
+      name: string;
+      expression: string;
+      expressionKey: string;
+      text: string;
+    };

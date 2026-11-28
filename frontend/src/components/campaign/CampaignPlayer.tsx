@@ -130,6 +130,8 @@ export function CampaignPlayer({
       key={`${activeStory.story_id}:${playRunKey}`}
       story={activeStory}
       characters={campaign.characters}
+      campaign={campaign}
+      materials={materials}
       genre={campaign.genre}
       onStoryComplete={onStoryComplete}
       onExit={onExitStory}

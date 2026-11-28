@@ -35,6 +35,37 @@ export const BUILD_MESSAGES = {
     "An animation could not be added to the story. The standard drawing will be used.",
 } as const;
 
+/** Error messages specific to mid-story Q&A (`POST /api/v1/ai/ask`). */
+export const ASK_MESSAGES = {
+  network: "Couldn't reach the server to answer right now. Try asking again.",
+  notConfigured: BUILD_MESSAGES.notConfigured,
+  busy: "The AI tutor is busy right now. Wait a moment, then ask again.",
+  invalidRequest: "Your question couldn't be sent. Try shortening it and ask again.",
+  notAllowed: "Finish the current puzzle before asking a question.",
+  unexpected: "Couldn't answer your question right now. Try again.",
+} as const;
+
+/** A user-facing message for a mid-story Q&A error code. */
+export function askErrorMessage(code: string): string {
+  switch (code) {
+    case "NETWORK":
+      return ASK_MESSAGES.network;
+    case "PROVIDER_NOT_CONFIGURED":
+      return ASK_MESSAGES.notConfigured;
+    case "PROVIDER_UNAVAILABLE":
+    case "RATE_LIMITED":
+    case "TIMEOUT":
+      return ASK_MESSAGES.busy;
+    case "INVALID_REQUEST":
+    case "SCENE_NOT_IN_STORY":
+      return ASK_MESSAGES.invalidRequest;
+    case "ASK_NOT_ALLOWED_IN_SCENE":
+      return ASK_MESSAGES.notAllowed;
+    default:
+      return ASK_MESSAGES.unexpected;
+  }
+}
+
 /** A user-facing message for an AI route error code. */
 export function messageForCode(code: string): string {
   switch (code) {

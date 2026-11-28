@@ -6,7 +6,7 @@
  * lives in one place.
  */
 
-export type AiStep = "analyze-material" | "plan-campaign" | "generate-story" | "animations";
+export type AiStep = "analyze-material" | "plan-campaign" | "generate-story" | "animations" | "ask";
 
 /** The POST URL of an AI step. */
 export function aiUrl(step: AiStep): string {

@@ -110,6 +110,7 @@ export function DialogueBox({
           className="flex min-w-0 flex-1 items-center gap-2.5 px-3 md:pl-24"
           onSubmit={(e) => {
             e.preventDefault();
+            if (askDisabled) return;
             const input = e.currentTarget.elements.namedItem('ask') as HTMLInputElement;
             if (input.value.trim()) onAsk?.(input.value.trim());
             input.value = '';
@@ -120,6 +121,7 @@ export function DialogueBox({
           <input
             id="lore-ask"
             name="ask"
+            maxLength={1000}
             data-testid={testIds?.ask}
             disabled={askDisabled}
             placeholder={askPlaceholder}

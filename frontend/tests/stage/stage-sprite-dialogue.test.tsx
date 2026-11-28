@@ -144,13 +144,13 @@ describe("StageDialogue", () => {
     expect(onAdvance).toHaveBeenCalledTimes(1);
   });
 
-  it("tags lessons and keeps the ask input disabled", () => {
+  it("tags lessons and renders the active ask placeholder by default", () => {
     setup({ kind: "lesson", title: "Vectors", text: "Body" }, "fast");
     expect(screen.getByTestId("character-name").textContent).toContain("LESSON");
     expect(screen.getByTestId("learning-card").getAttribute("aria-label")).toBe("Learning: Vectors");
     const ask = screen.getByTestId("ask-input") as HTMLInputElement;
-    expect(ask.disabled).toBe(true);
-    expect(ask.placeholder).toContain("coming soon");
+    expect(ask.disabled).toBe(false);
+    expect(ask.placeholder).toContain("Ask a character something");
   });
 
   it("resets pagination to page 0 when entryKey changes even with identical text", () => {

@@ -34,8 +34,9 @@
 
 import { useEffect, useCallback, useMemo, useRef, useState, type ReactNode } from "react";
 import type { StoryBlueprint } from "@/lib/types/story";
-import type { Character, Genre } from "@/lib/types/campaign";
+import type { CampaignBlueprint, Character, Genre } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
+import type { MaterialBlueprint } from "@/lib/types/material";
 import type { Scene, SceneContent } from "@/lib/types/scene";
 import type { AnimationReference } from "@/lib/types/animation";
 import { readAnimationsFlag } from "@/lib/animation/flags";
@@ -80,10 +81,15 @@ import { Button } from "@/components/ui/Button";
 import { ErrorLine } from "@/components/ui/ErrorLine";
 import { Icon } from "@/components/ui/Icon";
 import { Modal } from "@/components/ui/Modal";
+import { useAskQuestion } from "./use-ask-question";
 
 type StoryViewerProps = {
   story: StoryBlueprint;
   characters: Character[];
+  /** Campaign metadata and cast personas used for mid-story Q&A context. */
+  campaign?: CampaignBlueprint;
+  /** Analyzed source materials used as full educational context for Q&A. */
+  materials?: MaterialBlueprint[];
   /** Campaign genre. Unused since the ASCII cast replaced the genre accessories; kept so callers compile. */
   genre?: Genre;
   /** Called when the player completes the story and chooses "Continue Campaign". */
@@ -147,6 +153,21 @@ function speakerFor(scene: Scene | null, blockIndex: number, characters: Charact
   return { character: (present && byId.get(present)) || characters[0] };
 }
 
+function askPlaceholderFor(opts: {
+  isAsking: boolean;
+  sceneType: Scene["type"] | undefined;
+  canAsk: boolean;
+  speakerName: string;
+  phone: boolean;
+}): string {
+  if (opts.isAsking) return `Asking ${opts.speakerName}…`;
+  if (opts.sceneType === "puzzle") {
+    return opts.phone ? "Solve puzzle first" : `Finish the puzzle to ask ${opts.speakerName}…`;
+  }
+  if (!opts.canAsk) return "Story ended";
+  return opts.phone ? `Ask ${opts.speakerName}…` : `Ask ${opts.speakerName} something…`;
+}
+
 /**
  * The scene to hand to `CanvasPane`: `fallback` itself (the same object) without a reference, or
  * an `animation` scene that carries `fallback` as its Fallback_Scene. The caller passes no
@@ -192,6 +213,8 @@ function overlay(layout: StageLayout, children: ReactNode) {
 export function StoryViewer({
   story,
   characters,
+  campaign,
+  materials,
   onStoryComplete,
   onExit,
   isCampaignComplete = false,
@@ -339,8 +362,39 @@ export function StoryViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entryKey]);
 
+  const appendLogEntry = useCallback((item: ChatEntry) => {
+    setLog((prev) => [...prev, item]);
+  }, []);
+
+  // ── Character on stage & mid-story Q&A ────────────────────────────────────
+  const speaker = speakerFor(currentScene, blockIndex, characters);
+  const canAsk = Boolean(
+    !isFailed &&
+      !isComplete &&
+      !navigationError &&
+      currentScene !== null &&
+      currentScene.type !== "puzzle" &&
+      currentScene.type !== "ending"
+  );
+  const { activeQa, isAsking, ask, clearQa, resetQaHistory } = useAskQuestion({
+    story,
+    characters,
+    campaign,
+    materials,
+    sceneId: currentScene?.scene_id,
+    chapterId: currentChapter?.chapter_id,
+    chapterTitle: currentChapter?.title,
+    blockIndex,
+    speaker: speaker.character,
+    recentLog: log,
+    playerKnowledge,
+    canAsk,
+    onAppendLog: appendLogEntry,
+  });
+
   function handleRetry() {
     retryStory();
+    resetQaHistory();
     loggedKeys.current.clear();
     setLog([]);
     setReaction(null);
@@ -348,7 +402,7 @@ export function StoryViewer({
 
   // ── Advancing ──────────────────────────────────────────────────────────────
   const badBranchDone = currentScene !== null && isBadBranchAtEnd(playerState, currentScene);
-  const canAdvance =
+  const canAdvanceStory =
     currentScene !== null &&
     currentScene.type !== "puzzle" &&
     !isComplete &&
@@ -357,14 +411,43 @@ export function StoryViewer({
     playerState.status !== "story_complete" &&
     !badBranchDone;
 
-  // ── Character on stage ─────────────────────────────────────────────────────
-  const speaker = speakerFor(currentScene, blockIndex, characters);
+  // ── Display & emotion (overlay active Q&A reply cleanly over paused beat) ──
   let emotion: Emotion = emotionFor(speaker.expression);
   if (currentBlock?.type === "learning_info") emotion = "explaining";
   if (puzzle) emotion = "thinking";
   if (ending) emotion = ending.type === "success" ? "happy" : "worried";
   if (reaction && reaction.sceneId === currentScene?.scene_id) emotion = reaction.emotion;
   if (isFailed) emotion = "worried";
+
+  let displayEntry: ChatEntry | null = entry;
+  let displayEntryKey = entryKey;
+  let displayCanAdvance = canAdvanceStory;
+  let displayOnAdvance = advance;
+  if (activeQa) {
+    displayEntryKey = activeQa.key;
+    displayCanAdvance = activeQa.status !== "loading";
+    displayOnAdvance = clearQa;
+    if (activeQa.status === "loading") {
+      displayEntry = {
+        kind: "dialogue",
+        characterId: activeQa.characterId,
+        name: activeQa.name,
+        expression: activeQa.expression,
+        expressionKey: activeQa.expressionKey,
+        text: "Thinking…",
+      };
+      emotion = "thinking";
+    } else if (activeQa.status === "answered") {
+      displayEntry = activeQa.entry;
+      emotion = emotionFor(activeQa.entry.expressionKey);
+    } else {
+      displayEntry = { kind: "narration", text: activeQa.message };
+      emotion = "worried";
+    }
+  }
+
+  const askSpeakerName = speaker.character?.name ?? "a character";
+  const askDisabled = !canAsk || isAsking;
 
 
   const castMap = useMemo(() => resolveCampaignCast(characters), [characters]);
@@ -599,15 +682,26 @@ export function StoryViewer({
                     )}
                     <StageDialogue
                       layout={layout}
-                      entry={entry}
-                      entryKey={entryKey}
+                      entry={displayEntry}
+                      entryKey={displayEntryKey}
                       mode={pacing}
                       onModeChange={changePacing}
-                      canAdvance={canAdvance}
-                      onAdvance={advance}
+                      canAdvance={displayCanAdvance}
+                      onAdvance={displayOnAdvance}
                       onOpenLog={() => setShowLog(true)}
                       speakerRole={speaker.character?.role}
                       askName={speaker.character?.name}
+                      onAsk={(question) => {
+                        void ask(question);
+                      }}
+                      askDisabled={askDisabled}
+                      askPlaceholder={askPlaceholderFor({
+                        isAsking,
+                        sceneType: currentScene?.type,
+                        canAsk,
+                        speakerName: askSpeakerName,
+                        phone,
+                      })}
                       modalOpen={modalOpen}
                       boxOverride={
                         phone && puzzle && interaction ? STAGE_BOXES.phone.dialoguePuzzle : undefined
@@ -641,7 +735,7 @@ export function StoryViewer({
                         ) : undefined
                       }
                       actions={
-                        badBranchDone ? (
+                        badBranchDone && !activeQa ? (
                           <Button variant="outline" data-testid="bad-branch-return-btn" onClick={returnToPuzzle}>
                             <Icon name="back" size={16} />
                             Try a different choice

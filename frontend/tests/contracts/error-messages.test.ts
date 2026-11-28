@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { BUILD_MESSAGES, messageForCode } from "@/lib/contracts/error-messages";
+import { ASK_MESSAGES, BUILD_MESSAGES, askErrorMessage, messageForCode } from "@/lib/contracts/error-messages";
 
 describe("messageForCode", () => {
   it("explains a missing configuration separately from a busy provider", () => {
@@ -37,5 +37,17 @@ describe("messageForCode", () => {
 
   it("falls back to a generic message for unknown codes", () => {
     expect(messageForCode("SOMETHING_ELSE")).toBe(BUILD_MESSAGES.unexpected);
+  });
+});
+
+describe("askErrorMessage", () => {
+  it("maps Q&A error codes to friendly messages", () => {
+    expect(askErrorMessage("NETWORK")).toBe(ASK_MESSAGES.network);
+    expect(askErrorMessage("ASK_NOT_ALLOWED_IN_SCENE")).toBe(ASK_MESSAGES.notAllowed);
+    expect(askErrorMessage("RATE_LIMITED")).toBe(ASK_MESSAGES.busy);
+    expect(askErrorMessage("TIMEOUT")).toBe(ASK_MESSAGES.busy);
+    expect(askErrorMessage("INVALID_REQUEST")).toBe(ASK_MESSAGES.invalidRequest);
+    expect(askErrorMessage("PROVIDER_NOT_CONFIGURED")).toBe(ASK_MESSAGES.notConfigured);
+    expect(askErrorMessage("UNKNOWN")).toBe(ASK_MESSAGES.unexpected);
   });
 });

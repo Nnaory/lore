@@ -49,7 +49,7 @@ const BLOCKER_HINT: Record<SubmitBlocker, string> = {
   no_genre: "Choose a world for your story.",
 };
 
-type BuiltCampaign = Pick<GenerationResult, "campaign" | "stories"> & { saveError: string };
+type BuiltCampaign = Pick<GenerationResult, "campaign" | "stories" | "material"> & { saveError: string };
 
 function sourceLabel(doc: ExtractedDocument | null): string {
   if (!doc) return "your text";
@@ -84,7 +84,7 @@ export default function CreatePage() {
         savedAndLeft.current = true;
         router.push(`/play/${saved.value.id}`);
       } else {
-        setBuilt({ campaign, stories, saveError: saved.message });
+        setBuilt({ campaign, stories, material, saveError: saved.message });
       }
     },
   });
@@ -158,7 +158,7 @@ export default function CreatePage() {
         >
           {built.saveError} This story will be lost when you leave the page.
         </div>
-        <CampaignPlayer campaign={built.campaign} stories={built.stories} />
+        <CampaignPlayer campaign={built.campaign} stories={built.stories} materials={[built.material]} />
       </>
     );
   }
