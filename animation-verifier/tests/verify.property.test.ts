@@ -49,13 +49,19 @@ function stripMs(summary: VerifierSummary) {
 }
 
 function normalizeResult(result: VerifierResult) {
-  return {
-    ok: result.ok,
-    diagnostics: result.diagnostics,
-    bundle: result.bundle,
-    meta: result.meta,
-    summary: stripMs(result.summary),
-  };
+  return result.ok
+    ? {
+        ok: true as const,
+        diagnostics: result.diagnostics,
+        bundle: result.bundle,
+        meta: result.meta,
+        summary: stripMs(result.summary),
+      }
+    : {
+        ok: false as const,
+        diagnostics: result.diagnostics,
+        summary: stripMs(result.summary),
+      };
 }
 
 const MUTATIONS: readonly ((source: string) => string)[] = [

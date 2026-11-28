@@ -210,7 +210,8 @@ describe("Tes sentinel log handler (Requirement 32.13)", () => {
   it("sentinel di source dan token tidak muncul pada baris log handler", async () => {
     const logLines: string[] = [];
     const handler = createHandler({
-      load: () => ({ ok: true, contract }),
+      clock: new FakeClock(1_000),
+      loadContract: () => ({ ok: true, contract }),
       writeLine: (line) => {
         logLines.push(line);
       },
