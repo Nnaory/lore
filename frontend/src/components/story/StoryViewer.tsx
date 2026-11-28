@@ -45,6 +45,7 @@ import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { lessonStepInfo } from "@/lib/story/lesson-steps";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
 import { buildCompletionReport, type RunAnswer } from "@/lib/story/completion-report";
+import { assignVoices, puzzleLanguage } from "@/lib/story/voice-council";
 import { loadStoredPacing, motionAllowed, savePacing, type Pacing } from "@/lib/story/pacing";
 import { initialTextMode } from "@/lib/dialogue/typewriter";
 import { CAST_ORDER, resolveCampaignCast, emotionToExpression, pickOtherCharacter } from "@/lib/cast/cast-mapping";
@@ -372,7 +373,7 @@ export function StoryViewer({
   let entry: ChatEntry | null = null;
   if (isFailed) entry = { kind: "narration", text: "You have run out of HP. The story stops here — for now." };
   else if (currentBlock) entry = entryForBlock(currentBlock, characterIndex);
-  else if (puzzle) entry = { kind: "narration", text: `${puzzle.narrative_context} Choose your answer on the board.` };
+  else if (puzzle) entry = { kind: "narration", text: puzzle.narrative_context };
   else if (ending) entry = { kind: "narration", text: `— ${ending.title} —` };
   const entryKey = `${story.story_id}:${currentScene?.scene_id ?? ""}:${blockIndex}:${isFailed ? "failed" : ""}`;
 
@@ -487,7 +488,10 @@ export function StoryViewer({
   );
   const otherCastId = otherCharacter ? castMap.get(otherCharacter.character_id)?.castId : undefined;
 
-  // ── Completion screen (good ending only) ───────────────────────────────────
+  // ── Voice council: who "says" each answer of the puzzle on screen ──────────
+  const puzzleVoices = puzzle ? assignVoices(puzzle, characters, castMap, story.character_ids) : [];
+  const councilLanguage = puzzle ? puzzleLanguage(puzzle) : "en";
+
   const atGoodEnding =
     !navigationError && !isFailed && isComplete && Boolean(ending) && !playerState.returnToPuzzleSceneId;
   const completionReport = useMemo(() => buildCompletionReport(story, answers), [story, answers]);
@@ -700,7 +704,13 @@ export function StoryViewer({
                           label={framed.label}
                           puzzle={
                             puzzle && interaction
-                              ? { puzzle, interaction, onComplete: completePuzzle }
+                              ? {
+                                  puzzle,
+                                  interaction,
+                                  onComplete: completePuzzle,
+                                  voices: puzzleVoices,
+                                  language: councilLanguage,
+                                }
                               : undefined
                           }
                         />
@@ -772,7 +782,12 @@ export function StoryViewer({
                             aria-label={`Puzzle: ${puzzle.question}`}
                             className="flex w-full flex-col gap-1.5"
                           >
-                            <PuzzleChoices puzzle={puzzle} interaction={interaction} gapClass="gap-1.5" />
+                            <PuzzleChoices
+                              puzzle={puzzle}
+                              interaction={interaction}
+                              gapClass="gap-1.5"
+                              voices={puzzleVoices}
+                            />
                             <PuzzleActions
                               interaction={interaction}
                               onComplete={completePuzzle}

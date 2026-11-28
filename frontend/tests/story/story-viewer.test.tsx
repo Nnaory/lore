@@ -467,9 +467,9 @@ describe("StoryViewer — stage", () => {
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
   });
 
-  it("draws the puzzle as a decision graph and reacts to a wrong answer", () => {
+  it("draws the puzzle as a voice council and reacts to a wrong answer", () => {
     const view = advanceToPuzzle();
-    expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("decision");
+    expect(screen.getByTestId("voice-council")).toBeTruthy();
     expect(screen.getByTestId("stage-character").dataset.emotion).toBe("thinking");
     act(() => { fireEvent.click(view.getByTestId("choice-choice_A")); });
     act(() => { fireEvent.click(view.getByTestId("puzzle-submit")); });

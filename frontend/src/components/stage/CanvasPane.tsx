@@ -27,6 +27,11 @@
  * dialogue box, so the pane shows only the canvas and the caller renders
  * `PuzzleChoices` and `PuzzleActions` itself.
  *
+ * Voice council: when the caller passes `voices` (who "says" each answer, see
+ * `lib/story/voice-council.ts`), a puzzle with no picture or animation (desktop) draws its answers
+ * as `VoiceCouncil` inside the frame instead of the question-only canvas; with a picture the canvas
+ * stays and the answer buttons name their speakers. Selecting a voice is selecting an answer.
+ *
  * Right and wrong come only from `usePuzzleInteraction` (which calls
  * `validateMultipleChoice`). The interaction is passed in, so state can be
  * hoisted above the layout switch. This file does no HP or scoring.
@@ -53,8 +58,10 @@ import type { Pacing } from "@/lib/story/pacing";
 import { canvasLabel } from "@/lib/stage/playback";
 import { useCanvasPlayback } from "@/lib/stage/use-canvas-playback";
 import type { Puzzle } from "@/lib/types/puzzle";
+import { VOICE_NAME_CLASS, type CouncilLanguage, type Voice } from "@/lib/story/voice-council";
 import { CANVAS_FPS } from "./canvas-layout";
 import { StageCanvas, sceneDurationFrames, type CanvasScene } from "./StageCanvas";
+import { VoiceCouncil } from "./VoiceCouncil";
 
 export type PuzzleInteraction = ReturnType<typeof usePuzzleInteraction>;
 
@@ -65,6 +72,10 @@ export type CanvasPuzzle = {
   puzzle: Puzzle;
   interaction: PuzzleInteraction;
   onComplete: () => void;
+  /** Who says each answer. With two or more voices the answers are drawn as a voice council. */
+  voices?: Voice[];
+  /** Language of the council's own words (title, "Trust <name>"). Default English. */
+  language?: CouncilLanguage;
 };
 
 /** Literal classes so Tailwind can see them. */
@@ -121,6 +132,10 @@ export function CanvasPane({
   const named = canvasLabel(label);
   const status = puzzle ? (puzzle.interaction.isCorrect ? "resumed" : "paused") : "playing";
   const showControls = puzzle !== undefined && layout === "desktop";
+  // A puzzle with no picture or animation (the canvas would only repeat the question) gets the
+  // voice council in its place; with a picture the canvas stays and the answers name their speakers.
+  const council =
+    showControls && puzzle && scene.kind === "decision" && (puzzle.voices?.length ?? 0) >= 2 ? puzzle : null;
   const keyframes =
     shownAnimation !== null
       ? pauseKeyframes(shownAnimation.duration_in_frames, shownAnimation.pause_at_frame)
@@ -132,21 +147,33 @@ export function CanvasPane({
         label={named.ok ? named.label : "scene"}
         status={status}
         className={`${SIZE[layout]} shrink-0 overflow-hidden ${className ?? ""}`}
+        footerless={council !== null}
         footer={<PlayerBar progress={playback.progress} keyframes={keyframes} time={playback.time} onPlay={onPlay} />}
       >
-        <div className="absolute inset-0 flex min-h-0 flex-col">
-          <div className="min-h-0 flex-1 px-1 py-1" style={{ containerType: "size" }}>
-            <StageCanvas
-              scene={scene}
-              sceneKey={sceneKey}
-              pacing={pacing}
-              playerRef={setPlayer}
-              answerCorrect={puzzle?.interaction.isCorrect}
-              onAnimationStatus={(value) => setReported({ key: sceneKey, value })}
-              bare
-            />
+        {council ? (
+          <VoiceCouncil
+            question={council.puzzle.question}
+            voices={council.voices ?? []}
+            language={council.language ?? "en"}
+            selectedChoiceId={council.interaction.selectedChoiceId}
+            locked={council.interaction.isCorrect}
+            onSelect={council.interaction.select}
+          />
+        ) : (
+          <div className="absolute inset-0 flex min-h-0 flex-col">
+            <div className="min-h-0 flex-1 px-1 py-1" style={{ containerType: "size" }}>
+              <StageCanvas
+                scene={scene}
+                sceneKey={sceneKey}
+                pacing={pacing}
+                playerRef={setPlayer}
+                answerCorrect={puzzle?.interaction.isCorrect}
+                onAnimationStatus={(value) => setReported({ key: sceneKey, value })}
+                bare
+              />
+            </div>
           </div>
-        </div>
+        )}
       </CanvasFrame>
       {showControls && puzzle && (
         <div
@@ -163,7 +190,13 @@ export function CanvasPane({
             maxHeightClassName="max-h-[76px]"
           />
           <div className="flex max-w-full flex-wrap items-center justify-center gap-2.5">
-            <PuzzleChoices puzzle={puzzle.puzzle} interaction={puzzle.interaction} />
+            {!council && (
+              <PuzzleChoices
+                puzzle={puzzle.puzzle}
+                interaction={puzzle.interaction}
+                voices={puzzle.voices}
+              />
+            )}
             <PuzzleActions interaction={puzzle.interaction} onComplete={puzzle.onComplete} />
           </div>
         </div>
@@ -247,11 +280,14 @@ export function PuzzleChoices({
   puzzle,
   interaction,
   gapClass = "gap-2.5",
+  voices,
 }: {
   puzzle: Puzzle;
   interaction: PuzzleInteraction;
   /** Tailwind gap class; the phone dialogue box uses `gap-1.5`. */
   gapClass?: string;
+  /** Who says each answer; the speaker's name is shown above the answer. */
+  voices?: Voice[];
 }) {
   return (
     <div
@@ -262,11 +298,13 @@ export function PuzzleChoices({
     >
       {puzzle.choices.slice(0, MAX_CHOICES).map((choice, i) => {
         const selected = interaction.selectedChoiceId === choice.choice_id;
+        const voice = voices?.find((v) => v.choiceId === choice.choice_id);
         return (
           <ChoiceButton
             key={choice.choice_id}
             label={choice.text}
-            letter={LETTERS[i]}
+            letter={voice ? undefined : LETTERS[i]}
+            speaker={voice ? { name: voice.name, colorClass: VOICE_NAME_CLASS[voice.castId] } : undefined}
             testId={`choice-${choice.choice_id}`}
             ariaPressed={selected}
             disabled={interaction.isCorrect}
