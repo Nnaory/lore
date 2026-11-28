@@ -22,6 +22,8 @@ type CampaignLobbyProps = {
   onStartStory: (storyId: string) => void;
   /** When set, shows a link back to this page (e.g. the saved-stories list). */
   homeHref?: string;
+  /** Text of the home link; defaults to "All stories". */
+  homeLabel?: string;
   /** When set (campaign complete), shows a button to the epilogue and results. */
   onViewResults?: () => void;
 };
@@ -31,6 +33,7 @@ export function CampaignLobby({
   campaignState,
   onStartStory,
   homeHref,
+  homeLabel = "All stories",
   onViewResults,
 }: CampaignLobbyProps) {
   return (
@@ -47,7 +50,7 @@ export function CampaignLobby({
             className="inline-flex min-h-[44px] items-center gap-2 font-mono text-[12px] font-bold text-muted"
           >
             <Icon name="back" size={14} />
-            All stories
+            {homeLabel}
           </Link>
         ) : (
           <span />

@@ -36,6 +36,8 @@ type CampaignPlayerProps = {
   startAtLobby?: boolean;
   /** Link shown in the lobby to leave the campaign (e.g. "/"). */
   homeHref?: string;
+  /** Optional text for the home link/button in the lobby and summary. */
+  homeLabel?: string;
   /** Source materials; give the evaluation concept names and definitions. */
   materials?: MaterialBlueprint[];
 };
@@ -47,6 +49,7 @@ export function CampaignPlayer({
   onStateChange,
   startAtLobby = false,
   homeHref,
+  homeLabel,
   materials,
 }: CampaignPlayerProps) {
   const {
@@ -84,6 +87,7 @@ export function CampaignPlayer({
         <CampaignSummary
           summary={buildLearningSummary({ campaign, stories, state: campaignState, materials })}
           homeHref={homeHref}
+          homeLabel={homeLabel}
           onBackToLobby={() => {
             setShowResults(false);
             onExitStory();
@@ -101,6 +105,7 @@ export function CampaignPlayer({
           campaignState={campaignState}
           onStartStory={onStartStory}
           homeHref={homeHref}
+          homeLabel={homeLabel}
           onViewResults={viewResults}
         />
       </div>
