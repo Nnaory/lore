@@ -214,6 +214,15 @@ Reuse these; extend, don't fork. Every file has a header comment with its reason
 
 Compositions (`stage/compositions.tsx`, `stage/visual-compositions.tsx`) take colour, gradient and shadow from the Kit tokens, not from literal hex: `GOLD` = `var(--color-gold)`, `GOLD_DIM` = gold mixed 70% with ink, `TEXT` = cream, `TEXT_DIM` = muted, `VOID` = ink, `SURFACE` = smoke. Geometry, data, labels, numbers and the `LessonVisual` content are unchanged.
 
+### 8.5 Generation screen (`components/setup`, `components/animation`)
+
+The generation screen (`GenerationScreen`, "Pola K") has no canvas frame: a 680px desktop column, 20px phone padding, transparent so the animated backdrop shows. It is built from Kit parts only.
+
+| Component | Props | Notes |
+|---|---|---|
+| `StepMarker` (`components/setup`) | `status` (`done` \| `active` \| `failed` \| `pending` \| `skipped`) | 12px square, decorative (`aria-hidden`). `done` = gold fill, `active` = ember fill, `pending` = smoke fill, `failed` = ember outline with `!`, `skipped` = muted outline with `-`. Shared by the pipeline steps and the animation rows. |
+| `AnimationProgress` (`components/animation`) | `state` (`stage`, `status`, `animation`), `onRetry?`, `onSkip?` | Section `03 ANIMATIONS` of the generation screen, drawn only when a run has an animating stage (`state.animation !== null`; with `NEXT_PUBLIC_ANIMATIONS` off nothing changes). `k / n` count (`animation-count`), one row per job (`animation-job-<id>`, `data-status`; second line `animation-job-detail-<id>`: stage and attempt, `Ready`, `Skipped`, or the failure message), then the controls: `animation-skip` (outline) while jobs run or wait, `animation-retry` (primary) only while the flow waits for the player. That held state (`data-mode="waiting"`) shows `animation-notice` ("Waiting for your choice. N of M animations are not ready. ..."), because the flow holds `onDone` until the player picks. Buttons are ≥ 44px, full width on phone. What each mode shows comes from `lib/generation/animation-progress.ts`. `GenerationScreen` adds the step `step-animating` ("Animating the lessons") after the story step when the flag is on or the run has an animating phase, and shows `AnimationProgress`'s own hint instead of "This usually takes a few seconds per step." while animating. |
+
 ## 9. Don'ts
 
 Glass/blur/radius/shadows · new colours · emoji · cards · changing generator numbers without updating the golden fixture and this file · hand-drawn character art (always use the generator) · letting the AI send pixels or images.

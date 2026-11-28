@@ -70,6 +70,7 @@ Aliran utama:
 - Instance `api` tidak punya IP publik. Egress ke internet (Gemini, GHCR, SSM) lewat instance `nat`.
 - RDS berada di subnet data tanpa route ke internet. Hanya instance `api` yang boleh mengakses port 5432.
 - Tidak ada SSH. Akses admin dan deploy memakai AWS Systems Manager (Session Manager dan Run Command).
+- Fitur animasi (R14, mati secara default): `api` memanggil fungsi Lambda verifier (di subnet data, tanpa egress) lewat NAT instance dan menyimpan hasil di bucket S3 privat lewat gateway endpoint S3 yang sudah ada. Browser mengunduh hasil langsung dari S3 dengan URL presigned. Diagram dan alurnya ada di [12-remotion-animation.md](./12-remotion-animation.md).
 
 ## 4. Keputusan
 
@@ -87,6 +88,7 @@ Aliran utama:
 | D10 | Guardrail biaya lima lapis dan Budget US$70 per bulan | AWS tidak punya batas pengeluaran keras, jadi harus berlapis | Hanya alert email | [07](./07-cost-guardrails.md) |
 | D11 | File `deploy/**` ditanam ke `user_data` lewat Terraform, tanpa `git clone` | Tetap berfungsi jika repo menjadi privat | `git clone` seperti `zero-to-prod` | [03](./03-compute.md) |
 | D12 | Tag image hanya `sha-<7 char>` (immutable secara konvensi), tanpa `latest` | Rilis bisa dilacak ke commit dan rollback jelas | Tag `latest` | [03](./03-compute.md), [05](./05-cicd.md) |
+| D13 | Fitur animasi (R14): verifier berupa fungsi Lambda container image dari ECR privat, bucket S3 privat untuk hasil, flag mati secara default. Ini pengecualian atas D1: Lambda tidak bisa menarik image dari GHCR | Kode tulisan AI diperiksa di lingkungan terisolasi tanpa egress dan tanpa secret. Biaya tambahan dihitung di dokumen biaya dan butuh persetujuan pengguna bila angka kotornya US$5 atau lebih | Verifier di instance `api` (memori 1 GiB tidak cukup), Fargate (biaya tetap) | [12](./12-remotion-animation.md), [07](./07-cost-guardrails.md) bagian 12.1 |
 
 ## 5. Pembagian: GitHub gratis dan AWS
 
@@ -123,18 +125,22 @@ Semua dokumen memakai nilai di tabel ini.
 | Security group | `lore-prod-web`, `lore-prod-api`, `lore-prod-nat`, `lore-prod-rds` |
 | Port | Caddy 80 dan 443 (web). Next.js 3000 (hanya di jaringan docker web). FastAPI 8000. PostgreSQL 5432 |
 | Prefix API publik | `/api/v1/*` diteruskan Caddy ke api (termasuk pipeline AI `/api/v1/ai/*`). Selain itu ke Next.js |
-| Image | `ghcr.io/nnaory/lore-web`, `ghcr.io/nnaory/lore-api` (huruf kecil wajib). Tag `sha-<7 char>` saja. Label OCI `org.opencontainers.image.source=https://github.com/Nnaory/lore` |
-| Terraform | `>= 1.10` (pin CI 1.10.x), provider AWS `~> 5.80`, `.terraform.lock.hcl` di-commit. File datar per concern di `infra/`, tanpa modul: `backend.tf`, `variables.tf`, `network.tf`, `security.tf`, `iam.tf`, `compute.tf`, `database.tf`, `ssm.tf`, `outputs.tf` |
+| Image | `ghcr.io/nnaory/lore-web`, `ghcr.io/nnaory/lore-api` (huruf kecil wajib). Tag `sha-<7 char>` saja. Label OCI `org.opencontainers.image.source=https://github.com/Nnaory/lore`. Pengecualian: image verifier animasi ada di ECR privat `lore-prod-animation-verifier` (tag immutable `sha-<7 hex>`, lima image terbaru), karena Lambda tidak menarik dari GHCR |
+| Terraform | `>= 1.10` (pin CI 1.10.x), provider AWS `~> 5.80`, `.terraform.lock.hcl` di-commit. File datar per concern di `infra/`, tanpa modul: `backend.tf`, `variables.tf`, `network.tf`, `security.tf`, `iam.tf`, `compute.tf`, `database.tf`, `ssm.tf`, `animation.tf`, `outputs.tf` |
 | State | Bucket `lore-tfstate-<ACCOUNT_ID>`, key `lore/prod/terraform.tfstate`, `use_lockfile = true`, versioning, SSE-S3, block public access, lifecycle noncurrent version 90 hari |
-| Folder repo target | `infra/` (Terraform), `infra/bootstrap/` (script idempotent dan `policies/*.json`), `deploy/web/{compose.yml,Caddyfile}`, `deploy/api/compose.yml`, `deploy/common/{render-env.sh,deploy.sh}`, `backend/` (FastAPI), `Dockerfile` (web, di root), `backend/Dockerfile` (api), `scripts/ci/` (pemeriksa tag dan biaya) |
+| Folder repo target | `infra/` (Terraform), `infra/bootstrap/` (script idempotent dan `policies/*.json`), `deploy/web/{compose.yml,Caddyfile}`, `deploy/api/compose.yml`, `deploy/common/{render-env.sh,deploy.sh}`, `backend/` (FastAPI), `Dockerfile` (web, di root), `backend/Dockerfile` (api), `scripts/ci/` (pemeriksa tag dan biaya), `animation-verifier/` (Lambda verifier animasi, Node 22) dan `frontend/sandbox-runtime/` (runtime iframe animasi) |
 | Role GitHub (OIDC) | `lore-gh-plan`, `lore-gh-apply`, `lore-gh-deploy` |
 | Role instance | `lore-prod-web-instance`, `lore-prod-api-instance`, `lore-prod-nat-instance` (instance profile bernama sama) |
-| Parameter SSM | Env per komponen: `/lore/prod/web/env/*`, `/lore/prod/api/env/*` (nama variabel = segmen terakhir path). Secret = SecureString dibuat manual. Non-secret dikelola Terraform. Tag rilis: `/lore/prod/web/release/image_tag`, `/lore/prod/api/release/image_tag` (dikelola job deploy, bukan Terraform). Konfigurasi non-env: `/lore/prod/api/config/db_secret_arn` |
+| Parameter SSM | Env per komponen: `/lore/prod/web/env/*`, `/lore/prod/api/env/*` (nama variabel = segmen terakhir path). Secret = SecureString dibuat manual. Non-secret dikelola Terraform. Tag rilis: `/lore/prod/web/release/image_tag`, `/lore/prod/api/release/image_tag` (dikelola job deploy, bukan Terraform). Konfigurasi non-env: `/lore/prod/api/config/db_secret_arn`. Fitur animasi menambah sepuluh parameter String di `/lore/prod/api/env/` (daftar di baris "Env animasi") dengan `Component=api` dan `Name=lore-prod-api-env-<nama huruf kecil>`, serta tag rilis verifier `/lore/prod/verifier/release/image_tag` (ditulis `scripts/ci/verifier-release.sh`, bukan Terraform, `ManagedBy=github-actions`, `Component=animation`) |
 | Env AI (api saja) | `AI_PROVIDER=google`, `AI_MODEL`, `AI_TIMEOUT_MS=300000`, `AI_DEADLINE_MS=300000`, `GOOGLE_API_KEY` (SecureString) |
+| Env animasi (api) | Sepuluh parameter String yang dibuat `infra/animation.tf`: `ANIMATION_ENABLED=false` (Flag_Api, parameter terpisah dengan `precondition`), `ANIMATION_BUCKET`, `ANIMATION_VERIFIER_FUNCTION`, `AWS_REGION`, `ANIMATION_RATE_PER_MINUTE_IP=4`, `ANIMATION_DAILY_PER_IP=30`, `ANIMATION_MAX_CONCURRENT_PER_IP=1`, `ANIMATION_MAX_CONCURRENT_GLOBAL=2`, `ANIMATION_MAX_ATTEMPTS=4`, `ANIMATION_DEADLINE_MS=240000`. Opsional dan tidak dibuat Terraform: `AI_ANIMATION_MODEL` (daftar model dipisah koma, kosong jatuh ke `AI_MODEL`). Nilai masuk container setelah api di-deploy ulang. Arti dan batas tiap env ada di [12-remotion-animation.md](./12-remotion-animation.md) bagian "Variabel lingkungan" |
+| Flag web animasi | `NEXT_PUBLIC_ANIMATIONS`: `off` (default) atau `on`. Dibaca saat build web. Dikirim `release-web.yml` dari variabel repositori GitHub `NEXT_PUBLIC_ANIMATIONS` (kosong dibaca `off`) sebagai build arg `frontend/Dockerfile`. Hanya `on` setelah syarat di [12-remotion-animation.md](./12-remotion-animation.md) terpenuhi |
+| Resource animasi | Tag `Component=animation`, `Name=lore-prod-animation-<detail>`. Bucket `lore-prod-animations-<ACCOUNT_ID>` (privat), ECR dan fungsi Lambda `lore-prod-animation-verifier`, log group `/aws/lambda/lore-prod-animation-verifier` (satu-satunya yang diizinkan guardrail, retensi 7 hari), security group `lore-prod-animation-verifier` (tanpa rule), role eksekusi `lore-prod-animation-verifier-exec`, policy inline `lore-prod-api-animation` pada role `lore-prod-api-instance`. Semua di `infra/animation.tf` |
+| Metadata instance (IMDSv2) | `http_tokens = "required"` pada semua instance. `http_put_response_hop_limit = 2` hanya pada `api` (kredensial `boto3` dari dalam container Docker butuh dua hop). `web` dan `nat` tetap memakai hop limit 1. Rincian di [03-compute.md](./03-compute.md) bagian 2 |
 | Env DB (api) | `PGHOST`, `PGPORT=5432`, `PGDATABASE=lore`, `PGSSLMODE=require` (non-secret, Terraform). `PGUSER`, `PGPASSWORD` dari Secrets Manager (RDS-managed), dirender oleh `render-env.sh` |
-| Workflow | `.github/workflows/{ci.yml,infra.yml,release-web.yml,release-api.yml}` (tanpa Dependabot). GitHub Environment `production` (job `apply` infra, reviewer wajib, hanya branch `main`) dan `production-release` (job `deploy` aplikasi, tanpa reviewer, hanya branch `main`). Dua Environment dipakai karena satu Environment hanya punya satu konfigurasi proteksi |
+| Workflow | `.github/workflows/{ci.yml,infra.yml,release-web.yml,release-api.yml,release-verifier.yml}` (tanpa Dependabot). GitHub Environment `production` (job `apply` infra, reviewer wajib, hanya branch `main`) dan `production-release` (job `deploy` aplikasi dan job `release` verifier, tanpa reviewer, hanya branch `main`). Dua Environment dipakai karena satu Environment hanya punya satu konfigurasi proteksi |
 | `vars` GitHub | `AWS_REGION`, `AWS_ROLE_PLAN_ARN`, `AWS_ROLE_APPLY_ARN`, `AWS_ROLE_DEPLOY_ARN`, `APP_URL`. Tidak ada secret GitHub untuk infra |
-| Tag AWS wajib | `Project=lore`, `Environment=prod`, `ManagedBy=terraform` (bootstrap: `ManagedBy=bootstrap`; secret SSM manual: `manual`; parameter tag rilis: `github-actions`), `Repo=Nnaory/lore`, `Component` (`network`, `web`, `api`, `nat`, `db`, `iam`, `budget`, `bootstrap`), `Name=lore-prod-<component>[-detail]` |
+| Tag AWS wajib | `Project=lore`, `Environment=prod`, `ManagedBy=terraform` (bootstrap: `ManagedBy=bootstrap`; secret SSM manual: `manual`; parameter tag rilis: `github-actions`), `Repo=Nnaory/lore`, `Component` (`network`, `web`, `api`, `nat`, `db`, `iam`, `budget`, `bootstrap`, `animation`), `Name=lore-prod-<component>[-detail]` |
 | Budget | `lore-prod-monthly` US$70 per bulan: email di 50%, 80%, 100% ACTUAL dan 100% FORECAST. `lore-prod-guardrail` (action-enabled, satu dari dua yang gratis): pada 100% ACTUAL menempelkan policy `lore-deny-new-spend` ke role `lore-gh-apply`. Aksi stop instance default OFF |
 
 ## 7. Biaya dan batas
@@ -152,6 +158,8 @@ Perkiraan kasar per bulan, basis harga us-east-2 dari ingatan (harga EC2 dan RDS
 | **Total** | **sekitar US$50** |
 
 Batas: alert Budget di US$70 per bulan. AWS tidak punya batas pengeluaran keras. Yang disediakan adalah pencegahan resource mahal (validasi Terraform dan IAM Deny), peringatan dini (Budgets dan Cost Anomaly Detection), dan satu aksi otomatis. Detail di dokumen biaya.
+
+Fitur animasi (R14) menambah Lambda, ECR, S3, dan satu log group, tetapi tidak menaikkan ukuran instance, IOPS, atau retensi backup, sehingga tabel di atas tidak berubah. Estimasi tambahannya dihitung terpisah di [07-cost-guardrails.md](./07-cost-guardrails.md) bagian 12.1. Angka kotor tanpa free tier Lambda melewati US$5 per bulan, jadi PR infra pertama fitur ini menunggu persetujuan pengguna. Biaya Gemini untuk animasi dicatat di luar total AWS.
 
 ## 8. Perbedaan dengan `zero-to-prod`
 
@@ -175,6 +183,7 @@ Dipertahankan: state S3 dengan `use_lockfile`, OIDC tanpa access key statis, EC2
 
 - **Fase A: infra dan CI/CD.** Roadmap R1 sampai R12 di [10-implementation-roadmap.md](./10-implementation-roadmap.md). Hasilnya: frontend dan backend skeleton ter-deploy otomatis, RDS terhubung, biaya terpantau.
 - **Fase B: migrasi persistensi aplikasi.** R13, rencana terpisah setelah [open-questions.md](./open-questions.md) dijawab, terutama soal identitas pemilik data.
+- **Fase C: animasi Remotion tulisan AI.** R14, di belakang dua flag yang mati secara default (`ANIMATION_ENABLED=false` di api dan `NEXT_PUBLIC_ANIMATIONS=off` di web). Runbook, urutan rilis tujuh langkah, dan daftar langkah manual admin ada di [12-remotion-animation.md](./12-remotion-animation.md). Tugas R14 ada di [10-implementation-roadmap.md](./10-implementation-roadmap.md).
 
 Urutan prinsip: budget dan guardrail dibuat pertama. Infra hanya berubah lewat PR dengan komentar plan. Resource berbiaya dibuat saat benar-benar dipakai.
 
@@ -187,12 +196,14 @@ Urutan prinsip: budget dan guardrail dibuat pertama. Infra hanya berubah lewat P
 | [02-iam-and-oidc.md](./02-iam-and-oidc.md) | Bootstrap, role OIDC GitHub, role instance, izin per role |
 | [03-compute.md](./03-compute.md) | EC2, user_data, compose, Caddy, parameter SSM, alur deploy, GHCR |
 | [04-database.md](./04-database.md) | RDS PostgreSQL, akses, backup, migrasi schema, sketsa tabel |
-| [05-cicd.md](./05-cicd.md) | Workflow GitHub Actions, Environments, branch protection, rollback |
+| [05-cicd.md](./05-cicd.md) | Workflow GitHub Actions, Environments, branch protection, rollback, job `verifier` dan `contracts`, `release-verifier.yml` |
 | [06-app-changes.md](./06-app-changes.md) | Kontrak container, timeout AI 5 menit, sketsa migrasi persistensi |
-| [07-cost-guardrails.md](./07-cost-guardrails.md) | Estimasi biaya, allowlist dan denylist, lima lapis penegakan |
+| [07-cost-guardrails.md](./07-cost-guardrails.md) | Estimasi biaya, allowlist dan denylist, lima lapis penegakan, estimasi biaya fitur animasi |
 | [08-tagging.md](./08-tagging.md) | Skema tag dan penegakannya |
 | [09-runbook.md](./09-runbook.md) | First-run, operasi harian, teardown, tabel insiden |
-| [10-implementation-roadmap.md](./10-implementation-roadmap.md) | Tugas implementasi R1 sampai R13 |
+| [10-implementation-roadmap.md](./10-implementation-roadmap.md) | Tugas implementasi R1 sampai R14 |
+| [11-ai-backend-migration.md](./11-ai-backend-migration.md) | Pemindahan pipeline AI dari Next.js ke backend FastAPI |
+| [12-remotion-animation.md](./12-remotion-animation.md) | Fitur animasi Remotion tulisan AI: arsitektur, env, runbook, langkah manual admin, biaya, pemecahan masalah |
 | [open-questions.md](./open-questions.md) | Keputusan yang masih dibutuhkan, dengan default yang dipakai dokumen |
 
 ## 11. Asumsi

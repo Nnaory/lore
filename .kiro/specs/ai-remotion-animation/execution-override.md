@@ -1,0 +1,14 @@
+# OVERRIDE ORCHESTRATOR (mengalahkan instruksi lain, termasuk baris "Commit:" di blok tugas)
+
+1. JANGAN menjalankan `git add`, `git commit`, `git push`, `git stash`, `git checkout`, `git reset`. Orchestrator yang commit di batas fase (beberapa sub-agent berjalan paralel). Tulis berkas saja.
+2. JANGAN menjalankan `aws`, `gh`, `terraform apply/plan/init/destroy`, `bootstrap.sh`, atau perintah yang menyentuh sumber daya jarak jauh. Jangan menjalankan Alembic terhadap database selain kontainer sementara lokal milikmu sendiri. Jangan edit `.terraform.lock.hcl`, `*.tfvars`, `*.tfstate*`, `.env*`, migrasi Alembic lama, `package-lock.json`.
+3. Jaringan sandbox mati (DNS gagal). `npm install/ci`, `pip install`, `docker pull/build`, `terraform init` akan gagal: jangan menyiasatinya.
+   - `animation-verifier/node_modules` adalah symlink ke `../frontend/node_modules`: JANGAN `npm install`/`npm ci` di situ. Pakai `npx vitest|tsc|eslint` (lint paket: `npx eslint -c eslint.package.config.mjs --max-warnings 0 src tests`; typecheck: `npx tsc -p tsconfig.typecheck.json --noEmit`).
+   - `backend/.venv` TIDAK punya `langgraph` dan `boto3`. Modul/tes yang bisa diverifikasi di sini tidak boleh mengimpornya pada saat impor modul; gunakan impor tertunda (di dalam fungsi/fabrik) bila spec mengizinkan, dan beri tahu orchestrator bila tes yang diwajibkan spec membutuhkan paket itu.
+   - Satu tes backend pra-ada gagal HANYA karena DNS sandbox: `tests/test_ai_gemini_client.py::test_key_that_is_not_a_valid_header_is_fatal_and_not_echoed`. Abaikan.
+4. Verifikasi yang tidak bisa dijalankan: JANGAN dipalsukan dan JANGAN melemahkan tes atau guardrail. Tulis `[belum diverifikasi]` + alasan + perintah yang harus dijalankan nanti.
+5. Hanya sentuh berkas yang dibutuhkan tugasmu. Tugas lain berjalan paralel pada folder/berkas lain. Ikuti AGENTS.md dan konvensi repo (komentar/docstring header, union `{ok:true}|{ok:false}`, tanpa throw/raise di batas modul, Tailwind token Kit, ruff line-length 100).
+6. Baca bagian "Temuan lintas tugas" dan entri tugas terkait di `.kiro/specs/ai-remotion-animation/execution-ledger.md` sebelum mulai.
+7. Laporan akhir singkat (maks ~15 baris): berkas dibuat/diubah, perintah verifikasi + hasil NYATA, item `[belum diverifikasi]`, penyimpangan dari spec + alasannya, dan hal yang harus diketahui tugas berikutnya.
+8. JANGAN mengedit `tasks.md`, `execution-ledger.md`, `execution-override.md` (orchestrator yang menandai tugas dan mencatat temuan). Gunakan `[ ]`/`[x]` hanya sebagai bacaan.
+9. `animation-verifier/src/steps/registry.ts` (`DEFAULT_STEPS`) diedit beberapa tugas paralel: ubah SEKECIL mungkin lewat penggantian string terarah tepat sebelum selesai, lalu baca ulang berkas itu dan pastikan semua langkah milik tugas lain tetap ada. Hal yang sama untuk `POLICY_RULES` di `src/steps/policy.ts`.

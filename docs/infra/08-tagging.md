@@ -12,7 +12,7 @@ Status: draft v1
 | `Environment` | `prod` | Ya | `default_tags` | Filter biaya, kondisi IAM dan SSM |
 | `ManagedBy` | `terraform`, `bootstrap`, `manual`, atau `github-actions` | Ya | `default_tags` (terraform). Bootstrap dan manual lewat `--tags` | Menemukan resource yang tidak dikelola Terraform |
 | `Repo` | `Nnaory/lore` | Ya | `default_tags` | Menelusuri ke sumber kode |
-| `Component` | `network`, `web`, `api`, `nat`, `db`, `iam`, `budget`, `bootstrap` | Ya | `tags` per resource | Target deploy SSM, filter biaya, kondisi IAM |
+| `Component` | `network`, `web`, `api`, `nat`, `db`, `iam`, `budget`, `bootstrap`, `animation` | Ya | `tags` per resource | Target deploy SSM, filter biaya, kondisi IAM |
 | `Name` | `lore-prod-<component>[-detail]` | Ya untuk tipe yang tampil di console | `tags` per resource | Nama yang terlihat di console |
 
 Nilai `ManagedBy`:
@@ -22,7 +22,9 @@ Nilai `ManagedBy`:
 | `terraform` | Resource yang dibuat `infra/` |
 | `bootstrap` | Bucket state, OIDC provider, role GitHub, policy guardrail, budget, anomaly monitor |
 | `manual` | Parameter SSM secret yang dibuat manual |
-| `github-actions` | Parameter `image_tag` yang dibuat job deploy |
+| `github-actions` | Parameter `image_tag` yang dibuat job deploy, termasuk `/lore/prod/verifier/release/image_tag` yang dibuat `scripts/ci/verifier-release.sh` |
+
+**Component `animation` (R14).** Semua resource fitur animasi yang dibuat `infra/animation.tf` (bucket S3, repositori ECR, fungsi Lambda, log group, security group, dan role eksekusi) memakai `Component = "animation"` dan `Name = "lore-prod-animation-<detail>"`. Pengecualian yang disengaja: parameter SSM env fitur ini (`ANIMATION_*` dan `AWS_REGION` di `/lore/prod/api/env/`) memakai `Component = "api"` dan `Name = "lore-prod-api-env-<nama huruf kecil>"`, karena dibaca container api dan dirender ke `.env` oleh `render-env.sh` seperti parameter api lain. Target deploy SSM `Key=tag:Component,Values=api` tidak berubah karena tidak ada instance baru. Nilai `animation` ditambahkan ke `ALLOWED_COMPONENTS` di `scripts/ci/policy_rules.py` supaya pemeriksa tag menerimanya.
 
 Tidak ada tag `Owner` atau `CostCenter` secara default (Q17). Menambah key baru berarti mengubah dokumen ini, `default_tags`, dan pemeriksa CI sekaligus.
 
@@ -44,6 +46,10 @@ Format `lore-<env>-<component>[-detail]`, huruf kecil, dipisah tanda hubung. Con
 | Role GitHub | `lore-gh-plan`, `lore-gh-apply`, `lore-gh-deploy` |
 | Bucket state | `lore-tfstate-<ACCOUNT_ID>` |
 | Budget | `lore-prod-monthly`, `lore-prod-guardrail` |
+| Bucket animasi (R14) | `lore-prod-animations-<ACCOUNT_ID>`, tag `Name=lore-prod-animation-bucket` |
+| ECR dan fungsi Lambda verifier (R14) | Repositori dan fungsi `lore-prod-animation-verifier`. Tag `Name=lore-prod-animation-ecr` dan `Name=lore-prod-animation-verifier` |
+| Log group, security group, role eksekusi verifier (R14) | `/aws/lambda/lore-prod-animation-verifier` (tag `Name=lore-prod-animation-logs`), `lore-prod-animation-verifier` (tag `Name=lore-prod-animation-verifier-sg`), `lore-prod-animation-verifier-exec` |
+| Parameter SSM env animasi (R14) | `/lore/prod/api/env/ANIMATION_*` dan `AWS_REGION`, tag `Name=lore-prod-api-env-<nama huruf kecil>`, `Component=api` |
 
 ## 3. Penerapan di Terraform
 
@@ -91,7 +97,7 @@ Catatan:
 
 - Script bootstrap memakai `--tags` pada setiap pembuatan resource: `ManagedBy=bootstrap`, `Project=lore`, `Environment=prod`, `Repo=Nnaory/lore`, dan `Component` sesuai jenis (`bootstrap` untuk bucket dan OIDC provider, `iam` untuk role dan policy, `budget` untuk budget).
 - Parameter SSM secret dibuat dengan tag `ManagedBy=manual` saat pembuatan pertama (contoh perintah di [03-compute.md](./03-compute.md)).
-- Parameter `image_tag` diberi tag `ManagedBy=github-actions` sekali lewat `aws ssm add-tags-to-resource` karena `--tags` tidak boleh dipakai bersama `--overwrite` [belum diverifikasi].
+- Parameter `image_tag` diberi tag `ManagedBy=github-actions` sekali lewat `aws ssm add-tags-to-resource` karena `--tags` tidak boleh dipakai bersama `--overwrite` [belum diverifikasi]. Untuk `/lore/prod/verifier/release/image_tag` (dibuat `verifier-release.sh`) tag `Component` bernilai `animation`.
 
 ## 5. Aktivasi cost allocation tag
 
@@ -148,7 +154,7 @@ Aturan:
 
 1. Untuk setiap entri `resource_changes[]` yang aksinya bukan `delete` saja dan `change.after` memuat `tags_all`, kunci `Project`, `Environment`, `ManagedBy`, dan `Repo` harus ada. Nilai `Project` harus `lore`.
 2. Kunci `Component` wajib untuk semua resource bertag, kecuali daftar pengecualian tipe pendukung (misalnya `aws_vpc_security_group_ingress_rule`, `aws_vpc_security_group_egress_rule`, `aws_db_parameter_group`).
-3. Kunci `Name` wajib untuk tipe: `aws_vpc`, `aws_subnet`, `aws_route_table`, `aws_internet_gateway`, `aws_security_group`, `aws_instance`, `aws_eip`, `aws_db_instance`, `aws_vpc_endpoint`.
+3. Kunci `Name` wajib untuk tipe: `aws_vpc`, `aws_subnet`, `aws_route_table`, `aws_internet_gateway`, `aws_security_group`, `aws_instance`, `aws_eip`, `aws_db_instance`, `aws_vpc_endpoint`, dan sejak R14 `aws_lambda_function`, `aws_ecr_repository`, `aws_s3_bucket`.
 4. Nilai `Component` harus salah satu dari daftar di bagian 1.
 5. Job gagal dan mencetak daftar resource yang melanggar.
 

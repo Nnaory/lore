@@ -1,8 +1,8 @@
 # 10 Roadmap implementasi
 
-**Tujuan dokumen.** Memecah pekerjaan implementasi menjadi tugas R1 sampai R13. Tiap tugas punya tujuan, panduan (file yang dibuat dan dokumen rujukan), pengujian, demo yang bisa dicek, dampak biaya, dan rencana PR. Tidak ada tugas di sini yang dikerjakan oleh dokumen ini. Tugas baru dikerjakan setelah [open-questions.md](./open-questions.md) ditinjau.
+**Tujuan dokumen.** Memecah pekerjaan implementasi menjadi tugas R1 sampai R14. Tiap tugas punya tujuan, panduan (file yang dibuat dan dokumen rujukan), pengujian, demo yang bisa dicek, dampak biaya, dan rencana PR. Tidak ada tugas di sini yang dikerjakan oleh dokumen ini. Tugas baru dikerjakan setelah [open-questions.md](./open-questions.md) ditinjau.
 
-Status: R1–R12 selesai (2026-11-19); R13 siap berikutnya
+Status: R1–R12 selesai (2026-11-19); R13 siap berikutnya. R14 (animasi Remotion) ditulis di repo dengan kedua flag mati, tetapi belum di-merge dan menunggu langkah manual admin dan persetujuan pengguna
 
 ## 1. Prinsip
 
@@ -30,6 +30,7 @@ Status: R1–R12 selesai (2026-11-19); R13 siap berikutnya
 | R11 | Timeout AI 5 menit (`300000`) dan audit hardening | R10 | Selesai (uji sleep 270s live & Dependabot dilewati sesuai kesepakatan) | Tidak ada |
 | R12 | Cek biaya baseline & laporan audit | R11 | Selesai (teardown destruktif dilewati atas persetujuan; biaya baseline di [07-cost-guardrails.md](./07-cost-guardrails.md)) | Tidak ada |
 | R13 | Migrasi persistensi aplikasi | R12, Q1, Q4, Q5 | Backend dan frontend di-merge dan di-deploy (mode `idb`); apply Caddyfile menunggu approval; cutover `http` (D5) belum | Tidak ada |
+| R14 | Animasi Remotion tulisan AI (flag `ANIMATION_ENABLED=false` dan `NEXT_PUBLIC_ANIMATIONS=off`) | R10, R13 (migrasi `725515cc1581` menyambung `7c1d9e4a52b8`) | Kode ditulis, belum di-merge. Menunggu bootstrap manual, persetujuan biaya, dan langkah online (lockfile, `@fontsource/*`) | Skenario terburuk sekitar US$5,74 per bulan kotor tanpa free tier (bagian 12.1 dokumen biaya) |
 
 Angka biaya adalah perkiraan basis us-east-2 [belum diverifikasi], lihat [07-cost-guardrails.md](./07-cost-guardrails.md).
 
@@ -41,6 +42,7 @@ flowchart LR
   R5 --> R7
   R6 --> R7
   R7 --> R8 --> R9 --> R10 --> R11 --> R12 --> R13
+  R13 --> R14
 ```
 
 ## 3. Tugas
@@ -168,7 +170,7 @@ flowchart LR
   - Tambahkan test vitest untuk pembacaan konfigurasi env (kode dan test commit terpisah).
   - Putuskan Q11: deadline, margin terhadap timeout undici, dan `thinkingConfig`.
   - Uji ujung ke ujung dengan endpoint debug sementara yang menahan respons lebih dari 4 menit (aktif hanya lewat env dan dihapus setelah uji).
-  - Audit hardening: `ignore_changes = [ami]` pada tiga instance, destroy-guard aktif, `.terraform.lock.hcl` ter-commit, Dependabot aktif, IMDSv2 hop limit 1, tfstate tidak memuat secret (cari nilai uji di `terraform state pull`), keluaran log tidak memuat secret.
+  - Audit hardening: `ignore_changes = [ami]` pada tiga instance, destroy-guard aktif, `.terraform.lock.hcl` ter-commit, Dependabot aktif, IMDSv2 wajib dengan hop limit 1 pada web dan nat (pada api hop limit 2 sejak R14, lihat [03-compute.md](./03-compute.md) bagian 2), tfstate tidak memuat secret (cari nilai uji di `terraform state pull`), keluaran log tidak memuat secret.
 - **Pengujian.** Test timeout terhadap server tiruan yang menunda respons. `curl --max-time 330 "$APP_URL/api/v1/debug/sleep?seconds=270"` lewat Caddy berhasil tanpa 502 atau 504.
 - **Demo.** Request panjang lewat Caddy selesai tanpa terputus. Daftar audit hardening seluruhnya centang.
 - **Biaya.** Tidak ada.
@@ -203,6 +205,38 @@ flowchart LR
 - **Biaya.** Tidak ada tambahan (tidak ada perubahan ukuran instance, IOPS, storage, atau retensi).
 - **Catatan.** Snapshot RDS manual sebelum migrasi pertama dilewati atas keputusan pengguna (migrasinya hanya menambah tabel). Tiga test `provider-cache` yang sempat membuat `ci/web` merah sudah diperbaiki di #34.
 
+### R14 Animasi Remotion tulisan AI
+
+- **Tujuan.** AI menulis satu berkas Remotion `main.ts` per langkah pelajaran atau puzzle. Agent memverifikasinya di fungsi Lambda terisolasi (ukuran, kebijakan AST, ESLint, `tsc`, bundle, uji render, kesetiaan data) dan memperbaikinya sampai lolos. Hasil disimpan di S3 privat dan dijalankan Stage di iframe bersandbox. Jalur JSON `visual` yang lama tetap menjadi cadangan (Fallback_Scene). Fitur dikirim dalam keadaan mati: `ANIMATION_ENABLED=false` di api dan `NEXT_PUBLIC_ANIMATIONS=off` di web.
+- **Panduan.**
+  - Spesifikasi: `.kiro/specs/ai-remotion-animation/` (`requirements.md`, `design.md`, `tasks.md`). Runbook dan arsitektur: [12-remotion-animation.md](./12-remotion-animation.md).
+  - Kode: `animation-verifier/` (Lambda Node 22), `backend/app/ai/animation/` (agent LangGraph, klien S3 dan Lambda, SSE, registry) dengan migrasi Alembic `725515cc1581` (tabel `animations`, menyambung `7c1d9e4a52b8`), `frontend/src/lib/animation/` dan `frontend/sandbox-runtime/` (runtime iframe, dibangun `prebuild`).
+  - Infra: `infra/animation.tf` (bucket, ECR, log group, SG, role eksekusi, Lambda, policy role `api`, sepuluh parameter SSM), variabel di `infra/variables.tf`, `metadata_options` `api` di `infra/compute.tf` (`hop_limit = 2`, [03-compute.md](./03-compute.md) bagian 2).
+  - Bootstrap manual: `infra/bootstrap/policies/{lore-gh-apply-policy,lore-guardrail-deny,lore-gh-deploy-policy}.json` dan `infra/bootstrap/README.md` ([02-iam-and-oidc.md](./02-iam-and-oidc.md) bagian 4.2 dan 5.3). Dijalankan admin, bukan agen atau CI.
+  - Guardrail dan CI: `scripts/ci/policy_rules.py`, `check-cost`, `check-cost-static`, fixture di `scripts/ci/fixtures/`, `scripts/ci/verifier-release.sh`, `scripts/ci/verifier-rie-check.sh`, `scripts/ci/check-animation-versions.py`, `scripts/sync-animation-contract.py`, job `verifier` dan `contracts` di `ci.yml`, `release-verifier.yml` ([05-cicd.md](./05-cicd.md) bagian 5.1 dan 7.1), dan `build-args` flag web di `release-web.yml`. Smoke: `scripts/verify/animation-smoke.py`.
+- **Pengujian.**
+  - Verifier, dari `animation-verifier/`: `npm run lint`, `npx tsc --noEmit`, `npm run typecheck`, `npx vitest run` (korpus `good/`, `bad/`, `warn/`). Image diuji `scripts/ci/verifier-rie-check.sh lore-verifier:ci animation-verifier` di bawah Lambda Runtime Interface Emulator.
+  - Backend, dari `backend/`: `ruff check . && ruff format --check .`, `pytest -q`. Tes animasi memakai klien S3 dan Lambda palsu dan tidak butuh jaringan. Tes migrasi butuh Postgres (di-skip tanpa `PGHOST`). Tes yang memakai `langgraph` dan `boto3` asli aktif otomatis setelah `pip install -r requirements.txt`.
+  - Frontend, dari `frontend/`: `npx vitest run --testTimeout=60000`.
+  - Infra: `terraform -chdir=infra fmt -check -recursive`, `init -backend=false`, `validate`, `python3 -B scripts/ci/check-cost-static infra`, `python3 -B scripts/ci/test-checkers.py -v`, `shellcheck scripts/ci/*.sh`.
+  - Dokumen: `pytest -q tests/test_animation_docs.py` (dari `backend/`).
+  - Yang hanya bisa dibuktikan manual di lingkungan nyata: dua `simulate-principal-policy` oleh admin, daftar periksa browser Chromium dan Firefox, `animation-smoke.py`, tiga pengukuran RSS api (batas 600 MiB), dan perilaku AWS yang masih berlabel `[belum diverifikasi]`. Daftarnya ada di [12-remotion-animation.md](./12-remotion-animation.md) bagian "Langkah manual admin".
+- **Demo.** Setelah semua syarat terpenuhi dan variabel repositori `NEXT_PUBLIC_ANIMATIONS=on`, satu cerita baru memutar animasi di kanvas Stage (HP dan hasil jawaban tetap ditentukan `validateMultipleChoice`). Dengan flag mati, perilaku production tidak berubah dan api tidak memuat `langgraph` atau `boto3`. `animation-smoke.py` keluar 0 dan `/health/ai` melaporkan `animation.enabled` dan `animation.configured` true.
+- **Biaya.** Tambahan AWS skenario terburuk (30 animasi per hari selama 30 hari, 4 invokasi 60 detik pada 1536 MB) sekitar US$5,74 per bulan kotor tanpa free tier, atau sekitar US$0,34 bila free tier Lambda berlaku `[belum diverifikasi]`. Angka kotor US$5 atau lebih, jadi **PR infra pertama menunggu persetujuan pengguna**. Biaya Gemini dicatat terpisah di luar total AWS. Tidak ada kenaikan ukuran instance, IOPS, atau retensi backup. Rincian di [07-cost-guardrails.md](./07-cost-guardrails.md) bagian 12.1.
+- **PR.** Mengikuti urutan rilis tujuh langkah di dokumen 12. Pemisahan kode dan infra ke PR terpisah ditentukan pemilik, tetapi urutan syarat berikut wajib:
+
+  | Urutan | Perubahan | Syarat sebelum merge |
+  |---|---|---|
+  | 1 | Bootstrap manual (policy di repo, dijalankan admin) | Persetujuan pengguna. Dua `simulate-principal-policy` lulus. Harus selesai sebelum PR infra pertama di-merge |
+  | 2 | PR kode dan infra pertama: `animation_verifier_image_tag = ""`, `animation_enabled = false` | Persetujuan pengguna atas estimasi biaya. `animation-verifier/package-lock.json` dan `@fontsource/*` ter-commit. Plan tanpa `delete` atau replace pada `aws_instance`, `aws_db_instance`, `aws_eip`, dan `metadata_options` `api` satu-satunya perubahan instance |
+  | 3 | Rilis image verifier (`release-verifier.yml`, tanpa PR) | Apply PR 2 selesai. Run otomatis pertama saat merge bisa merah karena repositori ECR belum ada: jalankan ulang lewat `workflow_dispatch`. Peringatan "function does not exist yet" diharapkan |
+  | 4 | PR infra kedua: `animation_verifier_image_tag = "sha-xxxxxxx"` | Image dan tag di SSM ada. Plan hanya menambah `aws_lambda_function.animation_verifier[0]` |
+  | 5 | Rilis api dan web dengan flag mati (tanpa PR) | RSS (a) dan (b) tercatat |
+  | 6 | PR infra ketiga: `animation_enabled = true`, lalu redeploy api | `/health/ai` sehat. `animation-smoke.py` keluar 0 dan RSS (c) paling besar 600 MiB |
+  | 7 | Variabel repositori `NEXT_PUBLIC_ANIMATIONS=on`, jalankan ulang `release-web` | Daftar periksa browser lulus. Dilarang bila smoke gagal atau RSS (c) melebihi 600 MiB |
+
+  Commit memakai Conventional Commits dengan scope, misalnya `feat(infra): animation bucket and verifier`, `ci(release): verifier image release`, dan `docs(infra): remotion animation runbook`. Kode dan test masuk di commit terpisah.
+
 ## 4. Risiko dan mitigasi
 
 | Risiko | Dampak | Mitigasi |
@@ -217,3 +251,5 @@ flowchart LR
 | Plan dan log di repo publik membuka detail infra | ARN dan ID akun terlihat publik | Masking ID akun dan redaksi plan ([05-cicd.md](./05-cicd.md) bagian 6). Q12 |
 | Guardrail menolak perubahan yang sah | Pipeline gagal dengan `AccessDenied` | Ubah batas lewat bootstrap dengan PR terpisah, bukan melonggarkan role apply |
 | Timeout 5 menit tidak tembus di salah satu lapisan | Request putus sebelum selesai | Tabel lapisan di [06-app-changes.md](./06-app-changes.md) bagian 3.3 dan uji ujung ke ujung di R11 |
+| Fitur animasi (R14) dinyalakan sebelum syaratnya terbukti | Memori api di atas 600 MiB, biaya Lambda dan Gemini naik, atau sandbox bocor | Dua flag mati secara default. Flag web `on` dilarang bila smoke gagal atau RSS melebihi 600 MiB. Rollback dan urutan di [12-remotion-animation.md](./12-remotion-animation.md). Estimasi biaya kotor US$5 atau lebih menunggu persetujuan pengguna ([07-cost-guardrails.md](./07-cost-guardrails.md) bagian 12.1) |
+| Hop limit 2 pada `api` (R14) membuat proses di container api bisa membaca kredensial role api | Kredensial role api bisa bocor bila container disusupi | Izin role api sudah dibatasi (satu prefix S3, satu fungsi Lambda, parameter api). `web` dan `nat` tetap hop limit 1 ([02-iam-and-oidc.md](./02-iam-and-oidc.md) bagian 6.1) |

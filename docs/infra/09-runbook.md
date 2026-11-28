@@ -29,6 +29,7 @@ Urutan di bawah mengikuti roadmap ([10-implementation-roadmap.md](./10-implement
 | 13 | Isi `APP_URL` | `gh variable set APP_URL --body http://<EIP_WEB>` (atau domain) | R8 |
 | 14 | Rilis dan smoke test | Rilis api dulu, lalu web. Cek `curl -fsS "$APP_URL/"` dan `curl -fsS "$APP_URL/api/v1/health"` | R8 dan R9 |
 | 15 | Drill restore RDS | Lihat bagian 3.8 | R10 |
+| 16 | Fitur animasi (opsional, mati secara default) | Urutan tujuh langkah di [12-remotion-animation.md](./12-remotion-animation.md) bagian "Urutan rilis": bootstrap manual dengan persetujuan pengguna, PR infra pertama (tanpa Lambda), rilis image verifier, PR infra kedua (Lambda), rilis api dan web dengan flag mati, PR `animation_enabled = true` lalu smoke, terakhir variabel repositori `NEXT_PUBLIC_ANIMATIONS=on`. PR infra pertama menunggu persetujuan pengguna atas estimasi biaya ([07-cost-guardrails.md](./07-cost-guardrails.md) bagian 12.1) | R14 |
 
 Catatan urutan: jika kontrak API berubah, rilis api lebih dulu. Instance baru tidak menjalankan container sampai ada tag rilis ([03-compute.md](./03-compute.md) bagian 8).
 
@@ -168,16 +169,26 @@ Guardrail menolak selain `t3.micro`. Untuk menaikkan: ubah guardrail di bootstra
 
 ### 3.11 Pemeriksaan biaya mingguan
 
-Ikuti ritual di [07-cost-guardrails.md](./07-cost-guardrails.md) bagian 10.
+Ikuti ritual di [07-cost-guardrails.md](./07-cost-guardrails.md) bagian 10. Setelah fitur animasi menyala, tambahkan filter `Component=animation` dan cek jumlah invokasi dan durasi fungsi `lore-prod-animation-verifier`.
+
+### 3.12 Fitur animasi (R14)
+
+Detail lengkap, termasuk urutan rilis tujuh langkah dan perintah, ada di [12-remotion-animation.md](./12-remotion-animation.md). Ringkasan operasi harian (perintah `aws` dan `gh` dijalankan manusia):
+
+- **Status.** Dari instance api via SSM: `curl -fsS http://127.0.0.1:8000/health/ai`. Bentuk yang diharapkan saat nyala: `{"configured":true,"animation":{"enabled":true,"configured":true}}`. Selama `ANIMATION_ENABLED=false`, `animation.enabled` bernilai `false` dan endpoint animasi menjawab 503 `ANIMATION_NOT_CONFIGURED`. `/health/ai` harus sehat sebelum smoke dijalankan.
+- **Mematikan cepat.** PR `animation_enabled = false` di `infra/variables.tf`, tunggu apply CI, lalu redeploy api (`/opt/lore/deploy.sh api` lewat SSM atau `release-api.yml`). Untuk web: setel variabel repositori `NEXT_PUBLIC_ANIMATIONS` ke `off`, lalu jalankan `release-web.yml` lewat `workflow_dispatch` dengan `tag` **kosong** (rebuild). Mengisi `tag` memakai ulang image lama dengan flag lama.
+- **Rollback verifier.** `gh workflow run release-verifier.yml -f tag=sha-<7 hex sebelumnya>`.
+- **Log.** Log api berbentuk JSON satu baris dengan logger `lore.animation` (`docker compose logs` lewat SSM seperti bagian 3.4). Log verifier ada di log group `/aws/lambda/lore-prod-animation-verifier`. Keduanya tidak memuat kode sumber, prompt, key, atau URL presigned.
+- **Perubahan `deploy/**` tidak diperlukan** untuk fitur ini, jadi menyalakannya tidak mengganti instance (hanya `metadata_options` pada `api` yang berubah in-place, [03-compute.md](./03-compute.md) bagian 2).
 
 ## 4. Teardown lengkap
 
 Dijalankan dari laptop dengan profil admin, bukan lewat pipeline. Guardrail IAM sengaja menutup kemungkinan pipeline menghapus data.
 
 1. Ubah `protect_data = false` lewat PR, setujui apply. Ini mematikan `deletion_protection` RDS.
-2. Dari laptop: `cd infra`, `terraform init`, lalu `terraform destroy` dengan nilai variabel yang sama dengan pipeline.
+2. Dari laptop: `cd infra`, `terraform init`, lalu `terraform destroy` dengan nilai variabel yang sama dengan pipeline. Bila fitur animasi (R14) pernah dirilis, destroy berhenti pada bucket `lore-prod-animations-<ACCOUNT_ID>` yang masih berisi objek (`force_destroy = false`) dan, bila ada image, pada repositori ECR `lore-prod-animation-verifier` `[belum diverifikasi: perilaku destroy untuk ECR berisi image]`. Kosongkan bucket (`aws s3 rm s3://lore-prod-animations-<ACCOUNT_ID> --recursive`) dan hapus image ECR lebih dulu, lalu ulangi destroy. Destroy-guard CI memblokir penghapusan bucket kecuali `allow_destroy`, jadi ini hanya dilakukan dari laptop admin.
 3. Hapus snapshot RDS yang tidak dibutuhkan (`aws rds describe-db-snapshots`, lalu `aws rds delete-db-snapshot`), termasuk snapshot final.
-4. Hapus parameter SSM manual: secret `GOOGLE_API_KEY`, `image_tag`.
+4. Hapus parameter SSM manual: secret `GOOGLE_API_KEY`, `image_tag`, dan (bila fitur animasi pernah dirilis) `/lore/prod/verifier/release/image_tag` serta `AI_ANIMATION_MODEL` bila dibuat manual.
 5. Opsional, hapus bootstrap:
    - Budget `lore-prod-monthly` dan `lore-prod-guardrail`, anomaly monitor dan subscription.
    - Tiga role GitHub dan policy guardrail.
@@ -193,6 +204,10 @@ aws ec2 describe-snapshots --owner-ids self --filters Name=tag:Project,Values=lo
 aws ec2 describe-network-interfaces --filters Name=tag:Project,Values=lore
 aws rds describe-db-instances
 aws secretsmanager list-secrets
+aws s3api list-buckets --query 'Buckets[?starts_with(Name, `lore-prod-animations-`)].Name'
+aws ecr describe-repositories --query 'repositories[?repositoryName==`lore-prod-animation-verifier`].repositoryName'
+aws lambda list-functions --query 'Functions[?starts_with(FunctionName, `lore-prod-animation`)].FunctionName'
+aws logs describe-log-groups --log-group-name-prefix /aws/lambda/lore-prod-animation --query 'logGroups[].logGroupName'
 ```
 
 7. Cek Cost Explorer sehari kemudian ([07-cost-guardrails.md](./07-cost-guardrails.md) bagian 11).
@@ -214,3 +229,5 @@ Biaya sisa yang wajar: bucket state (sen) dan snapshot yang sengaja dipertahanka
 | Tagihan naik mendadak | Anomaly Detection, Cost Explorer harian, watchlist ([07-cost-guardrails.md](./07-cost-guardrails.md) bagian 8) | Hapus resource yang tidak seharusnya ada. Jangan menaikkan Budget untuk menutupi masalah |
 | Plan di PR gagal karena guardrail | Pesan `check-cost` atau `AccessDenied` explicit deny | Perbaiki konfigurasi agar sesuai allowlist. Perubahan batas harus lewat bootstrap |
 | Waktu AI habis (`TIMEOUT`) | Lapisan timeout di [06-app-changes.md](./06-app-changes.md) bagian 3.3 | Cek apakah ada proxy lain (Cloudflare) dan nilai `AI_TIMEOUT_MS` dan `AI_DEADLINE_MS` di parameter |
+| Animasi gagal atau selalu memakai Fallback_Scene (R14) | `GET /health/ai` di instance api (`animation.enabled` dan `animation.configured`), event `error` dan log `lore.animation`, status fungsi Lambda | Cocokkan kode galat dengan tabel pemecahan masalah di [12-remotion-animation.md](./12-remotion-animation.md). Bila perlu matikan fitur (bagian 3.12) |
+| `ANIMATION_VERIFIER_UNAVAILABLE` atau `ANIMATION_STORAGE_FAILED` (R14) | Policy role `lore-prod-api-instance` (`lore-prod-api-animation`), hop limit 2 pada `api`, status fungsi, nama bucket di env | Lihat tabel pemecahan masalah dokumen 12. Jangan mengubah hop limit `web` atau `nat` |

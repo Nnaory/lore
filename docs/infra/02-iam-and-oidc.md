@@ -126,6 +126,19 @@ Ilustrasi pembatas IAM (potongan):
 
 Izin ini tidak mencakup `budgets:*`, `ce:*`, `organizations:*`, perubahan OIDC provider, maupun role `lore-gh-*`. Izin akan diperketat dengan data CloudTrail dan IAM Access Analyzer setelah beberapa kali apply (bagian 9).
 
+**Tambahan fitur animasi (R14).** `lore-gh-apply-policy.json` memuat pernyataan baru yang masing-masing dibatasi ke satu resource fitur ini:
+
+| Sid | Izin | Resource |
+|---|---|---|
+| `AnimationBucket` | Aksi pengelolaan bucket S3 (`s3:*Bucket*`, `s3:*EncryptionConfiguration`, `s3:*LifecycleConfiguration`, `s3:GetAccelerateConfiguration`, `s3:GetReplicationConfiguration`). Tanpa izin objek | Bucket `lore-prod-animations-<ACCOUNT_ID>` |
+| `AnimationEcr` | Membuat, menghapus, menandai, dan mengatur repositori, lifecycle policy, mutabilitas tag, dan scan on push. Termasuk `ecr:SetRepositoryPolicy`, `ecr:GetRepositoryPolicy`, `ecr:BatchGetImage`, dan `ecr:GetDownloadUrlForLayer` karena Lambda memeriksa akses ke image saat fungsi dibuat | Repositori `lore-prod-animation-verifier` |
+| `AnimationLambda` | `lambda:CreateFunction`, `DeleteFunction`, `Get*`, `List*`, `TagResource`, `UntagResource`, `UpdateFunction*` | Fungsi `lore-prod-animation-verifier` |
+| `AnimationLogGroup` | `logs:CreateLogGroup`, `DeleteLogGroup`, `PutRetentionPolicy`, `logs:*Tag*` | Log group `/aws/lambda/lore-prod-animation-verifier`, dengan dan tanpa akhiran `:*` |
+| `AnimationLogsDescribe` | `logs:DescribeLogGroups` | Semua log group di region ini (aksi ini tidak mendukung pembatasan resource yang lebih sempit) |
+| `PassRoleToLambda` | `iam:PassRole` dengan `iam:PassedToService = lambda.amazonaws.com` | Role `lore-prod-animation-*`. Terpisah dari `PassRoleToEc2`, yang tidak berubah |
+
+Pembuatan role `lore-prod-animation-verifier-exec` sudah tercakup pernyataan `IamLoreProdResources` (`role/lore-prod-*`). Perubahan file policy ini adalah **langkah bootstrap manual yang menunggu persetujuan pengguna dan harus selesai sebelum PR infra fitur animasi di-merge**, karena `terraform apply` di CI berjalan sebagai `lore-gh-apply`. Agen dan CI tidak menjalankan `bootstrap.sh`. Daftar langkahnya ada di [12-remotion-animation.md](./12-remotion-animation.md) bagian "Langkah manual admin".
+
 ### 4.3 `lore-gh-deploy`
 
 | Izin | Rincian |
@@ -136,6 +149,8 @@ Izin ini tidak mencakup `budgets:*`, `ce:*`, `organizations:*`, perubahan OIDC p
 | Tag rilis | `ssm:PutParameter` dan `ssm:GetParameter` pada `arn:aws:ssm:ap-southeast-3:<ACCOUNT_ID>:parameter/lore/prod/*/release/image_tag` |
 | Status instance | `ec2:DescribeInstances`, `ssm:DescribeInstanceInformation` |
 | Dilarang | Semua izin infra, IAM, RDS, S3, KMS |
+
+Tambahan fitur animasi (R14) pada `lore-gh-deploy-policy.json`, dipakai `release-verifier.yml`: `ecr:GetAuthorizationToken` pada `*` (satu-satunya pernyataan role ini yang ber-Resource `*`, karena aksinya tidak mendukung pembatasan resource), aksi push ECR (`ecr:BatchCheckLayerAvailability`, `InitiateLayerUpload`, `UploadLayerPart`, `CompleteLayerUpload`, `PutImage`, `BatchGetImage`, `GetDownloadUrlForLayer`, `DescribeImages`) pada repositori `lore-prod-animation-verifier`, dan `lambda:UpdateFunctionCode`, `GetFunction`, `GetFunctionConfiguration`, `InvokeFunction` pada fungsi `lore-prod-animation-verifier`. Parameter tag rilis `/lore/prod/verifier/release/image_tag` sudah tercakup pernyataan `SsmReleaseImageTag` yang ada (pola `parameter/lore/prod/*/release/image_tag`). Izin infra, IAM, dan S3 tetap dilarang.
 
 ### 4.4 Ringkasan guardrail untuk plan dan deploy
 
@@ -158,6 +173,7 @@ Selalu menempel pada `lore-gh-apply`. Berisi Deny bersyarat. Ringkasan statement
 | `DenyLoadBalancers` | `elasticloadbalancing:CreateLoadBalancer` | Selalu |
 | `DenyNonS3VpcEndpoints` | `ec2:CreateVpcEndpoint` | `ec2:VpceServiceName` selain `com.amazonaws.<AWS_REGION>.s3` (kunci kondisi terverifikasi di AWS Service Authorization Reference; memblokir VPC Interface Endpoint berbayar) |
 | `DenyExpensiveServices` | `elasticache:*`, `es:*`, `wafv2:*`, `cloudfront:*`, `config:*`, `guardduty:*`, `inspector2:*`, `macie2:*`, `kms:CreateKey`, `route53:CreateHostedZone`, `rds:CreateDBCluster`, `rds:CreateDBProxy` | Selalu |
+| `DenyLogGroupsOtherThanVerifier` | `logs:CreateLogGroup` | `NotResource` memuat ARN log group `/aws/lambda/lore-prod-animation-verifier` dengan dan tanpa akhiran `:*`. Setiap log group lain tetap ditolak. Pernyataan ini terpisah supaya `DenyExpensiveServices` tidak melarang log group fitur animasi (lihat bagian 5.3) |
 | `ProtectGovernance` | `iam:*` pada `role/lore-gh-*`, `policy/lore-guardrail*`, `policy/lore-deny-new-spend`, OIDC provider. `budgets:*`. `ce:*` | Selalu |
 | `NoIamUsersOrKeys` | `iam:CreateUser`, `iam:CreateAccessKey`, `iam:AttachUserPolicy`, `iam:PutUserPolicy` | Selalu |
 
@@ -197,6 +213,30 @@ Peringatan implementasi:
 
 Tidak menempel secara default. Budget action `lore-prod-guardrail` menempelkannya ke `lore-gh-apply` saat pengeluaran aktual mencapai 100% budget. Isinya Deny untuk `ec2:RunInstances`, `ec2:CreateVolume`, `ec2:AllocateAddress`, `ec2:CreateNatGateway`, dan `rds:Create*`. Pelepasan dilakukan manual oleh admin. Role eksekusi action adalah `lore-budgets-action`, dengan trust `budgets.amazonaws.com` dan izin `iam:AttachRolePolicy` serta `iam:DetachRolePolicy` terbatas pada role `lore-gh-apply` dan policy `lore-deny-new-spend` [belum diverifikasi, termasuk trust dan izin minimalnya].
 
+### 5.3 Pengecualian log group fitur animasi (R14)
+
+Sebelumnya `logs:CreateLogGroup` ditolak untuk semua log group karena CloudWatch Logs ada di denylist biaya ([07-cost-guardrails.md](./07-cost-guardrails.md) bagian 4.2). Fungsi Lambda verifier butuh tepat satu log group, jadi:
+
+- `logs:CreateLogGroup` tidak lagi ada di `DenyExpensiveServices`.
+- Pernyataan Deny terpisah `DenyLogGroupsOtherThanVerifier` menolak `logs:CreateLogGroup` untuk semua resource kecuali ARN log group `/aws/lambda/lore-prod-animation-verifier`. ARN itu ditulis dua kali di `NotResource`, dengan dan tanpa akhiran `:*`, supaya Deny tidak salah memblokir log group yang sah. Ini sedikit berbeda dari teks Requirement 35.12 yang hanya menyebut bentuk `:*`.
+- `lore-gh-apply` mendapat Allow untuk log group yang sama (`AnimationLogGroup`).
+
+Dua pemeriksaan read-only berikut hanya dijalankan admin, dan hasilnya dicatat di PR (bukan oleh agen):
+
+```bash
+# Log group verifier: harus "allowed"
+aws iam simulate-principal-policy --policy-source-arn <ARN_lore-gh-apply> \
+  --action-names logs:CreateLogGroup \
+  --resource-arns "arn:aws:logs:ap-southeast-3:<ACCOUNT_ID>:log-group:/aws/lambda/lore-prod-animation-verifier:*"
+
+# Log group lain: harus "explicitDeny"
+aws iam simulate-principal-policy --policy-source-arn <ARN_lore-gh-apply> \
+  --action-names logs:CreateLogGroup \
+  --resource-arns "arn:aws:logs:ap-southeast-3:<ACCOUNT_ID>:log-group:/aws/lambda/other:*"
+```
+
+Hasil simulasi `NotResource` berbentuk `...:*` untuk ARN verifier belum pernah dijalankan `[belum diverifikasi]`. Bila simulasi pertama tidak memberi `allowed`, jangan melonggarkan Deny. Periksa bentuk ARN yang dikirim Terraform dan perbaiki `NotResource` lewat PR bootstrap.
+
 ## 6. Role instance
 
 Setiap instance punya role dan instance profile sendiri dengan nama yang sama.
@@ -204,14 +244,26 @@ Setiap instance punya role dan instance profile sendiri dengan nama yang sama.
 | Role | Izin |
 |---|---|
 | `lore-prod-web-instance` | `AmazonSSMManagedInstanceCore`. `ssm:GetParameter`, `GetParameters`, `GetParametersByPath` pada `arn:aws:ssm:ap-southeast-3:<ACCOUNT_ID>:parameter/lore/prod/web/*` |
-| `lore-prod-api-instance` | `AmazonSSMManagedInstanceCore`. Akses parameter yang sama untuk `parameter/lore/prod/api/*`. `secretsmanager:GetSecretValue` hanya pada ARN secret master RDS. Kunci KMS AWS-managed biasanya tidak butuh izin KMS eksplisit di role (verifikasi) |
+| `lore-prod-api-instance` | `AmazonSSMManagedInstanceCore`. Akses parameter yang sama untuk `parameter/lore/prod/api/*`. `secretsmanager:GetSecretValue` hanya pada ARN secret master RDS. Kunci KMS AWS-managed biasanya tidak butuh izin KMS eksplisit di role (verifikasi). Fitur animasi menambah policy inline `lore-prod-api-animation` (bagian 6.1) |
 | `lore-prod-nat-instance` | `AmazonSSMManagedInstanceCore` saja |
+
+### 6.1 Izin fitur animasi (R14)
+
+Policy inline `lore-prod-api-animation` pada role `lore-prod-api-instance` (dibuat `infra/animation.tf`):
+
+| Sid | Aksi | Resource |
+|---|---|---|
+| `AnimationObjects` | `s3:PutObject`, `s3:GetObject` | `<bucket animasi>/animations/*`. HEAD memakai `s3:GetObject` |
+| `AnimationList` | `s3:ListBucket`, dengan kondisi `StringLike` `s3:prefix` = `animations/*` | Bucket animasi. Membuat objek yang tidak ada menjawab 404, bukan 403 `[belum diverifikasi]` |
+| `InvokeVerifier` | `lambda:InvokeFunction` | Satu ARN fungsi `lore-prod-animation-verifier`, dibangun dari nama sehingga sah sebelum fungsi ada |
+
+Role eksekusi fungsi verifier, `lore-prod-animation-verifier-exec`, tidak memakai managed policy. Policy inline-nya hanya `logs:CreateLogStream` dan `logs:PutLogEvents` pada log group verifier (ARN dengan akhiran `:*`, tanpa `logs:CreateLogGroup`) dan lima aksi `ec2` untuk antarmuka jaringan VPC (`CreateNetworkInterface`, `DescribeNetworkInterfaces`, `DeleteNetworkInterface`, `AssignPrivateIpAddresses`, `UnassignPrivateIpAddresses`) dengan Resource `*` karena AWS mewajibkannya. Fungsi tidak punya environment variable, secret, ataupun function URL, dan security group-nya tanpa rule ingress dan egress.
 
 Catatan:
 
 - Role web tidak bisa membaca parameter api, dan sebaliknya. Kunci Gemini hanya ada di path komponen yang memakainya.
 - Role api tidak punya izin membaca secret lain di Secrets Manager.
-- IMDSv2 wajib dan `http_put_response_hop_limit = 1`, sehingga container Docker (satu hop tambahan) tidak bisa mengambil kredensial instance.
+- IMDSv2 wajib pada semua instance. Hop limit (`http_put_response_hop_limit`) adalah 1 pada `web` dan `nat`, sehingga container Docker (satu hop tambahan) di sana tidak bisa mengambil kredensial instance. Pada `api` nilainya 2 (`hop_limit = 2`), karena `boto3` di dalam container api harus mengambil kredensial role lewat IMDSv2 untuk S3 dan Lambda. Dengan 1 hop, token IMDSv2 tidak sampai ke container dan `boto3` gagal membaca kredensial. Risikonya: proses di dalam container api (satu-satunya yang mendapat dua hop) bisa membaca kredensial role api. Itu sama dengan hak yang memang dibutuhkan fitur ini, dan role api sudah dibatasi seperti di atas. Alasan lengkap ada di [03-compute.md](./03-compute.md) bagian 2. Bahwa `boto3` memang mendapat kredensial dari dalam container `[belum diverifikasi]` sampai smoke pertama lolos.
 
 ## 7. Siapa boleh apa
 
@@ -236,7 +288,7 @@ Repo `Nnaory/lore` publik. Aturan berikut berlaku untuk semua workflow.
 - Tidak ada secret di GitHub untuk infra. Hanya `vars` yang berisi ARN role dan region.
 - Role plan bisa membaca tfstate. Karena itu tfstate tidak boleh memuat secret (lihat [03-compute.md](./03-compute.md) soal parameter SSM).
 - Log Actions, komentar PR, dan artifact di repo publik bisa dilihat publik. Plan Terraform memuat ARN dengan ID akun. Mitigasi ada di [05-cicd.md](./05-cicd.md) dan Q12.
-- IMDSv2 dengan hop limit 1 mencegah container membaca kredensial role instance.
+- IMDSv2 wajib pada semua instance. Hop limit 1 pada `web` dan `nat` mencegah container di sana membaca kredensial role instance. Pada `api` hop limit 2, dengan alasan kredensial `boto3` yang dijelaskan di bagian 6.1.
 
 ## 9. Pencegahan eskalasi dan pemeliharaan
 
