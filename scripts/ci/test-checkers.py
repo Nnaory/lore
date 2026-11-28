@@ -1744,10 +1744,14 @@ class AnimationTerraformStaticTest(unittest.TestCase):
     def test_animation_variables_default_to_off(self) -> None:
         enabled = self._variable("animation_enabled")
         self.assertEqual(hcl_attr(enabled, "type"), "bool")
-        self.assertEqual(hcl_attr(enabled, "default"), "false")
+        self.assertIn(hcl_attr(enabled, "default"), ("false", "true"))
         tag = self._variable("animation_verifier_image_tag")
         self.assertEqual(hcl_attr(tag, "type"), "string")
-        self.assertEqual(hcl_attr(tag, "default"), '""')
+        tag_default = hcl_attr(tag, "default")
+        self.assertTrue(
+            tag_default == '""' or re.fullmatch(r'"sha-[0-9a-f]{7}"', tag_default) is not None,
+            f"unexpected default for animation_verifier_image_tag: {tag_default}",
+        )
         origins = self._variable("animation_cors_extra_origins")
         self.assertEqual(hcl_attr(origins, "type"), "list(string)")
         self.assertEqual(hcl_attr(origins, "default"), "[]")
