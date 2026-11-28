@@ -157,12 +157,16 @@ export function DialogueBox({
  * phone stacks them full-width inside the expanded puzzle dialogue box with zero truncation.
  */
 export function ChoiceButton({
-  label, state, onClick, letter, title, testId, ariaPressed, disabled,
+  label, state, onClick, letter, title, testId, ariaPressed, disabled, speaker,
 }: {
   label: string; state: 'idle' | 'picked' | 'correct'; onClick: () => void;
   letter?: string; title?: string; testId?: string; ariaPressed?: boolean; disabled?: boolean;
+  /** The character who "says" this answer (voice council): a coloured name above the text. */
+  speaker?: { name: string; colorClass: string };
 }) {
   const look = state === 'correct' ? 'bg-ember text-ink border-ember' : state === 'picked' ? 'bg-cream text-ink border-cream' : 'bg-smoke text-cream border-smoke';
+  // On ember/cream the speaker's cloth colour would not read, so the name takes the ink colour there.
+  const nameColor = state === 'idle' ? speaker?.colorClass : 'text-ink';
   return (
     <button
       type="button"
@@ -171,9 +175,13 @@ export function ChoiceButton({
       data-testid={testId}
       aria-pressed={ariaPressed}
       disabled={disabled}
-      className={`min-h-11 w-full border-2 px-3 py-1.5 text-left font-mono text-xs font-bold tracking-[0.06em] disabled:cursor-not-allowed md:h-auto md:w-auto md:min-h-11 md:min-w-[112px] md:max-w-[220px] md:flex-initial md:text-center md:text-[13px] ${look}`}
+      className={`group min-h-11 w-full border-2 px-3 py-1.5 text-left font-mono text-xs font-bold tracking-[0.06em] disabled:cursor-not-allowed md:h-auto md:w-auto md:min-h-11 md:min-w-[112px] md:max-w-[220px] md:flex-initial md:text-[13px] ${speaker ? '' : 'md:text-center'} ${look}`}
     >
-      <span className="block md:line-clamp-4">{letter && <span aria-hidden className="mr-2">{letter}</span>}{label}</span>
+      {speaker && (
+        <span className={`mb-0.5 block text-[10px] uppercase tracking-[0.16em] ${nameColor}`}>{speaker.name}</span>
+      )}
+      {/* The full answer shows on hover or keyboard focus when it is longer than the clamp. */}
+      <span className="block md:line-clamp-4 md:group-hover:line-clamp-none md:group-focus-visible:line-clamp-none">{letter && <span aria-hidden className="mr-2">{letter}</span>}{label}</span>
     </button>
   );
 }

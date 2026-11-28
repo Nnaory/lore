@@ -80,10 +80,11 @@ describe("puzzle canvas", () => {
     expect(screen.getByTestId("stage-canvas").getAttribute("data-canvas-kind")).toBe("puzzle");
   });
 
-  it("falls back to the question alone when the puzzle has no picture", () => {
+  it("shows the voice council instead of a picture when the puzzle has no picture", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     advanceUntil(() => screen.queryByTestId("puzzle-interaction") !== null);
-    expect(screen.getByTestId("stage-canvas").getAttribute("data-canvas-kind")).toBe("decision");
+    expect(screen.getByTestId("voice-council")).toBeTruthy();
+    expect(screen.queryByTestId("stage-canvas")).toBeNull();
   });
 
   it("keeps the question for screen readers only, since the canvas draws it", () => {
