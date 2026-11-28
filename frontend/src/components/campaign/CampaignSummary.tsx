@@ -19,6 +19,8 @@ type CampaignSummaryProps = {
   onBackToLobby: () => void;
   homeHref?: string;
   onReplayCampaign?: () => void;
+  /** Text of the home button; defaults to "Back to your stories". */
+  homeLabel?: string;
 };
 
 const OUTCOME: Record<
@@ -51,7 +53,13 @@ const OUTCOME: Record<
   },
 };
 
-export function CampaignSummary({ summary, onBackToLobby, homeHref, onReplayCampaign }: CampaignSummaryProps) {
+export function CampaignSummary({
+  summary,
+  onBackToLobby,
+  homeHref,
+  onReplayCampaign,
+  homeLabel = "Back to your stories",
+}: CampaignSummaryProps) {
   const total = summary.concepts.length;
   const { mastered } = summary.counts;
 
@@ -164,7 +172,7 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref, onReplayCamp
       <div className="mt-8 flex flex-col gap-3 md:flex-row">
         {homeHref && (
           <Button variant="primary" href={homeHref} className="w-full md:w-auto">
-            Back to your stories
+            {homeLabel}
           </Button>
         )}
         {onReplayCampaign && (
