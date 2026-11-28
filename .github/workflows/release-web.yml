@@ -60,8 +60,11 @@ jobs:
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
           # Animation flag (Requirement 36.2): a repository variable, `off` when unset or empty.
-          # `next build` inlines it, so changing it needs a rebuild (a run with an empty `tag`).
-          build-args: NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}
+          # Project store (r13 D5): `http` uses the LORE API with IndexedDB as a local cache.
+          # `next build` inlines both, so changing them needs a rebuild (a run with an empty `tag`).
+          build-args: |
+            NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}
+            NEXT_PUBLIC_PROJECT_STORE=http
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
