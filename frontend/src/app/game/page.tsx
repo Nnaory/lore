@@ -34,6 +34,8 @@ export default function GamePage() {
       stories={STORIES}
       initialState={dummyCampaignState}
       materials={DEMO_MATERIALS}
+      homeHref="/"
+      homeLabel="Back to home"
     />
   );
 }
