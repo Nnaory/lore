@@ -80,6 +80,8 @@ export const StoryGeneratorOptionsSchema = z.object({
   customInstructions: z.string().optional(),
   /** Optional language hint for the storyteller. */
   language: z.string().optional(),
+  /** Append a final Last Boss chapter with 1 challenge puzzle per concept. */
+  includeBossChapter: z.boolean().optional(),
 });
 
 /**

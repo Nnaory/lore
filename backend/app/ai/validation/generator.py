@@ -197,10 +197,23 @@ def validate_generated_story(
                 if scene.scene_id not in scene_ids:
                     scene_ids.append(scene.scene_id)
 
+    boss_chapter_ids = {
+        chapter.chapter_id for chapter in story.chapters if chapter.chapter_id.endswith("_boss")
+    }
+    boss_puzzle_ids = {
+        scene.puzzle_id
+        for chapter in story.chapters
+        if chapter.chapter_id in boss_chapter_ids
+        for scene in chapter.scenes
+        if isinstance(scene, PuzzleScene)
+    }
+
     tested: dict[str, list[str]] = {}
+    boss_tested: dict[str, list[str]] = {}
     for puzzle in story.puzzles:
+        target = boss_tested if puzzle.puzzle_id in boss_puzzle_ids else tested
         for concept_id in puzzle.concept_ids:
-            tested.setdefault(concept_id, []).append(puzzle.puzzle_id)
+            target.setdefault(concept_id, []).append(puzzle.puzzle_id)
 
     for concept_id in material_concepts:
         intro_scenes = introduced.get(concept_id, [])
@@ -241,6 +254,25 @@ def validate_generated_story(
                     path,
                 )
             )
+        if boss_chapter_ids:
+            concept_boss_puzzles = boss_tested.get(concept_id, [])
+            if not concept_boss_puzzles:
+                errors.append(
+                    validation_error(
+                        "CONCEPT_NOT_TESTED",
+                        f'Concept "{concept_id}" is never tested by a final boss puzzle.',
+                        path,
+                    )
+                )
+            elif len(concept_boss_puzzles) > 1:
+                errors.append(
+                    validation_error(
+                        "CONCEPT_TESTED_TWICE",
+                        f'Concept "{concept_id}" is tested by multiple final boss puzzles: '
+                        f"{', '.join(concept_boss_puzzles)}.",
+                        path,
+                    )
+                )
 
     for concept_id in introduced:
         if concept_id not in material_concept_set:
@@ -252,7 +284,7 @@ def validate_generated_story(
                     f"knowledge_mapping[{concept_id}]",
                 )
             )
-    for concept_id in tested:
+    for concept_id in dict.fromkeys((*tested, *boss_tested)):
         if concept_id not in material_concept_set:
             errors.append(
                 validation_error(

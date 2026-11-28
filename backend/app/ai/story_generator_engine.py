@@ -170,6 +170,60 @@ def _pad(n: int) -> str:
     return str(n).rjust(2, "0")
 
 
+def _find_boss(characters: list[Character], exclude_ids: set[str]) -> Character | None:
+    """Pick the Last Boss character (preferring Kit antagonist `nyx`) outside guide/companion."""
+    for c in characters:
+        if c.character_id == "nyx" and c.character_id not in exclude_ids:
+            return c
+    for c in characters:
+        if c.character_id not in exclude_ids:
+            return c
+    return None
+
+
+def _build_puzzle_entry(
+    puzzle_id: str,
+    concept: Concept,
+    narrative_context: str,
+    question: str,
+    correct_feedback: str,
+    incorrect_feedback: str,
+    choice_prefix: str,
+    warnings: list[dict[str, str]],
+) -> dict[str, Any]:
+    """Build one deterministic puzzle dict with fallback distractors when misconceptions are absent."""
+    distractors = _distractor_texts(concept)
+    if not concept.misconceptions:
+        warnings.append(
+            validation_error(
+                "PUZZLE_DISTRACTOR_SUBSTITUTED",
+                f'Concept "{concept.concept_id}" has no recorded misconceptions; '
+                "deterministic fallback distractors were used.",
+                f"puzzles[{puzzle_id}].choices",
+            )
+        )
+    correct_choice_id = f"{choice_prefix}_a"
+    choices = [{"choice_id": correct_choice_id, "text": concept.definition}]
+    for i, text in enumerate(distractors[:2]):
+        choices.append({"choice_id": f"{choice_prefix}_{chr(98 + i)}", "text": text})
+    return {
+        "puzzle_id": puzzle_id,
+        "concept_ids": [concept.concept_id],
+        "narrative_context": narrative_context,
+        "question": question,
+        "choices": choices,
+        "correct_choice_id": correct_choice_id,
+        "explanation": (
+            f"{concept.definition} This follows from: {' '.join(concept.principles)}"
+            if concept.principles
+            else concept.definition
+        ),
+        "incorrect_feedback": incorrect_feedback,
+        "correct_feedback": correct_feedback,
+        "retry_allowed": True,
+    }
+
+
 # --- main entry point -------------------------------------------------------------------------
 
 
@@ -183,6 +237,7 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
     material = request.material
     options = request.options
     previous = request.previous_summaries or []
+    include_boss = bool(options and options.include_boss_chapter)
     warnings: list[dict[str, str]] = []
 
     # 1. Semantic guards on the request.
@@ -206,12 +261,16 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
     # 2. Concept order.
     ordered = order_concepts(list(material.concepts))
 
-    # 3. Characters: the guide frames challenges, the companion learns along.
+    # 3. Characters: the guide frames challenges, the companion learns along, boss guards the finale.
     guide = campaign.characters[0] if len(campaign.characters) > 0 else None
     companion = campaign.characters[1] if len(campaign.characters) > 1 else None
     cast = [c for c in (guide, companion) if c is not None]
+    present = [c.character_id for c in cast]
+    boss = _find_boss(list(campaign.characters), set(present)) if include_boss else None
+    if boss is not None:
+        cast.append(boss)
     character_ids = [c.character_id for c in cast]
-    present = list(character_ids)
+    boss_present = list(character_ids)
 
     # 4. Scene IDs.
     tag = entry.story_id
@@ -299,42 +358,20 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
         )
 
         # Puzzle.
-        distractors = _distractor_texts(concept)
-        if not concept.misconceptions:
-            warnings.append(
-                validation_error(
-                    "PUZZLE_DISTRACTOR_SUBSTITUTED",
-                    f'Concept "{concept.concept_id}" has no recorded misconceptions; '
-                    "deterministic fallback distractors were used.",
-                    f"puzzles[{puzzle_id}].choices",
-                )
-            )
-        correct_choice_id = f"choice_{tag}_c{_pad(index)}_a"
-        choices = [{"choice_id": correct_choice_id, "text": concept.definition}]
-        for i, text in enumerate(distractors[:2]):
-            choices.append(
-                {"choice_id": f"choice_{tag}_c{_pad(index)}_{chr(98 + i)}", "text": text}
-            )
         puzzles.append(
-            {
-                "puzzle_id": puzzle_id,
-                "concept_ids": [concept.concept_id],
-                "narrative_context": f"{entry.main_conflict} To move forward, "
+            _build_puzzle_entry(
+                puzzle_id=puzzle_id,
+                concept=concept,
+                narrative_context=f"{entry.main_conflict} To move forward, "
                 f"{concept.name} must be applied correctly.",
-                "question": f"Which statement correctly describes {concept.name}?",
-                "choices": choices,
-                "correct_choice_id": correct_choice_id,
-                "explanation": (
-                    f"{concept.definition} This follows from: {' '.join(concept.principles)}"
-                    if concept.principles
-                    else concept.definition
-                ),
-                "incorrect_feedback": "That is a common misunderstanding. "
-                f"Re-read the material on {concept.name} and try again.",
-                "correct_feedback": f"Correct. {concept.name} is exactly as stated, "
+                question=f"Which statement correctly describes {concept.name}?",
+                correct_feedback=f"Correct. {concept.name} is exactly as stated, "
                 "and the story can continue.",
-                "retry_allowed": True,
-            }
+                incorrect_feedback="That is a common misunderstanding. "
+                f"Re-read the material on {concept.name} and try again.",
+                choice_prefix=f"choice_{tag}_c{_pad(index)}",
+                warnings=warnings,
+            )
         )
         scenes.append(
             {
@@ -383,6 +420,100 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
             }
         )
 
+    boss_scenes: list[dict[str, Any]] = []
+    if include_boss:
+        boss_intro_id = f"scene_{tag}_boss_intro"
+        boss_speaker = boss or guide
+        boss_name = boss_speaker.name if boss_speaker is not None else "The Guardian"
+        boss_intro_content: list[dict[str, Any]] = [
+            {
+                "type": "narration",
+                "text": f'At the climax of "{entry.title}", {boss_name} steps forward to test everything you learned.',
+            }
+        ]
+        if boss_speaker is not None:
+            boss_intro_content.append(
+                {
+                    "type": "dialogue",
+                    "character_id": boss_speaker.character_id,
+                    "expression": _pick_expression(boss_speaker, "stern"),
+                    "text": f"Prove you command every principle of {entry.title}. One slip here costs you.",
+                }
+            )
+        boss_scenes.append(
+            {
+                "scene_id": boss_intro_id,
+                "type": "narrative",
+                "location": campaign.setting,
+                "characters_present": list(boss_present),
+                "content": boss_intro_content,
+                "next_scene_id": None,
+            }
+        )
+
+        for raw_index, concept in enumerate(ordered):
+            index = raw_index + 1
+            boss_puzzle_id = f"puzzle_{tag}_boss_{_pad(index)}"
+            boss_puzzle_scene_id = f"scene_{tag}_boss_p{_pad(index)}"
+            boss_result_scene_id = f"scene_{tag}_boss_r{_pad(index)}"
+
+            puzzles.append(
+                _build_puzzle_entry(
+                    puzzle_id=boss_puzzle_id,
+                    concept=concept,
+                    narrative_context=f"{boss_name} strikes with a test of {concept.name}.",
+                    question=f"In this final clash against {boss_name}, how must you apply {concept.name}?",
+                    correct_feedback=f"Direct hit! Your command of {concept.name} breaks the attack.",
+                    incorrect_feedback=f"{boss_name} counters! Re-check {concept.name} and strike again.",
+                    choice_prefix=f"choice_{tag}_boss_{_pad(index)}",
+                    warnings=warnings,
+                )
+            )
+            boss_scenes.append(
+                {
+                    "scene_id": boss_puzzle_scene_id,
+                    "type": "puzzle",
+                    "location": campaign.setting,
+                    "characters_present": list(boss_present),
+                    "puzzle_id": boss_puzzle_id,
+                    "next_scene_id": boss_result_scene_id,
+                }
+            )
+
+            hit_content: list[dict[str, Any]] = [
+                {
+                    "type": "narration",
+                    "text": f"Your mastery of {concept.name} shatters {boss_name}'s defense!",
+                }
+            ]
+            if boss_speaker is not None:
+                is_last = index == len(ordered)
+                hit_content.append(
+                    {
+                        "type": "dialogue",
+                        "character_id": boss_speaker.character_id,
+                        "expression": _pick_expression(
+                            boss_speaker, "surprised" if is_last else "worried"
+                        ),
+                        "text": (
+                            f"Impossible... {concept.name} broke my final ward!"
+                            if is_last
+                            else f"Hmph... {concept.name} won't save you from what comes next."
+                        ),
+                    }
+                )
+            boss_scenes.append(
+                {
+                    "scene_id": boss_result_scene_id,
+                    "type": "consequence",
+                    "location": campaign.setting,
+                    "characters_present": list(boss_present),
+                    "content": hit_content,
+                    "next_scene_id": None,
+                }
+            )
+        scenes.extend(boss_scenes)
+
     # 6. Ending.
     ending_id = f"ending_{tag}_success"
     outcome = entry.outcomes[0] if entry.outcomes else None
@@ -403,7 +534,7 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
             "scene_id": ending_scene_id,
             "type": "ending",
             "location": campaign.setting,
-            "characters_present": list(present),
+            "characters_present": list(boss_present if include_boss else present),
             "ending_id": ending_id,
         }
     )
@@ -420,7 +551,10 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
     wanted = options.concepts_per_chapter if options and options.concepts_per_chapter else n
     per_chapter = max(1, min(wanted, n))
     scenes_per_concept = 3  # learning + puzzle + result
-    head, middle, tail = scenes[:1], scenes[1:-1], scenes[-1:]
+    lesson_end = 1 + n * scenes_per_concept
+    head = scenes[:1]
+    middle = scenes[1:lesson_end]
+    tail = scenes[lesson_end:]  # boss scenes (if any) + ending scene
     group_count = math.ceil(len(middle) / (per_chapter * scenes_per_concept))
     chapters: list[dict[str, Any]] = []
     for g in range(group_count):
@@ -436,8 +570,16 @@ def build_story_blueprint(request: GenerateStoryRequest) -> StoryEngineResult:
                 "scenes": [
                     *(head if g == 0 else []),
                     *part,
-                    *(tail if g == group_count - 1 else []),
+                    *(tail if not include_boss and g == group_count - 1 else []),
                 ],
+            }
+        )
+    if include_boss:
+        chapters.append(
+            {
+                "chapter_id": f"chapter_{tag}_boss",
+                "title": "Final Boss",
+                "scenes": tail,
             }
         )
 

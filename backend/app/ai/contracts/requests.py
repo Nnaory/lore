@@ -99,6 +99,9 @@ class StoryGeneratorOptions(ZodModel):
     ) = Field(default=None, alias="conceptsPerChapter")
     custom_instructions: OptionalText = Field(default=None, alias="customInstructions")
     language: OptionalText = None
+    include_boss_chapter: Annotated[bool, Strict()] | None = Field(
+        default=None, alias="includeBossChapter"
+    )
 
 
 class GenerateStoryRequest(ZodModel):

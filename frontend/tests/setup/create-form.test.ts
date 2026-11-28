@@ -129,7 +129,7 @@ describe("buildWorkflowRequest", () => {
         },
       ],
       campaignOptions: { genre: "science_fiction", language: "id", customInstructions: "Keep it light." },
-      storyOptions: { language: "id", customInstructions: "Keep it light." },
+      storyOptions: { includeBossChapter: true, language: "id", customInstructions: "Keep it light." },
     });
   });
 

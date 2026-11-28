@@ -186,6 +186,7 @@ export function buildWorkflowRequest(state: CreateFormState): GenerationRequest 
       // One concept per chapter: the story length caps the concept count
       // (short = 3, medium = 5), so it also sets the chapter count.
       conceptsPerChapter: 1,
+      includeBossChapter: true,
       language: state.language,
       customInstructions: instructions,
     },

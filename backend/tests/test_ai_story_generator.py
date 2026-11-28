@@ -1173,3 +1173,129 @@ def test_seeded_shuffle_is_a_deterministic_permutation_that_does_not_mutate() ->
     assert seeded_shuffle(items, "other seed") != shuffled
     assert seeded_shuffle([], "x") == []
     assert seeded_shuffle(["only"], "x") == ["only"]
+
+
+# --- last boss chapter ------------------------------------------------------------------------
+
+
+def _boss_request(name: str = "dummy2") -> GenerateStoryRequest:
+    base = request_of(name)
+    opts = base.options.model_copy(update={"include_boss_chapter": True}) if base.options else None
+    return base.model_copy(update={"options": opts})
+
+
+def test_boss_chapter_adds_one_final_chapter_with_one_puzzle_per_concept() -> None:
+    request = _boss_request("dummy2")
+    engine = build_story_blueprint(request)
+    assert isinstance(engine, StoryEngineSuccess)
+    bp = engine.blueprint
+    concepts = request.material.concepts
+
+    assert len(bp["chapters"]) == len(concepts) + 1
+    boss_chapter = bp["chapters"][-1]
+    assert boss_chapter["chapter_id"].endswith("_boss")
+    assert boss_chapter["scenes"][-1]["type"] == "ending"
+    for regular in bp["chapters"][:-1]:
+        assert all(s["type"] != "ending" for s in regular["scenes"])
+
+    boss_puzzles = [s["puzzle_id"] for s in boss_chapter["scenes"] if s["type"] == "puzzle"]
+    assert len(boss_puzzles) == len(concepts)
+    assert len(bp["puzzles"]) == 2 * len(concepts)
+
+    regular_questions = {
+        p["question"] for p in bp["puzzles"] if p["puzzle_id"] not in set(boss_puzzles)
+    }
+    boss_questions = {
+        p["question"] for p in bp["puzzles"] if p["puzzle_id"] in set(boss_puzzles)
+    }
+    assert regular_questions.isdisjoint(boss_questions)
+
+    model = StoryBlueprint.model_validate(bp)
+    assert validate_story(model, request.material) == []
+    assert validate_generated_story(model, request.material, request.story, []) == []
+
+
+def test_boss_prompt_and_anti_duplication_guard() -> None:
+    assert "never write a question that is identical or a near-copy" in SYSTEM_PROMPT
+    request = _boss_request("dummy2")
+    skeleton = build(request)
+    prompt = build_story_prompt(request, skeleton)
+    assert '"boss":' in prompt
+    assert "boss.challenges" in prompt
+
+    # Duplicate question in boss challenge must fall back to distinct skeleton question.
+    concept = request.material.concepts[0]
+    lesson_question = "What is the primary rule of this concept?"
+    content = StoryContent.model_validate(
+        {
+            "concepts": [
+                {
+                    "concept_id": concept.concept_id,
+                    "puzzle": {
+                        "narrative_context": "Lesson obstacle.",
+                        "question": lesson_question,
+                        "correct_answer": "True statement",
+                        "wrong_answers": ["Wrong one", "Wrong two"],
+                        "explanation": "Because it holds.",
+                        "correct_feedback": "Well done.",
+                        "incorrect_feedback": "Try again.",
+                    },
+                }
+            ],
+            "boss": {
+                "chapter_title": "Pertarungan Terakhir",
+                "intro_narration": "Nyx blocks the final gate.",
+                "boss_taunt": "Face my final test!",
+                "challenges": [
+                    {
+                        "concept_id": concept.concept_id,
+                        "puzzle": {
+                            "narrative_context": "Boss strikes!",
+                            "question": lesson_question,
+                            "correct_answer": "Boss true",
+                            "wrong_answers": ["Boss wrong 1", "Boss wrong 2"],
+                            "explanation": "Explained.",
+                            "correct_feedback": "Hit!",
+                            "incorrect_feedback": "Missed!",
+                        },
+                        "hit_narration": "Direct blow!",
+                        "boss_reaction": "Not bad...",
+                    }
+                ],
+            },
+        }
+    )
+    merged = merge_story_content(skeleton, content)
+    boss_chapter = merged.blueprint["chapters"][-1]
+    assert boss_chapter["title"] == "Pertarungan Terakhir"
+    boss_puzzle_id = f"puzzle_{request.story.story_id}_boss_01"
+    assert f"boss_puzzle:{boss_puzzle_id}" in merged.templated
+    boss_puzzle = next(
+        p for p in merged.blueprint["puzzles"] if p["puzzle_id"] == boss_puzzle_id
+    )
+    assert boss_puzzle["question"] != lesson_question
+
+
+def test_boss_validator_still_rejects_duplicate_or_missing_boss_puzzles() -> None:
+    request = _boss_request("dummy2")
+    bp = build(request)
+    # Remove the last boss puzzle scene & puzzle entry -> concept not tested in boss chapter.
+    boss_chapter = bp["chapters"][-1]
+    second_puzzle_id = next(
+        s["puzzle_id"] for s in boss_chapter["scenes"] if s["type"] == "puzzle"
+    )
+    boss_chapter["scenes"] = [
+        s for s in boss_chapter["scenes"] if s.get("puzzle_id") != second_puzzle_id
+    ]
+    # Re-wire linear chain so dead-end errors don't mask CONCEPT_NOT_TESTED.
+    flat = [s for c in bp["chapters"] for s in c["scenes"] if s["type"] != "ending"]
+    ending_id = bp["chapters"][-1]["scenes"][-1]["scene_id"]
+    for i, s in enumerate(flat):
+        s["next_scene_id"] = flat[i + 1]["scene_id"] if i + 1 < len(flat) else ending_id
+    bp["puzzles"] = [p for p in bp["puzzles"] if p["puzzle_id"] != second_puzzle_id]
+    model = StoryBlueprint.model_validate(bp)
+    codes = {
+        e["code"]
+        for e in validate_generated_story(model, request.material, request.story, [])
+    }
+    assert "CONCEPT_NOT_TESTED" in codes
