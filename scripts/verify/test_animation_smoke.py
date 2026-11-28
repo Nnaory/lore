@@ -193,14 +193,28 @@ class FakeClock:
 
     def __init__(self) -> None:
         self._now = 1000.0
-        self._lock = threading.Lock()
+        self._reads = 0
+        self._cond = threading.Condition()
 
     def __call__(self) -> float:
-        with self._lock:
+        with self._cond:
+            self._reads += 1
+            self._cond.notify_all()
             return self._now
 
+    @property
+    def reads(self) -> int:
+        with self._cond:
+            return self._reads
+
+    def wait_next_read(self, after: int, timeout: float = 2.0) -> None:
+        if after <= 0:
+            return
+        with self._cond:
+            self._cond.wait_for(lambda: self._reads > after, timeout=timeout)
+
     def advance(self, seconds: float) -> None:
-        with self._lock:
+        with self._cond:
             self._now += seconds
 
 
@@ -314,8 +328,11 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.flush()
         try:
+            reads_after_started = 0
             for name, data in events:
                 if name == "!advance":
+                    if reads_after_started > 0:
+                        self.fake.clock.wait_next_read(reads_after_started)
                     self.fake.clock.advance(data)
                 elif name == "!stall":
                     self.fake.release.wait(timeout=data)
@@ -325,6 +342,8 @@ class Handler(BaseHTTPRequestHandler):
                 elif name == "!raw":
                     self._chunk(data)
                 else:
+                    if name == "started":
+                        reads_after_started = self.fake.clock.reads
                     payload = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
                     self._chunk(f"event: {name}\ndata: {payload}\n\n".encode())
             self.wfile.write(b"0\r\n\r\n")
