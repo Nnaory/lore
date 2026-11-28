@@ -1,0 +1,190 @@
+{
+  "description": "Request_Hash vectors (Requirement 18.1, 18.11, design 10.5). `canonical` is the canonical JSON written by hand (sorted keys, no spaces, UTF-8 without escapes, whole numbers as integers); `sha256` is the SHA-256 of its UTF-8 bytes. Request vectors go through CreateAnimationRequest and canonical_hash; value vectors go through canonical_json. `same_hash_as` and `differs_from` name other vectors in the same list. Do not reformat this file with a tool that rewrites numbers (2.0, -0.0) or Unicode escapes.",
+  "request_vectors": [
+    {
+      "name": "omitted-optional-fields",
+      "note": "concepts and forbidden_tokens are not sent: both hash as [].",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "cb9f394e42abaa41ac36f3589b1559f2dd6728732f52e6df78dde26a013ecd0a"
+    },
+    {
+      "name": "explicit-empty-lists",
+      "note": "Same request with concepts and forbidden_tokens sent as []: same hash.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "concepts": [], "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en", "forbidden_tokens": []},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "cb9f394e42abaa41ac36f3589b1559f2dd6728732f52e6df78dde26a013ecd0a",
+      "same_hash_as": "omitted-optional-fields"
+    },
+    {
+      "name": "integral-floats",
+      "note": "2.0 hashes like 2: whole floats are written as integers.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0.0, 0.0], "to": [4.0, 2.0], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "cb9f394e42abaa41ac36f3589b1559f2dd6728732f52e6df78dde26a013ecd0a",
+      "same_hash_as": "omitted-optional-fields"
+    },
+    {
+      "name": "negative-zero",
+      "note": "-0.0 hashes like 0.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [-0.0, -0.0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "cb9f394e42abaa41ac36f3589b1559f2dd6728732f52e6df78dde26a013ecd0a",
+      "same_hash_as": "omitted-optional-fields"
+    },
+    {
+      "name": "title-js-whitespace-trimmed",
+      "note": "The title is trimmed like JavaScript trim(): BOM, NBSP and EM SPACE are removed.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "\ufeff\u00a0Linear combinations\u2003", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "cb9f394e42abaa41ac36f3589b1559f2dd6728732f52e6df78dde26a013ecd0a",
+      "same_hash_as": "omitted-optional-fields"
+    },
+    {
+      "name": "text-is-not-trimmed",
+      "note": "Only the title is trimmed; the text keeps its spaces, so the hash changes.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "  A linear combination scales vectors and adds them.  ", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"  A linear combination scales vectors and adds them.  \",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "a0b895993cca4b34f88e664d1b1095e61fbfbd0e859bc858cd4ccd633162eb3a",
+      "differs_from": ["omitted-optional-fields"]
+    },
+    {
+      "name": "puzzle-forbidden-unordered-duplicates",
+      "note": "forbidden_tokens are de-duplicated and sorted by code point ('B' before 'a').",
+      "contract_version": 1,
+      "request": {"kind": "puzzle", "title": "Pick the sum", "text": "Which vector is A + B?", "concepts": ["sum", "vector"], "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en", "forbidden_tokens": ["zeta", "alpha", "zeta", "Beta"]},
+      "canonical": "{\"concepts\":[\"sum\",\"vector\"],\"contract_version\":1,\"forbidden_tokens\":[\"Beta\",\"alpha\",\"zeta\"],\"kind\":\"puzzle\",\"language\":\"en\",\"text\":\"Which vector is A + B?\",\"title\":\"Pick the sum\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "d2348a9e525a022ac57f4252462a4a2113f5a879f4f6564ea35fbed743beb948"
+    },
+    {
+      "name": "puzzle-forbidden-sorted-unique",
+      "note": "The already sorted, unique list hashes the same as the shuffled one with duplicates.",
+      "contract_version": 1,
+      "request": {"kind": "puzzle", "title": "Pick the sum", "text": "Which vector is A + B?", "concepts": ["sum", "vector"], "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en", "forbidden_tokens": ["Beta", "alpha", "zeta"]},
+      "canonical": "{\"concepts\":[\"sum\",\"vector\"],\"contract_version\":1,\"forbidden_tokens\":[\"Beta\",\"alpha\",\"zeta\"],\"kind\":\"puzzle\",\"language\":\"en\",\"text\":\"Which vector is A + B?\",\"title\":\"Pick the sum\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "d2348a9e525a022ac57f4252462a4a2113f5a879f4f6564ea35fbed743beb948",
+      "same_hash_as": "puzzle-forbidden-unordered-duplicates"
+    },
+    {
+      "name": "puzzle-forbidden-set-changed",
+      "note": "A different set of forbidden_tokens changes the hash.",
+      "contract_version": 1,
+      "request": {"kind": "puzzle", "title": "Pick the sum", "text": "Which vector is A + B?", "concepts": ["sum", "vector"], "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en", "forbidden_tokens": ["Beta", "alpha", "zeta", "eta"]},
+      "canonical": "{\"concepts\":[\"sum\",\"vector\"],\"contract_version\":1,\"forbidden_tokens\":[\"Beta\",\"alpha\",\"eta\",\"zeta\"],\"kind\":\"puzzle\",\"language\":\"en\",\"text\":\"Which vector is A + B?\",\"title\":\"Pick the sum\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "80430796d7d696ce48f84932ab024b753419b0a17fd44fb5914bbc0caabdd981",
+      "differs_from": ["puzzle-forbidden-unordered-duplicates"]
+    },
+    {
+      "name": "puzzle-concepts-reordered",
+      "note": "The order of concepts is kept, so reordering them changes the hash.",
+      "contract_version": 1,
+      "request": {"kind": "puzzle", "title": "Pick the sum", "text": "Which vector is A + B?", "concepts": ["vector", "sum"], "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en", "forbidden_tokens": ["Beta", "alpha", "zeta"]},
+      "canonical": "{\"concepts\":[\"vector\",\"sum\"],\"contract_version\":1,\"forbidden_tokens\":[\"Beta\",\"alpha\",\"zeta\"],\"kind\":\"puzzle\",\"language\":\"en\",\"text\":\"Which vector is A + B?\",\"title\":\"Pick the sum\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "b0068caa12cb35c69ff9009757cbf9e3bdcda012541fb5064f4d43c13d783097",
+      "differs_from": ["puzzle-forbidden-unordered-duplicates"]
+    },
+    {
+      "name": "contract-version-2",
+      "note": "contract_version is part of the hash.",
+      "contract_version": 2,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":2,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "9f90164deeeb87caa5ea2e8ac91c158d9d3791c1d1d947259c6a3cefb97bc214",
+      "differs_from": ["omitted-optional-fields"]
+    },
+    {
+      "name": "title-nfc",
+      "note": "U+00E9 (precomposed e acute), written as a literal character in the canonical JSON.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "caf\u00e9", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"caf\u00e9\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "b8d3fda2b8b08af94cf497e8b92d7d5f0640574b73b6a6691d9295e092667cba"
+    },
+    {
+      "name": "title-nfd",
+      "note": "e + U+0301 is NOT normalized to U+00E9, so it hashes differently from title-nfc.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "cafe\u0301", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"cafe\u0301\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "ecc854f1ef70e4eb145c4bab006ad6afd0e17126a8b4056057eb112d9bd9994b",
+      "differs_from": ["title-nfc"]
+    },
+    {
+      "name": "fractional-coordinate-kept",
+      "note": "A coordinate with a fraction is not rounded: 2.5 stays 2.5.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "A linear combination scales vectors and adds them.", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2.5], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"A linear combination scales vectors and adds them.\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2.5]}]}}",
+      "sha256": "a7f87ade15bcd7d4d81801232f7546cc008e6e6723ab6c1bd1c9b23483117fec",
+      "differs_from": ["omitted-optional-fields"]
+    },
+    {
+      "name": "emoji-not-escaped",
+      "note": "Non-ASCII is written as UTF-8, never as a \\u escape or a surrogate pair.",
+      "contract_version": 1,
+      "request": {"kind": "lesson", "title": "Linear combinations", "text": "Look \ud83d\ude00 here", "visual": {"kind": "vectors", "vectors": [{"from": [0, 0], "to": [4, 2], "label": "2A"}]}, "language": "en"},
+      "canonical": "{\"concepts\":[],\"contract_version\":1,\"forbidden_tokens\":[],\"kind\":\"lesson\",\"language\":\"en\",\"text\":\"Look \ud83d\ude00 here\",\"title\":\"Linear combinations\",\"visual\":{\"kind\":\"vectors\",\"vectors\":[{\"from\":[0,0],\"label\":\"2A\",\"to\":[4,2]}]}}",
+      "sha256": "005e59d88bfe2ae36f8611034d8c40ad15b35c134cc3094e7c032bfeba62b534",
+      "differs_from": ["omitted-optional-fields"]
+    }
+  ],
+  "value_vectors": [
+    {
+      "name": "boolean-true",
+      "note": "true stays true.",
+      "value": {"flag": true},
+      "canonical": "{\"flag\":true}",
+      "sha256": "2a8199939ad03f40b3086f82c20981e00cff6eabe05aa9d2aac65dbb068306f8"
+    },
+    {
+      "name": "integer-one",
+      "note": "1 is not true: a boolean is never turned into a number.",
+      "value": {"flag": 1},
+      "canonical": "{\"flag\":1}",
+      "sha256": "b53c42e1dd7108bbf0c553ff1b0024da3c357101e5112df83c947bbbaae31845",
+      "differs_from": ["boolean-true"]
+    },
+    {
+      "name": "whole-float",
+      "note": "2.0 is written as 2.",
+      "value": {"n": 2.0},
+      "canonical": "{\"n\":2}",
+      "sha256": "363379742f80b51bdb9206579af7754911543079b9399cb3fc315fb199f476e8"
+    },
+    {
+      "name": "whole-integer",
+      "note": "2 is written as 2: same hash as 2.0.",
+      "value": {"n": 2},
+      "canonical": "{\"n\":2}",
+      "sha256": "363379742f80b51bdb9206579af7754911543079b9399cb3fc315fb199f476e8",
+      "same_hash_as": "whole-float"
+    },
+    {
+      "name": "negative-zero-float",
+      "note": "-0.0 is written as 0.",
+      "value": {"n": -0.0},
+      "canonical": "{\"n\":0}",
+      "sha256": "f3013f933b9fb80ab6d995e7ad9da36f683837ba1d81e950c943d40111eac2f0"
+    },
+    {
+      "name": "sorted-keys-nested",
+      "note": "Keys are sorted at every depth; null and false are kept; 1.0 becomes 1.",
+      "value": {"b": [{"z": 1.0, "a": false}], "a": null},
+      "canonical": "{\"a\":null,\"b\":[{\"a\":false,\"z\":1}]}",
+      "sha256": "9e24fe7e77942856670d3dcf40d10d4fbc5a3779c9d24c1426f26308af782f12"
+    },
+    {
+      "name": "non-ascii-and-escapes",
+      "note": "Non-ASCII is not escaped; quote, backslash and newline use the JSON escapes.",
+      "value": {"s": "\u00e9 \"q\" \\ \n"},
+      "canonical": "{\"s\":\"\u00e9 \\\"q\\\" \\\\ \\n\"}",
+      "sha256": "0c3e968b8e1ad3857def1b8f8adf0fffc6339988c5d4416cd2409c48f74f351c"
+    }
+  ]
+}

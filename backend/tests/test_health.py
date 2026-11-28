@@ -31,17 +31,21 @@ def test_api_v1_health_returns_ok(monkeypatch: pytest.MonkeyPatch) -> None:
 def test_health_ai_reports_configured(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("PGHOST", raising=False)
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    monkeypatch.delenv("ANIMATION_ENABLED", raising=False)
     monkeypatch.setenv("AI_PROVIDER", "google")
     monkeypatch.setenv("GOOGLE_API_KEY", "super-secret-key")
+    # `configured` is the Gemini key as before; `animation` was added by Requirement 16.9 and is
+    # off here (its own cases are in test_animation_health.py).
+    animation_off = {"enabled": False, "configured": False}
     with TestClient(create_app()) as client:
         on = client.get("/health/ai")
         monkeypatch.delenv("GOOGLE_API_KEY")
         off = client.get("/health/ai")
     assert on.status_code == 200
     assert on.headers["cache-control"] == "no-store"
-    assert on.json() == {"configured": True}
+    assert on.json() == {"configured": True, "animation": animation_off}
     assert "super-secret-key" not in on.text
-    assert off.json() == {"configured": False}
+    assert off.json() == {"configured": False, "animation": animation_off}
 
 
 def test_health_db_returns_503_when_unconfigured(monkeypatch: pytest.MonkeyPatch) -> None:

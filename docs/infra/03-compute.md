@@ -22,7 +22,7 @@ Tidak ada SSH dan tidak ada key pair. Akses lewat SSM Session Manager.
 | Penggantian AMI | `lifecycle { ignore_changes = [ami] }`. AMI baru dipakai hanya lewat `-replace` setelah ditinjau (lihat [09-runbook.md](./09-runbook.md)). Tanpa ini, rilis AMI baru dari AWS membuat plan berikutnya menggantikan instance |
 | Tipe | `t3.micro` (divalidasi variabel dan guardrail IAM) |
 | Kredit CPU | `credit_specification { cpu_credits = "standard" }`. Default T3 adalah unlimited dan bisa menagih surplus credit |
-| Metadata | `metadata_options { http_tokens = "required", http_put_response_hop_limit = 1 }` |
+| Metadata | `metadata_options { http_tokens = "required", http_put_response_hop_limit = 1 }` pada `web` dan `nat`. Pada `api`: `http_tokens = "required"` dan `http_put_response_hop_limit = 2` (lihat di bawah tabel) |
 | Root volume | gp3 terenkripsi (kunci AWS-managed). web 12 GB, api 12 GB, nat 8 GB |
 | Monitoring | `monitoring = false` (detailed monitoring berbayar) |
 | `user_data_replace_on_change` | `true` |
@@ -33,6 +33,23 @@ Tidak ada SSH dan tidak ada key pair. Akses lewat SSM Session Manager.
 | Tag | `Name`, `Component`, plus tag wajib dari provider. Lihat [08-tagging.md](./08-tagging.md) |
 
 Disk, swap, dan memori: dengan 1 GiB RAM, Next.js standalone, Caddy, Docker, dan agen SSM berjalan bersama. Swap mencegah OOM saat lonjakan. Pantau lewat `free -m` via SSM bila ada gejala.
+
+**Hop limit 2 hanya pada `api`.** Container FastAPI berjalan di jaringan bridge Docker, yang menambah satu hop antara proses di dalam container dan layanan metadata (IMDS) instance. Fitur animasi memakai `boto3` di dalam container untuk S3 dan Lambda, dan `boto3` mengambil kredensial role instance lewat IMDSv2. Dengan nilai 1 seperti pada `web` dan `nat` (`http_put_response_hop_limit = 1`), respons token IMDSv2 tidak sampai ke container, sehingga kredensial tidak terbaca. Karena itu `aws_instance.api` memakai:
+
+```hcl
+metadata_options {
+  http_tokens                 = "required"
+  http_put_response_hop_limit = 2   # hop_limit = 2, hanya api
+}
+```
+
+Aturan:
+
+- IMDSv2 tetap wajib (`http_tokens = "required"`) pada ketiga instance.
+- `web` dan `nat` tetap memakai hop limit 1. Container di `web` tidak punya alasan membaca kredensial role instance, dan `nat` tidak menjalankan container aplikasi.
+- Perubahan ini update in-place (`ModifyInstanceMetadataOptions`). `user_data` tidak berubah, jadi instance `api` tidak diganti.
+- Akibatnya proses di dalam container api bisa membaca kredensial role `lore-prod-api-instance`. Izin role itu sudah dibatasi ([02-iam-and-oidc.md](./02-iam-and-oidc.md) bagian 6.1).
+- Bahwa `boto3` memang mendapat kredensial dari dalam container `[belum diverifikasi]` sampai smoke animasi pertama lolos ([12-remotion-animation.md](./12-remotion-animation.md)).
 
 ## 3. `user_data` dan penanaman file deploy
 
@@ -53,7 +70,7 @@ resource "aws_instance" "web" {
   credit_specification { cpu_credits = "standard" }
   metadata_options {
     http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_put_response_hop_limit = 1   # web: hop limit 1. Pada api nilainya 2 (bagian 2)
   }
   root_block_device {
     volume_size = 12
@@ -146,6 +163,10 @@ Jebakan dan batas:
 | `/lore/prod/api/env/AI_*` | String | Terraform | Nilai sama dengan web setelah AI pindah |
 | `/lore/prod/api/env/GOOGLE_API_KEY` | SecureString | Manual | Kunci Gemini untuk api |
 | `/lore/prod/api/config/db_secret_arn` | String | Terraform | ARN secret master RDS (non-secret) |
+| `/lore/prod/api/env/ANIMATION_BUCKET`, `ANIMATION_VERIFIER_FUNCTION`, `AWS_REGION`, `ANIMATION_RATE_PER_MINUTE_IP`, `ANIMATION_DAILY_PER_IP`, `ANIMATION_MAX_CONCURRENT_PER_IP`, `ANIMATION_MAX_CONCURRENT_GLOBAL`, `ANIMATION_MAX_ATTEMPTS`, `ANIMATION_DEADLINE_MS` | String | Terraform (`aws_ssm_parameter.animation_env`, `Component=api`) | Nama bucket dan fungsi, region, dan batas fitur animasi. Dirender ke `.env` api oleh `render-env.sh` yang generik, jadi `deploy/**` tidak berubah |
+| `/lore/prod/api/env/ANIMATION_ENABLED` | String | Terraform (`aws_ssm_parameter.animation_enabled`) | `false` default. Berubah ke `true` hanya lewat PR yang mengubah `animation_enabled`. `precondition` menolak `true` tanpa tag image verifier |
+| `/lore/prod/api/env/AI_ANIMATION_MODEL` | String | Manual (opsional, tidak dibuat Terraform) | Daftar model animasi dipisah koma. Tanpa parameter ini api memakai `AI_MODEL` |
+| `/lore/prod/verifier/release/image_tag` | String | `scripts/ci/verifier-release.sh` (`release-verifier.yml`) | `sha-1a2b3c4`. Tag image verifier terakhir yang lolos pemeriksaan. Bukan env: tidak dirender ke `.env` |
 | `/lore/prod/web/release/image_tag` | String | Job deploy | `sha-1a2b3c4` |
 | `/lore/prod/api/release/image_tag` | String | Job deploy | `sha-1a2b3c4` |
 
@@ -362,4 +383,4 @@ Pull dengan `GITHUB_TOKEN` dari dalam Actions gratis, tetapi pull dari EC2 tidak
 | Web kehabisan memori | Swap 1 GiB, rotasi log Docker, pantau lewat SSM |
 | Egress api mati saat NAT mati | Lihat [01-network.md](./01-network.md) bagian 7 |
 | Smoke test lolos tetapi DB bermasalah | `deploy.sh` api memeriksa `/health/db` secara internal |
-| `.env` terbaca proses lain di instance | File berizin 600 milik root, container non-root, IMDS hop limit 1 |
+| `.env` terbaca proses lain di instance | File berizin 600 milik root, container non-root. IMDSv2 wajib, hop limit 1 pada `web` dan `nat`. Pada `api` hop limit 2 sehingga proses di container api bisa membaca kredensial role api, yang izinnya sudah dibatasi (bagian 2) |

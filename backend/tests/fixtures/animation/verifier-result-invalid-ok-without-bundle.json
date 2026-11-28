@@ -1,0 +1,12 @@
+{
+  "ok": true,
+  "diagnostics": [],
+  "meta": { "width": 1280, "height": 720, "fps": 30, "durationInFrames": 150 },
+  "summary": {
+    "verifier_version": "0.1.0",
+    "contract_version": 1,
+    "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+    "checks": [{ "name": "size", "ok": true, "ms": 1 }],
+    "truncated": false
+  }
+}

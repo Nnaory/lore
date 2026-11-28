@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "Linear combinations",
+  "text": "A linear combination scales vectors and adds them.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2], "label": "2A" }]
+  },
+  "language": "en"
+}

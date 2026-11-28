@@ -1,0 +1,11 @@
+{
+  "kind": "puzzle",
+  "title": "Emoji forbidden token over the limit",
+  "text": "The second forbidden token is 41 emoji: 82 UTF-16 units, yet only 41 code points.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "forbidden_tokens": ["seven", "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"]
+}

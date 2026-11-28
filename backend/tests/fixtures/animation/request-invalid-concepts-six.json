@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "Six concepts",
+  "text": "At most five concepts are allowed.",
+  "concepts": ["one", "two", "three", "four", "five", "six"],
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

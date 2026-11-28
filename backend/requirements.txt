@@ -4,3 +4,6 @@ sqlalchemy==2.1.9
 psycopg[binary]==3.3.9
 alembic==1.20.1
 httpx2==2.16.2
+# Animation agent (spec ai-remotion-animation). Versi stabil terbaru per PyPI (25 Nov 2026), Python >= 3.10.
+langgraph==1.2.24
+boto3==1.44.13

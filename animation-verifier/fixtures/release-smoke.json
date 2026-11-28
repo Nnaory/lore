@@ -1,0 +1,12 @@
+{
+  "description": "The two fixtures that scripts/ci/verifier-release.sh invokes on the released Lambda: the good one must return ok=true, the bad one ok=false with every code in expected_codes and no VERIFIER_* code. Paths are relative to animation-verifier/fixtures/; the companion JSON holds kind, required_tokens and forbidden_tokens. tests/corpus.test.ts keeps this file in step with the corpus.",
+  "good": {
+    "source": "good/vectors-lesson.ts",
+    "companion": "good/vectors-lesson.json"
+  },
+  "bad": {
+    "source": "bad/fidelity-token-missing.ts",
+    "companion": "bad/fidelity-token-missing.json",
+    "expected_codes": ["FIDELITY_TOKEN_MISSING"]
+  }
+}

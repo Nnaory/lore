@@ -19,7 +19,7 @@ const visual: CanvasScene = {
   props: { title: "Vectors", seed: 1, visual: { kind: "vectors", vectors: [{ from: [0, 0], to: [2, 1] }] } },
 };
 const lesson: CanvasScene = { kind: "lesson", props: { title: "Vectors", body: "Arrows with length.", seed: 1 } };
-const decision: CanvasScene = { kind: "decision", props: { label: "", count: 3, seed: 1 } };
+const decision: CanvasScene = { kind: "decision", props: { label: "", seed: 1 } };
 const ambient: CanvasScene = { kind: "ambient", props: { title: "The Hall", seed: 1 } };
 
 describe("StageCanvas playback", () => {

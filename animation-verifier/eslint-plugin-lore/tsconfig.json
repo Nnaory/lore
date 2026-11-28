@@ -1,0 +1,15 @@
+// Build plugin ESLint lokal `lore` ke JavaScript (design 5.13; tugas 5.2).
+// `eslint.config.mjs` mengimpor `./eslint-plugin-lore/index.js`, dan di image Lambda hanya ada hasil
+// kompilasi, jadi plugin dibangun sendiri ke `dist/eslint-plugin-lore/` (bersebelahan dengan
+// `dist/eslint.config.mjs` yang disalin Dockerfile). Dipisah dari `../tsconfig.json` karena `src/`
+// tidak boleh mengimpor plugin lewat jalur TypeScript: `rootDir` bersama akan bergeser ke akar paket
+// dan hasil `tsc` utama menjadi `dist/src/handler.js`. `rootDir` di sini ialah direktori plugin
+// sendiri, sehingga `index.ts` menjadi `dist/eslint-plugin-lore/index.js`.
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../dist/eslint-plugin-lore"
+  },
+  "include": ["./**/*.ts"]
+}

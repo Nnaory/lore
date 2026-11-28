@@ -6,7 +6,12 @@
  * before any story is written), a preview of the designed world, and a
  * retry that resumes from the stage that failed.
  *
- * Built only from Kit parts (Button, ErrorLine, Icon, SectionLabel) and token classes: no
+ * When the animation build flag is on (or a run already has an animating stage) a fifth step,
+ * "Animating the lessons", follows the story step, and `AnimationProgress` lists the animation
+ * jobs with skip and retry controls (design 7.5 UI). With the flag off nothing of that is drawn,
+ * so the screen is the one it was before the stage existed.
+ *
+ * Built only from Kit parts (Button, ErrorLine, Icon, SectionLabel, StepMarker) and token classes: no
  * radius, shadow, card or spinner. The surface is transparent so the animated global pumpkin
  * backdrop stays visible (user decision). Desktop column is 680px; phone uses 20px padding
  * and full-width 52px buttons. All behaviour and data-testid values are unchanged.
@@ -14,10 +19,13 @@
 
 "use client";
 
+import { AnimationProgress } from "@/components/animation/AnimationProgress";
+import { StepMarker, type StepMarkerStatus } from "@/components/setup/StepMarker";
 import { Button } from "@/components/ui/Button";
 import { ErrorLine } from "@/components/ui/ErrorLine";
 import { Icon } from "@/components/ui/Icon";
 import { SectionLabel } from "@/components/ui/SectionLabel";
+import { readAnimationsFlag } from "@/lib/animation/flags";
 import type { GenerationStage, GenerationState } from "@/lib/generation/generation";
 
 type GenerationScreenProps = {
@@ -28,6 +36,10 @@ type GenerationScreenProps = {
   onConfirmConcepts: () => void;
   onRetry: () => void;
   onBack: () => void;
+  /** Run the failed and skipped animations again. The page passes it; unused with the flag off. */
+  onRetryAnimation?: () => void;
+  /** Give up on the unfinished animations and continue. The page passes it; unused with the flag off. */
+  onSkipAnimation?: () => void;
 };
 
 const STEPS: Array<{ stage: Exclude<GenerationStage, "done">; label: string }> = [
@@ -35,11 +47,19 @@ const STEPS: Array<{ stage: Exclude<GenerationStage, "done">; label: string }> =
   { stage: "reviewing", label: "Your review of the concepts" },
   { stage: "planning", label: "Designing the world and characters" },
   { stage: "writing", label: "Writing the story" },
+  { stage: "animating", label: "Animating the lessons" },
 ];
 
-const ORDER: Record<GenerationStage, number> = { analyzing: 0, reviewing: 1, planning: 2, writing: 3, done: 4 };
+const ORDER: Record<GenerationStage, number> = {
+  analyzing: 0,
+  reviewing: 1,
+  planning: 2,
+  writing: 3,
+  animating: 4,
+  done: 5,
+};
 
-type StepStatus = "done" | "active" | "failed" | "pending";
+type StepStatus = Extract<StepMarkerStatus, "done" | "active" | "failed" | "pending">;
 
 function stepStatus(step: Exclude<GenerationStage, "done">, state: GenerationState): StepStatus {
   const current = ORDER[state.stage];
@@ -49,22 +69,6 @@ function stepStatus(step: Exclude<GenerationStage, "done">, state: GenerationSta
   return state.status === "failed" ? "failed" : "active";
 }
 
-/** 12px square marker: done gold, active ember, failed ember outline with "!", pending smoke. */
-function StepMarker({ status }: { status: StepStatus }) {
-  if (status === "failed") {
-    return (
-      <span
-        aria-hidden="true"
-        className="flex h-3 w-3 shrink-0 items-center justify-center border border-ember font-mono text-[9px] font-bold leading-none text-ember"
-      >
-        !
-      </span>
-    );
-  }
-  const fill = status === "done" ? "bg-gold" : status === "active" ? "bg-ember" : "bg-smoke";
-  return <span aria-hidden="true" className={`h-3 w-3 shrink-0 ${fill}`} />;
-}
-
 export function GenerationScreen({
   state,
   sourceLabel,
@@ -72,10 +76,15 @@ export function GenerationScreen({
   onConfirmConcepts,
   onRetry,
   onBack,
+  onRetryAnimation,
+  onSkipAnimation,
 }: GenerationScreenProps) {
   const reviewing = state.stage === "reviewing";
   const failed = state.status === "failed";
   const selectedCount = state.selectedConceptIds.length;
+  const animating = state.stage === "animating";
+  // The animating step exists only for a build with the flag on, or once a run has reached it.
+  const steps = STEPS.filter((step) => step.stage !== "animating" || readAnimationsFlag() || state.animation !== null);
 
   return (
     <div
@@ -108,7 +117,7 @@ export function GenerationScreen({
         </div>
 
         <ol className="m-0 mt-6 flex list-none flex-col p-0" aria-label="Progress" data-testid="generation-steps">
-          {STEPS.map((step) => {
+          {steps.map((step) => {
             const status = stepStatus(step.stage, state);
             let detail = "";
             if (step.stage === "analyzing" && state.material) detail = `${state.material.concepts.length} found`;
@@ -215,6 +224,9 @@ export function GenerationScreen({
           </section>
         )}
 
+        {/* Animations */}
+        <AnimationProgress state={state} onRetry={onRetryAnimation} onSkip={onSkipAnimation} />
+
         {/* Failure */}
         {failed && (
           <div className="mt-8 flex flex-col gap-4">
@@ -230,7 +242,7 @@ export function GenerationScreen({
           </div>
         )}
 
-        {state.status === "running" && (
+        {state.status === "running" && !animating && (
           <p className="m-0 mt-8 font-mono text-[11px] text-muted" aria-live="polite">
             This usually takes a few seconds per step.
           </p>

@@ -142,10 +142,18 @@
         "kms:CreateKey",
         "route53:CreateHostedZone",
         "rds:CreateDBCluster",
-        "rds:CreateDBProxy",
-        "logs:CreateLogGroup"
+        "rds:CreateDBProxy"
       ],
       "Resource": "*"
+    },
+    {
+      "Sid": "DenyLogGroupsOtherThanVerifier",
+      "Effect": "Deny",
+      "Action": "logs:CreateLogGroup",
+      "NotResource": [
+        "arn:aws:logs:<AWS_REGION>:<ACCOUNT_ID>:log-group:/aws/lambda/lore-prod-animation-verifier",
+        "arn:aws:logs:<AWS_REGION>:<ACCOUNT_ID>:log-group:/aws/lambda/lore-prod-animation-verifier:*"
+      ]
     },
     {
       "Sid": "ProtectGovernance",

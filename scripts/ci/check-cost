@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate Terraform plan JSON against AWS cost guardrails and denylist rules."""
+"""Validate Terraform plan JSON against AWS cost guardrails and denylist rules.
+
+Why: the plan holds the resolved values (names, sizes, flags) that the static scan cannot see.
+For the animation feature (design 8.3) it also caps the verifier Lambda, requires an immutable,
+scanned ECR repository and a fully blocked S3 bucket, rejects bucket ACLs, and lets exactly one
+named log group through the otherwise denied `aws_cloudwatch_log_group` type.
+"""
 
 from __future__ import annotations
 
@@ -10,9 +16,20 @@ from policy_rules import (
     ALLOWED_DB_CLASSES,
     ALLOWED_INSTANCE_TYPES,
     DENYLIST_RESOURCE_TYPES,
+    LOG_GROUP_EXCEPTION,
+    LOG_GROUP_TYPE,
     MAX_EC2_VOLUME_GB,
+    MAX_LAMBDA_MEMORY_MB,
+    MAX_LAMBDA_TIMEOUT_S,
     MAX_RDS_STORAGE_GB,
     load_plan,
+)
+
+S3_PUBLIC_ACCESS_BLOCK_FLAGS: tuple[str, ...] = (
+    "block_public_acls",
+    "block_public_policy",
+    "ignore_public_acls",
+    "restrict_public_buckets",
 )
 
 
@@ -74,6 +91,70 @@ def _check_rds_instance(address: str, after: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _check_log_group(address: str, after: dict[str, Any]) -> list[str]:
+    """Allow only the named verifier log group with 7 days retention (Requirement 35.9).
+
+    The type stays in DENYLIST_RESOURCE_TYPES; the caller runs this check first and then skips
+    the generic denylist check, so every other log group is still rejected.
+    """
+    allowed = (
+        address == LOG_GROUP_EXCEPTION["address"]
+        and after.get("name") == LOG_GROUP_EXCEPTION["log_group_name"]
+        and after.get("retention_in_days") == LOG_GROUP_EXCEPTION["retention_in_days"]
+    )
+    if allowed:
+        return []
+    return [f"{address}: resource type '{LOG_GROUP_TYPE}' is on the cost denylist"]
+
+
+def _check_lambda_function(address: str, after: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    memory = after.get("memory_size")
+    if isinstance(memory, (int, float)) and memory > MAX_LAMBDA_MEMORY_MB:
+        errors.append(f"{address}: memory_size {memory} > {MAX_LAMBDA_MEMORY_MB} MB")
+
+    timeout = after.get("timeout")
+    if isinstance(timeout, (int, float)) and timeout > MAX_LAMBDA_TIMEOUT_S:
+        errors.append(f"{address}: timeout {timeout} > {MAX_LAMBDA_TIMEOUT_S} s")
+
+    package_type = after.get("package_type")
+    if package_type != "Image":
+        errors.append(f"{address}: package_type '{package_type}' must be 'Image'")
+
+    reserved = after.get("reserved_concurrent_executions")
+    if isinstance(reserved, (int, float)) and reserved > 0:
+        errors.append(f"{address}: reserved_concurrent_executions ({reserved}) must not be set")
+
+    return errors
+
+
+def _check_ecr_repository(address: str, after: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
+    scan_blocks = after.get("image_scanning_configuration")
+    scan_on_push = (
+        isinstance(scan_blocks, list)
+        and bool(scan_blocks)
+        and isinstance(scan_blocks[0], dict)
+        and scan_blocks[0].get("scan_on_push") is True
+    )
+    if not scan_on_push:
+        errors.append(f"{address}: image_scanning_configuration.scan_on_push must be true")
+
+    mutability = after.get("image_tag_mutability")
+    if mutability != "IMMUTABLE":
+        errors.append(f"{address}: image_tag_mutability '{mutability}' must be 'IMMUTABLE'")
+
+    return errors
+
+
+def _check_s3_public_access_block(address: str, after: dict[str, Any]) -> list[str]:
+    return [
+        f"{address}: {flag} must be true"
+        for flag in S3_PUBLIC_ACCESS_BLOCK_FLAGS
+        if after.get(flag) is not True
+    ]
+
+
 def validate_plan_cost(plan_path: str) -> list[str]:
     """Return cost guardrail violation messages for the given Terraform plan JSON."""
     errors: list[str] = []
@@ -87,6 +168,12 @@ def validate_plan_cost(plan_path: str) -> list[str]:
 
         address = entry.get("address", "<unknown>")
         rtype = entry.get("type", "")
+
+        # The log group exception is tested before the generic denylist and always ends here,
+        # whether it passes or fails (design 8.3, K-4).
+        if rtype == LOG_GROUP_TYPE:
+            errors.extend(_check_log_group(address, after))
+            continue
 
         if rtype in DENYLIST_RESOURCE_TYPES:
             errors.append(f"{address}: resource type '{rtype}' is on the cost denylist")
@@ -104,6 +191,14 @@ def validate_plan_cost(plan_path: str) -> list[str]:
             errors.append(f"{address}: Interface VPC endpoints are disallowed (use Gateway)")
         elif rtype == "aws_ssm_parameter" and after.get("tier") == "Advanced":
             errors.append(f"{address}: SSM Parameter tier 'Advanced' is disallowed")
+        elif rtype == "aws_lambda_function":
+            errors.extend(_check_lambda_function(address, after))
+        elif rtype == "aws_ecr_repository":
+            errors.extend(_check_ecr_repository(address, after))
+        elif rtype == "aws_s3_bucket_public_access_block":
+            errors.extend(_check_s3_public_access_block(address, after))
+        elif rtype == "aws_s3_bucket_acl":
+            errors.append(f"{address}: aws_s3_bucket_acl is disallowed (ACLs stay off)")
 
     return errors
 

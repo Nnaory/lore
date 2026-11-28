@@ -1,0 +1,7 @@
+{
+  "kind": "lesson",
+  "title": "Unknown visual kind",
+  "text": "The visual must be one of the five lesson visuals.",
+  "visual": { "kind": "hologram", "vectors": [] },
+  "language": "en"
+}

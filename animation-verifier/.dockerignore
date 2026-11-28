@@ -1,0 +1,22 @@
+# Docker build context for the verifier Lambda image (Dockerfile; design 5.13).
+# Only what the build stage COPYs reaches the image: package.json, package-lock.json, tsconfig.json,
+# eslint.config.mjs, eslint.config.d.mts, src/, eslint-plugin-lore/ and contract/. Keep those out of
+# this list. Everything below is local-only: tests, fixtures and the corpus result are not needed by
+# the image (the RIE script reads them from the checkout), and node_modules/dist are rebuilt inside
+# the build stage (`npm ci`, `npm run build`), so a host copy would be wrong and large.
+**/node_modules
+**/dist
+tests/
+fixtures/
+.corpus-results.json
+.scratch/
+coverage/
+**/*.log
+**/.DS_Store
+.env*
+# Dev-only configuration, not used by `npm ci` or `npm run build`.
+eslint.package.config.mjs
+vitest.config.ts
+.nvmrc
+Dockerfile
+.dockerignore

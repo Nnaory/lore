@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "\u00a0\ufeff\u3000Vectors\u2028\u2029\u202f",
+  "text": "The title is padded with whitespace that JavaScript trims, so it becomes Vectors.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

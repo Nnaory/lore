@@ -1,21 +1,20 @@
 /**
  * Shared geometry for the stage canvas.
  *
- * The Remotion composition (lines, node, box outlines) and the HTML overlay
- * (clickable answer boxes) both use these percentages inside the same 16:9
- * box, so they always line up regardless of the canvas size.
+ * The Remotion compositions and any HTML laid over the canvas use these percentages
+ * inside the same 16:9 box, so they always line up regardless of the canvas size.
  */
 
 export const CANVAS_WIDTH = 1280;
 export const CANVAS_HEIGHT = 720;
 export const CANVAS_FPS = 30;
 
-/** Position of the question node at the top of the decision graph (percent). */
-export const DECISION_NODE = { x: 50, y: 15 };
+/** Position of the question node of the decision graph (percent). */
+export const DECISION_NODE = { x: 50, y: 24 };
 
 export type Box = { x: number; y: number; w: number; h: number };
 
-/** Answer boxes in a row (wireframe layout), in percent of the canvas. */
+/** Answer boxes in a row (wireframe layout), in percent of the canvas. Only the older StagePuzzle overlay uses them. */
 export function choiceBoxes(count: number): Box[] {
   const n = Math.max(1, Math.min(count, 4));
   const gap = 3;

@@ -1,0 +1,20 @@
+{
+  "ok": false,
+  "diagnostics": [
+    {
+      "tool": "policy",
+      "code": "POLICY_JSX_SYNTAX",
+      "severity": "error",
+      "line": 0,
+      "column": 1,
+      "message": "Lines start at 1."
+    }
+  ],
+  "summary": {
+    "verifier_version": "0.1.0",
+    "contract_version": 1,
+    "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+    "checks": [{ "name": "policy", "ok": false, "ms": 30 }],
+    "truncated": false
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket_acl.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_acl",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "acl": "private",
+          "expected_bucket_owner": null
+        },
+        "after_unknown": {"access_control_policy": true, "bucket": true, "id": true}
+      }
+    }
+  ]
+}

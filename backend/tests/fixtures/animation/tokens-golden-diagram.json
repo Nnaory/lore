@@ -1,0 +1,37 @@
+{
+  "request": {
+    "kind": "lesson",
+    "title": "The water cycle",
+    "text": "Water moves between sea, sky and land.",
+    "concepts": ["evaporation", "condensation"],
+    "visual": {
+      "kind": "diagram",
+      "layout": "cycle",
+      "nodes": [
+        { "id": "n-evap", "label": "Evaporation", "detail": "Heat lifts water as vapour" },
+        { "id": "n-cond", "label": "Condensation" },
+        { "id": "n-prec", "label": "Precipitation", "detail": "Droplets fall as rain" }
+      ],
+      "edges": [
+        { "from": "n-evap", "to": "n-cond", "label": "rises" },
+        { "from": "n-cond", "to": "n-prec" },
+        { "from": "n-prec", "to": "n-evap", "label": "flows back" }
+      ],
+      "caption": "Water keeps cycling."
+    },
+    "language": "en"
+  },
+  "required_tokens": [
+    "The water cycle",
+    "Water keeps cycling.",
+    "Evaporation",
+    "Heat lifts water as vapour",
+    "Condensation",
+    "Precipitation",
+    "Droplets fall as rain",
+    "rises",
+    "flows back"
+  ],
+  "skipped_tokens": [],
+  "effective_forbidden_tokens": []
+}

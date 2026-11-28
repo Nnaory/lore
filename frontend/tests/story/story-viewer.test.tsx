@@ -416,7 +416,9 @@ describe("StoryViewer — stage", () => {
   it("shows the lesson on the canvas and the character explaining", () => {
     const view = render(<StoryViewer story={linearStory} characters={characters} />);
     for (let i = 0; i < 6; i++) clickToAdvance(view); // into scene_02_learning, block 1
-    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    // The title sits beside the LESSON tag; the three lines of the box are the body.
+    expect(screen.getByTestId("character-name").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("learning-card").textContent).toContain("Each crystal contributes");
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
     expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
   });
@@ -435,10 +437,16 @@ describe("StoryViewer — stage", () => {
     });
     const view = render(<StoryViewer story={stepped} characters={characters} />);
     for (let i = 0; i < 6; i++) clickToAdvance(view);
-    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    // The title sits beside the LESSON tag; the three lines of the box are the body.
+    expect(screen.getByTestId("character-name").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("learning-card").textContent).toContain("Each crystal contributes");
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("lesson");
-    clickToAdvance(view);
-    expect(screen.getByTestId("learning-card").textContent).toContain("Worked Example");
+    // The first step's body is longer than the box, so it takes a few clicks (pages) to leave it.
+    for (let i = 0; i < 8 && !screen.getByTestId("character-name").textContent?.includes("Worked Example"); i++) {
+      clickToAdvance(view);
+    }
+    expect(screen.getByTestId("character-name").textContent).toContain("Worked Example");
+    expect(screen.getByTestId("learning-card").textContent).toContain("2×(2,1) + 1×(1,2)");
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
     expect(screen.getByTestId("stage-character").dataset.emotion).toBe("explaining");
   });
@@ -455,7 +463,7 @@ describe("StoryViewer — stage", () => {
     }
     const view = render(<StoryViewer story={illustrated} characters={characters} />);
     for (let i = 0; i < 6; i++) clickToAdvance(view);
-    expect(screen.getByTestId("learning-card").textContent).toContain("Crystal Vector Resonance");
+    expect(screen.getByTestId("character-name").textContent).toContain("Crystal Vector Resonance");
     expect(screen.getByTestId("stage-canvas").dataset.canvasKind).toBe("visual");
   });
 

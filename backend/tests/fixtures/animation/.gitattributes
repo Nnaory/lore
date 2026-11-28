@@ -1,0 +1,2 @@
+# Fixture SSE harus byte identik di tiap mesin (CRLF dan U+2028 disengaja): jangan normalisasi newline.
+*.txt -text

@@ -1,0 +1,5 @@
+{
+  "render-console-warn.ts": ["RENDER_CONSOLE_WARN"],
+  "eslint-lore-kit-style.ts": ["ESLINT_LORE_KIT_STYLE"],
+  "fidelity-forbidden-overlaps-required.ts": ["FIDELITY_FORBIDDEN_OVERLAPS_REQUIRED"]
+}

@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Statically scan Terraform .tf files for denylisted resources and costly settings."""
+"""Statically scan Terraform .tf files for denylisted resources and costly settings.
+
+Why: this runs before any plan exists, so it reads the source text. For the animation feature
+(design 8.3) it also reads whole `resource` blocks: the verifier Lambda must declare literal
+`memory_size`, `timeout` and `package_type` within the cost caps, and only the resource named
+`animation_verifier` may be an `aws_cloudwatch_log_group`. Comments are removed with
+`strip_hcl_comments`, which keeps quoted strings such as "https://${var.host}" intact (K-3).
+"""
 
 from __future__ import annotations
 
@@ -7,16 +14,137 @@ import re
 import sys
 from pathlib import Path
 
-from policy_rules import ALLOWED_DB_CLASSES, ALLOWED_INSTANCE_TYPES, DENYLIST_RESOURCE_TYPES
+from policy_rules import (
+    ALLOWED_DB_CLASSES,
+    ALLOWED_INSTANCE_TYPES,
+    DENYLIST_RESOURCE_TYPES,
+    LOG_GROUP_EXCEPTION,
+    LOG_GROUP_TYPE,
+    MAX_LAMBDA_MEMORY_MB,
+    MAX_LAMBDA_TIMEOUT_S,
+    skip_hcl_string,
+    strip_hcl_comments,
+)
 
-_COMMENT_RE = re.compile(r"/\*.*?\*/|//[^\n]*|#[^\n]*", re.DOTALL)
+LAMBDA_TYPE = "aws_lambda_function"
+
 _RESOURCE_RE = re.compile(r'resource\s+"([^"]+)"\s+"([^"]+)"')
 _ATTR_STR_RE = re.compile(r'^\s*([a-zA-Z0-9_]+)\s*=\s*"([^"]*)"', re.MULTILINE)
 _ATTR_BOOL_RE = re.compile(r"^\s*([a-zA-Z0-9_]+)\s*=\s*(true|false)\b", re.MULTILINE)
+_ATTR_LINE_RE = re.compile(
+    r"^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*=(?!=)[ \t]*(.*?)[ \t]*$", re.MULTILINE
+)
+_UINT_RE = re.compile(r"[0-9]+")
+_INT_RE = re.compile(r"-?[0-9]+")
+_PLAIN_STR_RE = re.compile(r'"([^"$%\\]*)"')
 
 
-def _strip_comments(text: str) -> str:
-    return _COMMENT_RE.sub("", text)
+def _block_end(text: str, start: int) -> int:
+    """Return the index of the `}` that closes a block whose body starts at text[start].
+
+    Braces inside quoted strings and `${...}` interpolations do not count. An unbalanced block
+    runs to the end of the text, so a broken file still has its attributes checked.
+    """
+    n = len(text)
+    depth = 1
+    i = start
+    while i < n:
+        ch = text[i]
+        if ch == '"':
+            i = skip_hcl_string(text, i)
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+        i += 1
+    return n
+
+
+def _blocks(cleaned: str, rtype: str) -> list[tuple[str, str]]:
+    """Return (resource name, body text) for each `resource "<rtype>" "<name>" {...}` block."""
+    pattern = re.compile(rf'resource\s+"{re.escape(rtype)}"\s+"([^"]+)"\s*\{{')
+    return [
+        (match.group(1), cleaned[match.end() : _block_end(cleaned, match.end())])
+        for match in pattern.finditer(cleaned)
+    ]
+
+
+def _top_level_attrs(body: str) -> dict[str, str]:
+    """Map attribute name to its raw value text for `name = value` lines outside nested blocks.
+
+    Nested `{...}` content (vpc_config, tags, ...) is dropped first, so a `timeout` inside a
+    nested block is never mistaken for the resource's own attribute.
+    """
+    flat: list[str] = []
+    depth = 0
+    i = 0
+    n = len(body)
+    while i < n:
+        ch = body[i]
+        if ch == '"':
+            end = skip_hcl_string(body, i)
+            if depth == 0:
+                flat.append(body[i:end])
+            i = end
+            continue
+        if ch == "{":
+            if depth == 0:
+                flat.append(ch)
+            depth += 1
+        elif ch == "}":
+            depth = max(depth - 1, 0)
+            if depth == 0:
+                flat.append(ch)
+        elif depth == 0:
+            flat.append(ch)
+        i += 1
+    return dict(_ATTR_LINE_RE.findall("".join(flat)))
+
+
+def _check_log_group(rel: str, rname: str, body: str | None) -> list[str]:
+    """Allow only the resource named animation_verifier with the literal retention 7."""
+    if rname != LOG_GROUP_EXCEPTION["resource_name"]:
+        return [f"{rel}: log group '{rname}' is not allowed"]
+    retention = _top_level_attrs(body).get("retention_in_days") if body is not None else None
+    if retention != str(LOG_GROUP_EXCEPTION["retention_in_days"]):
+        return [
+            f"{rel}: log group '{rname}' is not allowed"
+            f" (retention_in_days must be the literal {LOG_GROUP_EXCEPTION['retention_in_days']})"
+        ]
+    return []
+
+
+def _check_lambda(rel: str, rname: str, body: str | None) -> list[str]:
+    """Require literal memory_size, timeout and package_type within the caps (Requirement 35.8)."""
+    address = f"{LAMBDA_TYPE}.{rname}"
+    attrs = _top_level_attrs(body) if body is not None else {}
+    errors: list[str] = []
+
+    for key, limit, unit in (
+        ("memory_size", MAX_LAMBDA_MEMORY_MB, "MB"),
+        ("timeout", MAX_LAMBDA_TIMEOUT_S, "s"),
+    ):
+        raw = attrs.get(key)
+        if raw is None or not _UINT_RE.fullmatch(raw):
+            errors.append(f"{rel}: {address}: {key} must be a literal number")
+        elif int(raw) > limit:
+            errors.append(f"{rel}: {address}: {key} {raw} > {limit} {unit}")
+
+    raw = attrs.get("package_type")
+    package_type = _PLAIN_STR_RE.fullmatch(raw) if raw is not None else None
+    if package_type is None:
+        errors.append(f'{rel}: {address}: package_type must be a literal string ("Image")')
+    elif package_type.group(1) != "Image":
+        errors.append(f"{rel}: {address}: package_type '{package_type.group(1)}' must be 'Image'")
+
+    reserved = attrs.get("reserved_concurrent_executions")
+    if reserved is not None and _INT_RE.fullmatch(reserved) and int(reserved) > 0:
+        errors.append(f"{rel}: {address}: reserved_concurrent_executions {reserved} is set")
+
+    return errors
 
 
 def scan_tf_dir(infra_dir: str | Path) -> list[str]:
@@ -31,12 +159,21 @@ def scan_tf_dir(infra_dir: str | Path) -> list[str]:
     )
 
     for path in tf_files:
-        cleaned = _strip_comments(path.read_text(encoding="utf-8"))
+        cleaned = strip_hcl_comments(path.read_text(encoding="utf-8"))
         rel = str(path)
+        log_group_blocks = dict(_blocks(cleaned, LOG_GROUP_TYPE))
+        lambda_blocks = dict(_blocks(cleaned, LAMBDA_TYPE))
 
         for rtype, rname in _RESOURCE_RE.findall(cleaned):
+            # The log group carve-out runs before, and instead of, the generic denylist check.
+            if rtype == LOG_GROUP_TYPE:
+                errors.extend(_check_log_group(rel, rname, log_group_blocks.get(rname)))
+                continue
+
             if rtype in DENYLIST_RESOURCE_TYPES:
                 errors.append(f"{rel}: resource '{rtype}.{rname}' is on the cost denylist")
+            elif rtype == LAMBDA_TYPE:
+                errors.extend(_check_lambda(rel, rname, lambda_blocks.get(rname)))
 
         for key, val in _ATTR_STR_RE.findall(cleaned):
             if key == "instance_type" and val not in ALLOWED_INSTANCE_TYPES:

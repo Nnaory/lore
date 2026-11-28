@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "Empty text",
+  "text": "",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

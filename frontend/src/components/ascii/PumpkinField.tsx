@@ -15,28 +15,6 @@ export interface PumpkinPlacement {
   seed: number;
 }
 
-/** Exact placements used on the design canvas (1440 × 900 frames). */
-export const PUMPKINS_STAGE_DESKTOP: PumpkinPlacement[] = [
-  { x: -150, y: 560, fs: 10, w: 34, seed: 3 },
-  { x: 28, y: 150, fs: 8, w: 14, seed: 5 },
-  { x: 1330, y: 120, fs: 10, w: 20, seed: 8 },
-  { x: 1290, y: 640, fs: 10, w: 30, seed: 11 },
-  { x: 250, y: 790, fs: 8, w: 12, seed: 2 },
-  { x: 1080, y: 800, fs: 8, w: 16, seed: 4 },
-];
-
-/**
- * Stage phone (390 × 844 board). StageMobile.dc.html defines the `pumpkin`
- * generator but places no pumpkins, so these are chosen (not copied) to sit in
- * the free area right of the speaker sprite (x 217+, y 318–582), clear of the
- * canvas frame (y 68–314) and the dialogue box (y 582+). Small cells keep them
- * inside the 390 px width.
- */
-export const PUMPKINS_STAGE_PHONE: PumpkinPlacement[] = [
-  { x: 236, y: 340, fs: 6, w: 14, seed: 5 },
-  { x: 300, y: 480, fs: 6, w: 10, seed: 2 },
-];
-
 export const PUMPKINS_PREP_DESKTOP: PumpkinPlacement[] = [
   { x: 1110, y: 60, fs: 10, w: 30, seed: 3 },
   { x: 1190, y: 330, fs: 12, w: 26, seed: 9 },

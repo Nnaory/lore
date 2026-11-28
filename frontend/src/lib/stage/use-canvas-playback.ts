@@ -1,21 +1,24 @@
 /**
- * use-canvas-playback.ts — thin hook that reads a Remotion player for the PlayerBar.
+ * use-canvas-playback.ts — thin hook that reads a player for the PlayerBar.
  *
  * Why: the PlayerBar needs a progress fill, a `m:ss` clock and a playing flag.
- * The hook holds the `PlayerRef` (pass `playerRef` as the Player `ref`),
- * listens to `frameupdate`, `play`, `pause` and `ended`, and converts frames
- * with `progressPercent` / `formatClock`. No game rules here.
+ * The hook holds the player (pass `playerRef` as the Remotion Player `ref`, or hand
+ * it a `SandboxPlayerRef`), listens to `frameupdate`, `play`, `pause` and `ended`, and
+ * converts frames with `progressPercent` / `formatClock`. No game rules here.
+ *
+ * The player is typed as the structural `PlayerLike` (it only uses those four events),
+ * so a Remotion `PlayerRef` and the sandbox adaptor both fit (design 7.6, D-16).
  */
 
 "use client";
 
-import type { PlayerRef } from "@remotion/player";
 import { useEffect, useState } from "react";
 import { formatClock, progressPercent } from "./playback";
+import type { PlayerLike } from "./player-like";
 
 export interface CanvasPlayback {
-  /** Callback ref: pass to `<Player ref={playerRef} />`. */
-  readonly playerRef: (player: PlayerRef | null) => void;
+  /** Callback ref: pass to `<Player ref={playerRef} />`, or call it with a `PlayerLike`. */
+  readonly playerRef: (player: PlayerLike | null) => void;
   /** 0..100 */
   readonly progress: number;
   /** `m:ss` of the current position. */
@@ -25,7 +28,7 @@ export interface CanvasPlayback {
 }
 
 export function useCanvasPlayback(totalFrames: number, fps: number): CanvasPlayback {
-  const [player, setPlayer] = useState<PlayerRef | null>(null);
+  const [player, setPlayer] = useState<PlayerLike | null>(null);
   const [frame, setFrame] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [ended, setEnded] = useState(false);

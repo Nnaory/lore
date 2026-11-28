@@ -16,13 +16,15 @@ import { Field, GOLD, GOLD_DIM, lessonHeading, TEXT, TEXT_DIM, VOID, type Lesson
 import {
   boxEdgePoint,
   center,
+  labelBox,
   layoutDiagram,
   niceStep,
+  placePointLabels,
+  placeVectorLabels,
   plotProjection,
   ticks,
   TONE_COLORS,
   toneAt,
-  vectorLabelPosition,
   vectorsProjection,
   visualDuration,
   type Area,
@@ -89,6 +91,55 @@ function VectorsView({ visual, area }: { visual: VectorsVisual; area: Area }) {
   const origin = toPx([0, 0]);
   const vectorsEnd = 15 + visual.vectors.length * 18;
 
+  const xLabels = xs.filter((x, i) => x !== 0 && i % labelEvery === 0);
+  const yLabels = ys.filter((y, i) => y !== 0 && i % labelEvery === 0);
+  const innerBounds: Area = {
+    x: area.x + 8,
+    y: area.y + 8,
+    w: Math.max(40, area.w - 16),
+    h: Math.max(40, area.h - 16),
+  };
+  const axisSegments = [
+    { from: toPx([bounds.xMin, 0]), to: toPx([bounds.xMax, 0]) },
+    { from: toPx([0, bounds.yMin]), to: toPx([0, bounds.yMax]) },
+  ];
+  const tickObstacles: Area[] = [
+    ...xLabels.map((x) => labelBox(String(x), { x: toPx([x, 0]).x, y: origin.y + 17 }, 14)),
+    ...yLabels.map((y) => {
+      const s = String(y);
+      return labelBox(s, { x: origin.x - 10 - s.length * 4.5, y: toPx([0, y]).y }, 14);
+    }),
+    { x: origin.x - 24, y: origin.y + 6, w: 18, h: 18 },
+    { x: toPx([bounds.xMax, 0]).x - 20, y: origin.y - 26, w: 18, h: 20 },
+    { x: origin.x + 6, y: toPx([0, bounds.yMax]).y + 2, w: 18, h: 22 },
+  ];
+  const pointDotBoxes: Area[] = (visual.points ?? []).map((pt) => {
+    const p = toPx(pt.at);
+    return { x: p.x - 9, y: p.y - 9, w: 18, h: 18 };
+  });
+
+  // Labels are placed once for the finished drawing inside `area`, clear of arrows, axes, ticks and points.
+  const vectorSpecs = visual.vectors.map((v) => ({ from: toPx(v.from), to: toPx(v.to), label: v.label }));
+  const labelAt = placeVectorLabels(vectorSpecs, {
+    fontSize: 22,
+    bounds: innerBounds,
+    obstacles: [...tickObstacles, ...pointDotBoxes],
+    segments: axisSegments,
+  });
+  const vectorLabelBoxes = vectorSpecs.flatMap((s, i) =>
+    s.label && labelAt[i] ? [labelBox(s.label, labelAt[i]!, 22)] : []
+  );
+  const pointLabelAt = placePointLabels(
+    (visual.points ?? []).map((pt) => ({ at: toPx(pt.at), label: pt.label })),
+    {
+      fontSize: 20,
+      bounds: innerBounds,
+      obstacles: [...tickObstacles, ...pointDotBoxes, ...vectorLabelBoxes],
+      segments: vectorSpecs,
+      axes: axisSegments,
+    }
+  );
+
   return (
     <Svg>
       <ArrowMarkers prefix={markers} />
@@ -103,10 +154,10 @@ function VectorsView({ visual, area }: { visual: VectorsVisual; area: Area }) {
         <line x1={origin.x} x2={origin.x} y1={toPx([0, bounds.yMin]).y} y2={toPx([0, bounds.yMax]).y} stroke={TEXT_DIM} strokeOpacity={0.6} strokeWidth={2} />
         <text x={toPx([bounds.xMax, 0]).x - 6} y={origin.y - 10} fill={TEXT_DIM} fontSize={18} textAnchor="end" fontStyle="italic">x</text>
         <text x={origin.x + 10} y={toPx([0, bounds.yMax]).y + 18} fill={TEXT_DIM} fontSize={18} fontStyle="italic">y</text>
-        {xs.filter((x, i) => x !== 0 && i % labelEvery === 0).map((x) => (
+        {xLabels.map((x) => (
           <text key={`tx${x}`} x={toPx([x, 0]).x} y={origin.y + 22} fill={TEXT_DIM} fontSize={14} textAnchor="middle" style={halo}>{x}</text>
         ))}
-        {ys.filter((y, i) => y !== 0 && i % labelEvery === 0).map((y) => (
+        {yLabels.map((y) => (
           <text key={`ty${y}`} x={origin.x - 10} y={toPx([0, y]).y + 5} fill={TEXT_DIM} fontSize={14} textAnchor="end" style={halo}>{y}</text>
         ))}
         <text x={origin.x - 10} y={origin.y + 22} fill={TEXT_DIM} fontSize={14} textAnchor="end">0</text>
@@ -120,37 +171,46 @@ function VectorsView({ visual, area }: { visual: VectorsVisual; area: Area }) {
         const to = toPx(v.to);
         const head = { x: from.x + (to.x - from.x) * p, y: from.y + (to.y - from.y) * p };
         const tone = toneAt(i, v.tone);
-        const at = vectorLabelPosition(from, to, 22);
         return (
-          <g key={i}>
-            <line
-              x1={from.x}
-              y1={from.y}
-              x2={head.x}
-              y2={head.y}
-              stroke={TONE_COLORS[tone]}
-              strokeWidth={tone === "muted" ? 3 : 4.5}
-              strokeDasharray={tone === "muted" ? "10 8" : undefined}
-              strokeLinecap="round"
-              markerEnd={`url(#${markers}-${tone})`}
-            />
-            {v.label && (
-              <text x={at.x} y={at.y + 7} fill={TONE_COLORS[tone]} fontSize={22} fontWeight={600} textAnchor="middle" opacity={progress(frame, start + 12, 10)} style={halo}>
-                {v.label}
-              </text>
-            )}
-          </g>
+          <line
+            key={i}
+            x1={from.x}
+            y1={from.y}
+            x2={head.x}
+            y2={head.y}
+            stroke={TONE_COLORS[tone]}
+            strokeWidth={tone === "muted" ? 3 : 4.5}
+            strokeDasharray={tone === "muted" ? "10 8" : undefined}
+            strokeLinecap="round"
+            markerEnd={`url(#${markers}-${tone})`}
+          />
+        );
+      })}
+
+      {/* Labels come after every arrow, so a later arrow can never paint over an earlier label. */}
+      {visual.vectors.map((v, i) => {
+        const at = labelAt[i];
+        if (!v.label || !at) return null;
+        const start = 15 + i * 18;
+        const opacity = progress(frame, start + 12, 10);
+        if (opacity <= 0) return null;
+        const tone = toneAt(i, v.tone);
+        return (
+          <text key={`l${i}`} x={at.x} y={at.y + 7} fill={TONE_COLORS[tone]} fontSize={22} fontWeight={600} textAnchor="middle" opacity={opacity} style={halo}>
+            {v.label}
+          </text>
         );
       })}
 
       {visual.points?.map((pt, i) => {
         const appear = progress(frame, vectorsEnd + i * 6, 10);
         const at = toPx(pt.at);
+        const placed = pointLabelAt[i];
         return (
           <g key={`p${i}`} opacity={appear}>
             <circle cx={at.x} cy={at.y} r={6 + (1 - appear) * 6} fill={TEXT} />
-            {pt.label && (
-              <text x={at.x + 12} y={at.y - 12} fill={TEXT} fontSize={20} style={halo}>
+            {pt.label && placed && (
+              <text x={placed.x} y={placed.y + 7} fill={TEXT} fontSize={20} textAnchor="middle" style={halo}>
                 {pt.label}
               </text>
             )}
@@ -475,6 +535,65 @@ export function LessonVisualBoard({ title, visual, seed, step }: LessonVisualBoa
           {visual.caption}
         </div>
       )}
+    </AbsoluteFill>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Puzzle board
+// ---------------------------------------------------------------------------
+
+/** Where a puzzle's picture is drawn: under the heading, above the caption and the question. */
+export const PUZZLE_VISUAL_AREA: Area = { x: 90, y: 90, w: 1100, h: 400 };
+
+export type PuzzleBoardProps = { question: string; visual: LessonVisual; seed: number };
+
+/**
+ * PuzzleBoard — the picture of a puzzle's problem, designed by the AI, with the question
+ * written under it. The picture uses the same primitives as a lesson (so layout and labels are
+ * exact), but it only poses the problem: the answers are chips under the canvas and the game
+ * engine alone decides which one is right.
+ */
+export function PuzzleBoard({ question, visual, seed }: PuzzleBoardProps) {
+  const frame = useCurrentFrame();
+  const { fps } = useVideoConfig();
+  const enter = spring({ frame, fps, config: { damping: 200 } });
+  return (
+    <AbsoluteFill>
+      <Field seed={seed} />
+      <AbsoluteFill style={{ padding: "40px 90px", opacity: enter }}>
+        <div style={{ color: GOLD_DIM, fontSize: 20, letterSpacing: 8, textTransform: "uppercase" }}>Puzzle</div>
+      </AbsoluteFill>
+      <LessonVisualView visual={visual} area={PUZZLE_VISUAL_AREA} />
+      <div
+        style={{
+          position: "absolute",
+          left: 90,
+          right: 90,
+          bottom: 28,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 10,
+          textAlign: "center",
+          opacity: progress(frame, 8, 14),
+        }}
+      >
+        {visual.caption && <div style={{ color: TEXT_DIM, fontSize: 20, lineHeight: 1.3 }}>{visual.caption}</div>}
+        <div
+          style={{
+            color: TEXT,
+            fontSize: 34,
+            lineHeight: 1.3,
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 3,
+            overflow: "hidden",
+          }}
+        >
+          {question}
+        </div>
+      </div>
     </AbsoluteFill>
   );
 }

@@ -1,0 +1,29 @@
+{
+  "request": {
+    "kind": "puzzle",
+    "title": "Where does B go?",
+    "text": "Place B so that A + B lands on the tip of the result.",
+    "concepts": ["vector addition"],
+    "visual": {
+      "kind": "vectors",
+      "x_range": [0, 600],
+      "y_range": [0, 500],
+      "vectors": [
+        { "from": [0, 0], "to": [123, 45], "label": "A", "tone": "primary" },
+        { "from": [123, 45], "to": [501, 399], "tone": "secondary" },
+        { "from": [0, 0], "to": [501, 399], "label": "A + B", "tone": "result" },
+        { "from": [0, 0], "to": [77, 88], "label": "B = ?" }
+      ],
+      "points": [
+        { "at": [501, 399], "label": "target" },
+        { "at": [123, 45] }
+      ],
+      "caption": "Tip to tail."
+    },
+    "language": "en",
+    "forbidden_tokens": ["(378, 354)", "  ", "(378,354)", "A", "Tip", "tip to tail."]
+  },
+  "required_tokens": ["Where does B go?", "Tip to tail.", "A", "A + B", "B = ?", "target"],
+  "skipped_tokens": [],
+  "effective_forbidden_tokens": ["(378, 354)"]
+}

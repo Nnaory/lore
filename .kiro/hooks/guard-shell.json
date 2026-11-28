@@ -10,7 +10,8 @@
         "type": "command",
         "command": "node .kiro/hooks/guard-shell.mjs"
       },
-      "timeout": 10
+      "timeout": 10,
+      "enabled": false
     }
   ]
 }

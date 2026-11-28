@@ -1,0 +1,23 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_lambda_provisioned_concurrency_config.animation_verifier",
+      "mode": "managed",
+      "type": "aws_lambda_provisioned_concurrency_config",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "function_name": "lore-prod-animation-verifier",
+          "provisioned_concurrent_executions": 1,
+          "qualifier": "1"
+        },
+        "after_unknown": {"id": true}
+      }
+    }
+  ]
+}

@@ -9,9 +9,12 @@ null, because the Zod schemas in the frontend use `.optional()` without `.nullab
 Status map (same as the Next.js routes): INVALID_REQUEST 400; semantic errors 422
 (MATERIAL_ANALYSIS_FAILED, the planner's DUPLICATE_* and PREREQUISITE_* codes, and the story ones
 STORY_NOT_IN_CAMPAIGN, MATERIAL_MISMATCH, CONCEPT_COVERAGE, REQUIRED_KNOWLEDGE_SELF_REFERENCE and
-REQUIRED_KNOWLEDGE_UNTESTABLE); VALIDATION_FAILED and OUTPUT_PARSE_FAILED 502;
-PROVIDER_UNAVAILABLE, PROVIDER_NOT_CONFIGURED, RATE_LIMITED (from Gemini) and TIMEOUT 503;
-anything else 500. Limits of this API itself use AiError.status (413, 429) to override the map.
+REQUIRED_KNOWLEDGE_UNTESTABLE, plus the animation ANIMATION_QUOTA_EXCEEDED and
+ANIMATION_VERIFICATION_FAILED); VALIDATION_FAILED and OUTPUT_PARSE_FAILED 502;
+PROVIDER_UNAVAILABLE, PROVIDER_NOT_CONFIGURED, RATE_LIMITED (from Gemini), TIMEOUT and the
+animation ANIMATION_NOT_CONFIGURED, ANIMATION_TIMEOUT, ANIMATION_VERIFIER_UNAVAILABLE and
+ANIMATION_STORAGE_FAILED 503; anything else 500. Limits of this API itself use AiError.status
+(413, 429) to override the map.
 """
 
 from __future__ import annotations
@@ -31,7 +34,17 @@ INTERNAL_ERROR_MESSAGE = "Internal server error"
 
 _BAD_GATEWAY = frozenset({"VALIDATION_FAILED", "OUTPUT_PARSE_FAILED"})
 _UNAVAILABLE = frozenset(
-    {"PROVIDER_UNAVAILABLE", "PROVIDER_NOT_CONFIGURED", "RATE_LIMITED", "TIMEOUT"}
+    {
+        "PROVIDER_UNAVAILABLE",
+        "PROVIDER_NOT_CONFIGURED",
+        "RATE_LIMITED",
+        "TIMEOUT",
+        # Lesson animations: server not set up, deadline hit, checker or storage down.
+        "ANIMATION_NOT_CONFIGURED",
+        "ANIMATION_TIMEOUT",
+        "ANIMATION_VERIFIER_UNAVAILABLE",
+        "ANIMATION_STORAGE_FAILED",
+    }
 )
 # Semantic failures of one layer; each layer adds its own code (story, campaign) here.
 # Campaign Planner: unusable planning input (the engine's checks), as in plan-campaign/route.ts.
@@ -49,6 +62,9 @@ _UNPROCESSABLE = frozenset(
         "CONCEPT_COVERAGE",
         "REQUIRED_KNOWLEDGE_SELF_REFERENCE",
         "REQUIRED_KNOWLEDGE_UNTESTABLE",
+        # Lesson animations: the policy refused (per-owner quota) or the code never verified.
+        "ANIMATION_QUOTA_EXCEEDED",
+        "ANIMATION_VERIFICATION_FAILED",
     }
 )
 

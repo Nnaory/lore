@@ -40,7 +40,7 @@ export function StagePuzzle({ puzzle, pacing, seed, onComplete, ...callbacks }: 
     >
       <div className="flex min-h-0 flex-1 items-center" style={{ containerType: "size" }}>
         <StageCanvas
-          scene={{ kind: "decision", props: { label: "", count: choices.length, seed } }}
+          scene={{ kind: "decision", props: { label: "", seed } }}
           sceneKey={`puzzle:${puzzle.puzzle_id}`}
           pacing={pacing}
         >

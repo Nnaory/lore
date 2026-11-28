@@ -93,7 +93,8 @@ describe("Stage layout switch keeps state", () => {
     expect(toPhone).toBeLessThan(SWITCH_BUDGET_MS);
     expect(screen.getAllByTestId("stage-character")).toHaveLength(1);
     expect(screen.getByTestId("hp-value").textContent).toMatch(/4\s*\/\s*5/);
-    expect(screen.getByTestId("scene-content").textContent).toBe(sceneBefore);
+    // The phone box scrolls the whole line; the desktop box showed the first page of it.
+    expect(screen.getByTestId("scene-content").textContent).toContain(sceneBefore ?? "");
     expect(screen.getByTestId("choice-choice_A").getAttribute("aria-pressed")).toBe(pressedBefore);
     expect(screen.getByTestId("puzzle-feedback").textContent).toBe(feedbackBefore);
 

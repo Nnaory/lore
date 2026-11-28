@@ -15,6 +15,12 @@ ENV NEXT_TELEMETRY_DISABLED=1
 #   http — the LORE API, with IndexedDB as a local cache
 ARG NEXT_PUBLIC_PROJECT_STORE=idb
 ENV NEXT_PUBLIC_PROJECT_STORE=${NEXT_PUBLIC_PROJECT_STORE}
+# Lesson animations made by the AI, inlined into the client bundle by `next build` like the flag
+# above (design 7.9, Requirement 36.1). Only the exact value `on` turns them on. The default `off`
+# builds the app as it was before the feature. Pass `--build-arg NEXT_PUBLIC_ANIMATIONS=on` only
+# after the checks of Requirement 36.4. Changing it needs a new build, not a new container env.
+ARG NEXT_PUBLIC_ANIMATIONS=off
+ENV NEXT_PUBLIC_ANIMATIONS=${NEXT_PUBLIC_ANIMATIONS}
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build

@@ -79,6 +79,33 @@ describe("ScaledBoard", () => {
   });
 });
 
+describe("Stage background", () => {
+  it("uses lore-grid-bg without pumpkins and renders full-screen stage without inner cutout", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    const root = screen.getByTestId("scaled-board-root");
+    expect(root.style.position).toBe("fixed");
+    expect(root.className).toContain("lore-grid-bg");
+    expect(root.className).not.toContain("lore-grid-lines");
+    expect(screen.getByTestId("stage-panel").className).not.toContain("outline-smoke");
+  });
+
+  it("has no pumpkin field inside the Stage", () => {
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.queryByTestId("stage-backdrop")).toBeNull();
+  });
+
+  it("gives the HUD solid bg-ink backing without transparent inline override on desktop and phone", () => {
+    const { unmount } = render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("stage-hud").className).toContain("bg-ink");
+    expect(screen.getByTestId("sidebar-exit-button").style.background).not.toBe("transparent");
+    unmount();
+    stubViewport({ width: 390, height: 844 });
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    expect(screen.getByTestId("stage-hud").className).toContain("bg-ink");
+    expect(screen.getByTestId("sidebar-exit-button").style.background).not.toBe("transparent");
+  });
+});
+
 describe("Stage composition", () => {
   it("renders HUD, dialogue, scene and the speaking sprite in front of the canvas pane", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
@@ -172,6 +199,36 @@ describe("Stage pacing start", () => {
   it("starts in animate mode with motion allowed and no saved choice", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     expect(screen.getByTestId("pacing-animate").getAttribute("aria-pressed")).toBe("true");
+  });
+});
+
+describe("Phone puzzle layout", () => {
+  it("expands the puzzle box, stacks full-width choices vertically, and pins feedback above choices", () => {
+    stubViewport({ width: 390, height: 844 });
+    render(<StoryViewer story={linearStory} characters={characters} />);
+    for (let i = 0; i < 50 && !screen.queryByTestId("puzzle-interaction"); i++) {
+      key(" ");
+    }
+
+    const dialogue = screen.getByTestId("stage-dialogue");
+    expect(dialogue.style.top).toBe("404px");
+    expect(dialogue.style.height).toBe("428px");
+
+    const choices = screen.getByTestId("puzzle-choices");
+    expect(choices.className).toContain("flex-col");
+    const firstChoice = screen.getByTestId("choice-choice_A");
+    expect(firstChoice.className).toContain("w-full");
+    expect(firstChoice.querySelector("span")?.className).not.toContain("line-clamp-2");
+
+    act(() => {
+      fireEvent.click(firstChoice);
+    });
+    act(() => {
+      fireEvent.click(screen.getByTestId("puzzle-submit"));
+    });
+    const feedback = screen.getByTestId("puzzle-feedback");
+    const storyMain = screen.getByTestId("story-main");
+    expect(storyMain.contains(feedback)).toBe(false);
   });
 });
 

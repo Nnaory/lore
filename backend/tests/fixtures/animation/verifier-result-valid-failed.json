@@ -1,0 +1,41 @@
+{
+  "ok": false,
+  "diagnostics": [
+    {
+      "tool": "policy",
+      "code": "POLICY_COLOR_LITERAL",
+      "severity": "error",
+      "line": 41,
+      "column": 17,
+      "message": "Color literal is not allowed here. Use var(--color-<token>)."
+    },
+    {
+      "tool": "tsc",
+      "code": "TSC_2322",
+      "severity": "error",
+      "line": 57,
+      "column": 5,
+      "message": "Type 'string' is not assignable to type 'number'."
+    },
+    {
+      "tool": "eslint",
+      "code": "ESLINT_LORE_KIT_STYLE",
+      "severity": "warning",
+      "line": 12,
+      "column": 3,
+      "message": "Kit style: borderRadius must be 0"
+    }
+  ],
+  "summary": {
+    "verifier_version": "0.1.0",
+    "contract_version": 1,
+    "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+    "checks": [
+      { "name": "size", "ok": true, "ms": 1 },
+      { "name": "policy", "ok": false, "ms": 36 },
+      { "name": "eslint", "ok": true, "ms": 402 },
+      { "name": "tsc", "ok": false, "ms": 871 }
+    ],
+    "truncated": false
+  }
+}

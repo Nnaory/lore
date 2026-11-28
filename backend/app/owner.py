@@ -1,4 +1,4 @@
-"""Anonymous device-token identity for /api/v1/projects/* and /api/v1/ai/*.
+"""Anonymous device-token identity for /api/v1/projects/*, /api/v1/ai/* and /api/v1/animations/*.
 
 Why: R13 has no accounts (Q4 option A). A random UUID in an HttpOnly cookie is the owner id.
 It is a middleware, not a dependency, because a Response injected into a dependency is lost
@@ -15,7 +15,7 @@ from fastapi import Request, Response
 
 COOKIE_NAME = "lore_device"
 COOKIE_MAX_AGE = 31536000  # 1 year, in seconds
-PROTECTED_PREFIXES = ("/api/v1/projects", "/api/v1/ai")
+PROTECTED_PREFIXES = ("/api/v1/projects", "/api/v1/ai", "/api/v1/animations")
 
 
 def _is_https(request: Request) -> bool:

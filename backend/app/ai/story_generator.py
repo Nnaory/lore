@@ -1,7 +1,9 @@
 """Story Generator (Layer 3): Gemini provider, content merge and service.
 
 Why: port of `frontend/src/lib/ai/story-generator-service.ts` and
-`providers/gemini-story-generator.ts` ("skeleton + slots"):
+`providers/gemini-story-generator.ts` ("skeleton + slots"), with three deliberate differences from
+the TypeScript original (25 Nov 2026): the prompt asks for short text, long text is split into
+dialogue-box sized blocks, and puzzles may carry a visual:
 
 1. The engine (`build_story_blueprint`) builds the whole story with template text in every slot:
    scene chain, IDs, one learning scene, one puzzle and one result scene per concept, the ending
@@ -11,8 +13,11 @@ Why: port of `frontend/src/lib/ai/story-generator-service.ts` and
    invalid keeps its template text, so the story is always playable. Each concept is taught in 2
    to 4 lesson steps (`learning_info` blocks in the same scene), each optionally with an
    illustration spec; a spec that fails `parse_lesson_visual` is dropped and recorded in a
-   `VISUAL_DROPPED` warning. Puzzle choices are shuffled deterministically so the correct answer
-   is not always first. Gemini never decides correctness: `correct_choice_id` is data.
+   `VISUAL_DROPPED` warning. A puzzle may carry a free drawing of its question (`visual`, same
+   five kinds); it follows the same rule. Puzzle choices are shuffled deterministically so the
+   correct answer is not always first. Gemini never decides correctness: `correct_choice_id` is
+   data. Last, `chunk_story_content` splits narration, dialogue and lesson text that is longer
+   than the Stage's dialogue box into consecutive blocks (see `chunking.py`).
 4. The service checks the result against the StoryBlueprint model and the generator rules, and
    returns `AiOk | AiError` like the other layers (never raises for expected failures).
 
@@ -40,6 +45,7 @@ from pydantic import (
     model_validator,
 )
 
+from app.ai.chunking import chunk_story_content
 from app.ai.contracts.requests import GenerateStoryRequest, utf16_length
 from app.ai.contracts.story import StoryBlueprint
 from app.ai.contracts.visual import VisualInvalid, parse_lesson_visual
@@ -111,6 +117,8 @@ class _ContentModel(ZodModel):
 
 
 class PuzzleContent(_ContentModel):
+    nullable_keys = frozenset({"visual"})
+
     narrative_context: Paragraph
     question: Line
     correct_answer: Line
@@ -118,6 +126,8 @@ class PuzzleContent(_ContentModel):
     explanation: Paragraph
     correct_feedback: Line
     incorrect_feedback: Line
+    # Optional drawing of the question; null or absent means "no drawing", checked later.
+    visual: Any = _UNSET
 
 
 class LessonStep(_ContentModel):
@@ -193,8 +203,30 @@ def _set_first_narration(scene: dict[str, Any], text: str | None) -> None:
         block["text"] = text
 
 
-def _written_puzzle(base: dict[str, Any], raw: object) -> dict[str, Any] | None:
-    """The puzzle with Gemini's wording, or None when it is unusable."""
+def _attach_visual(
+    block: dict[str, Any], raw: object, concept_id: str, dropped: list[str]
+) -> dict[str, Any]:
+    """`block` with a valid visual attached; an invalid one is reported (once per concept)."""
+    if raw is _UNSET:
+        return block
+    parsed = parse_lesson_visual(raw)
+    if isinstance(parsed, VisualInvalid):
+        if concept_id not in dropped:
+            dropped.append(concept_id)
+        return block
+    return {**block, "visual": parsed.visual.dump()}
+
+
+def _written_puzzle(
+    base: dict[str, Any], raw: object, concept_id: str, dropped: list[str]
+) -> dict[str, Any] | None:
+    """The puzzle with Gemini's wording, or None when it is unusable.
+
+    A drawing of the question is attached when it passes `parse_lesson_visual`. A bad one is
+    dropped and recorded in `dropped`; it never makes the puzzle unusable. `null` counts as "no
+    drawing", not as a bad one. Whether the drawing leaks an answer is not checked here: that is
+    the prompt's job, and correctness stays in `correct_choice_id`.
+    """
     try:
         written = PuzzleContent.model_validate(raw)
     except ValidationError:
@@ -209,7 +241,7 @@ def _written_puzzle(base: dict[str, Any], raw: object) -> dict[str, Any] | None:
         wrong.append(answer)
     if len(wrong) < 2:
         return None
-    return {
+    puzzle = {
         **base,
         "narrative_context": written.narrative_context,
         "question": written.question,
@@ -224,6 +256,9 @@ def _written_puzzle(base: dict[str, Any], raw: object) -> dict[str, Any] | None:
         "correct_feedback": written.correct_feedback,
         "incorrect_feedback": written.incorrect_feedback,
     }
+    if written.visual is None:
+        return puzzle
+    return _attach_visual(puzzle, written.visual, concept_id, dropped)
 
 
 def _usable_steps(raw_steps: list[Any] | None) -> list[LessonStep]:
@@ -261,17 +296,6 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
             continue
         written[parsed.concept_id] = parsed
 
-    def with_visual(block: dict[str, Any], raw: object, concept_id: str) -> dict[str, Any]:
-        """Attach a valid visual; report an invalid one (once per concept)."""
-        if raw is _UNSET:
-            return block
-        parsed = parse_lesson_visual(raw)
-        if isinstance(parsed, VisualInvalid):
-            if concept_id not in dropped:
-                dropped.append(concept_id)
-            return block
-        return {**block, "visual": parsed.visual.dump()}
-
     for mapping in story["knowledge_mapping"]:
         concept_id = mapping["concept_id"]
         c = written.get(concept_id)
@@ -299,7 +323,7 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
                         if i > 0 and step.companion_line and speaker is not None:
                             blocks.append({**speaker, "text": step.companion_line})
                         blocks.append(
-                            with_visual(
+                            _attach_visual(
                                 {
                                     "type": "learning_info",
                                     "title": step.title,
@@ -308,6 +332,7 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
                                 },
                                 step.visual,
                                 concept_id,
+                                dropped,
                             )
                         )
                     learning["content"][lesson_index : lesson_index + 1] = blocks
@@ -319,8 +344,8 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
                         single["body"] = c.lesson_body
                     else:
                         templated.append(f"lesson:{concept_id}")
-                    learning["content"][lesson_index] = with_visual(
-                        single, c.lesson_visual, concept_id
+                    learning["content"][lesson_index] = _attach_visual(
+                        single, c.lesson_visual, concept_id, dropped
                     )
 
         puzzle_index = next(
@@ -332,7 +357,9 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
             -1,
         )
         if puzzle_index >= 0:
-            replaced = _written_puzzle(story["puzzles"][puzzle_index], c.puzzle)
+            replaced = _written_puzzle(
+                story["puzzles"][puzzle_index], c.puzzle, concept_id, dropped
+            )
             if replaced is not None:
                 story["puzzles"][puzzle_index] = replaced
             else:
@@ -373,7 +400,9 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
         }
         for p in story["puzzles"]
     ]
-    return MergeResult(story, templated, dropped)
+    # Last step, once all text (Gemini's and the template's) is in place: split what would not
+    # fit in the Stage's dialogue box into consecutive blocks.
+    return MergeResult(chunk_story_content(story), templated, dropped)
 
 
 # --- provider ---------------------------------------------------------------------------------
@@ -458,8 +487,7 @@ async def generate_candidate(
         warnings.append(
             validation_error(
                 "VISUAL_DROPPED",
-                "Lesson illustrations were invalid and are shown as text for: "
-                f"{', '.join(dropped)}.",
+                f"Illustrations were invalid and are shown as text for: {', '.join(dropped)}.",
                 "story",
             )
         )

@@ -6,6 +6,7 @@
  */
 
 import { z } from "zod";
+import { LessonAnimationSchema } from "./animation.schema";
 import { LessonVisualSchema } from "./visual.schema";
 import type { LessonVisual } from "@/lib/types/visual";
 
@@ -43,6 +44,11 @@ export const LearningContentSchema = z.object({
       return parsed.success ? parsed.data : undefined;
     })
     .optional(),
+  /**
+   * Optional AI-written animation of this lesson. Dropped (not an error) when invalid or when it
+   * carries `pause_at_frame`; a story without the key does not gain one.
+   */
+  animation: LessonAnimationSchema,
 });
 
 export const SceneContentSchema = z.discriminatedUnion("type", [

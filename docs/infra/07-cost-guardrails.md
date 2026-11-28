@@ -40,7 +40,7 @@ Data transfer keluar ke internet dan trafik NAT berbiaya per GB di luar kuota gr
 | Multi-AZ RDS | sekitar dua kali biaya RDS (+US$15) | Non-goal HA |
 | `db.t4g.micro` | sedikit lebih murah (sekitar US$1 sampai 2) | Q10. Verifikasi ketersediaan di Jakarta |
 | NAT `t3.nano` | sekitar -US$4 | Menyimpang dari instruksi t3.micro (Q9) |
-| ECR menggantikan GHCR | Berbiaya storage dan transfer | Keluar dari prinsip gratis |
+| ECR menggantikan GHCR | Berbiaya storage dan transfer | Keluar dari prinsip gratis. Satu pengecualian: image verifier animasi ada di ECR karena Lambda tidak menarik image dari GHCR (bagian 4.3 dan 12.1) |
 | Staging kedua | sekitar +US$50 | Q13 |
 
 ## 4. Allowlist dan denylist
@@ -57,7 +57,10 @@ Data transfer keluar ke internet dan trafik NAT berbiaya per GB di luar kuota gr
 | RDS | Hanya `db.t3.micro`, single-AZ, gp3, storage maksimum 50 GB |
 | SSM | Parameter Store tier standard, Session Manager, Run Command |
 | IAM | Role, policy, instance profile |
-| S3 | Hanya bucket state |
+| S3 | Bucket state, dan satu bucket privat fitur animasi `lore-prod-animations-<ACCOUNT_ID>` (tanpa versioning dan ACL, public access diblokir, lifecycle hanya membatalkan multipart tak selesai) |
+| ECR | Hanya satu repositori privat `lore-prod-animation-verifier`: tag immutable, scan on push, lifecycle menyimpan 5 image terbaru |
+| Lambda | Hanya satu fungsi `lore-prod-animation-verifier`: container image, paling besar 1536 MB dan 60 detik, tanpa reserved atau provisioned concurrency, tanpa function URL |
+| CloudWatch Logs | Hanya satu log group `/aws/lambda/lore-prod-animation-verifier`, retensi 7 hari (alasan di bagian 4.3) |
 | Secrets Manager | Satu secret (master RDS) |
 | AWS Budgets, Cost Anomaly Detection | Gratis dalam batas yang ditetapkan |
 | Resource Groups | Gratis |
@@ -74,11 +77,29 @@ Data transfer keluar ke internet dan trafik NAT berbiaya per GB di luar kuota gr
 | WAF, CloudFront | Tidak dibutuhkan saat ini |
 | AWS Config, GuardDuty, Inspector, Macie | Berbiaya per resource atau per event |
 | KMS CMK | US$1 per kunci per bulan. Pakai kunci AWS-managed [belum diverifikasi: harga] |
-| CloudWatch Logs dan VPC Flow Logs | Biaya ingestion dan storage. Log lewat `docker logs` via SSM |
+| CloudWatch Logs dan VPC Flow Logs | Biaya ingestion dan storage. Log lewat `docker logs` via SSM. Satu pengecualian: log group verifier animasi (bagian 4.3). Log group lain tetap ditolak |
+| Lambda provisioned concurrency (`aws_lambda_provisioned_concurrency_config`) | Biaya tetap per jam walau tidak dipanggil |
+| Lambda function URL (`aws_lambda_function_url`) | Endpoint publik yang tidak dibutuhkan: api memanggil fungsi langsung lewat `lambda:InvokeFunction` |
+| API Gateway v2 (`aws_apigatewayv2_api`) | Tidak dibutuhkan dan berbiaya per request |
 | Route 53 hosted zone | Biaya per zona. Pakai DNS di luar AWS |
 | Secret Secrets Manager tambahan | US$0,4 per secret. Pakai SSM SecureString |
 | Parameter SSM tier advanced | Berbiaya |
 | EBS dan snapshot yatim, EIP idle | Biaya tersembunyi |
+
+### 4.3 Pengecualian dan aturan fitur animasi (R14)
+
+Fitur animasi (spesifikasi `ai-remotion-animation`) menambah empat jenis resource ke allowlist. Alasan dan aturan penegakannya:
+
+| Resource | Alasan | Aturan yang ditegakkan CI |
+|---|---|---|
+| Bucket S3 `lore-prod-animations-<ACCOUNT_ID>` | Hasil animasi (`main.ts`, `main.js`, `manifest.json`) harus tahan lama dan dibaca browser lewat URL presigned. Biayanya sen per bulan | `aws_s3_bucket_public_access_block` dengan flag `false` apa pun ditolak. `aws_s3_bucket_acl` apa pun ditolak. Menghapus `aws_s3_bucket` tetap diblokir destroy-guard |
+| Repositori ECR `lore-prod-animation-verifier` | Lambda container image tidak bisa menarik dari GHCR | `scan_on_push` harus `true` dan `image_tag_mutability` harus `IMMUTABLE`. Lifecycle menyimpan 5 image terbaru supaya penyimpanan tetap kecil |
+| Fungsi Lambda `lore-prod-animation-verifier` | Tempat kode tulisan AI diperiksa, terisolasi tanpa egress dan tanpa secret | `package_type = "Image"`, `memory_size` paling besar 1536, `timeout` paling besar 60, `reserved_concurrent_executions` tidak lebih dari 0. Pemindai statis (`check-cost-static`) mewajibkan `memory_size`, `timeout`, dan `package_type` berupa literal, jadi `var.x` atau ekspresi ditolak. Nilai 1537 dan 61 ditolak, 1536 dan 60 lolos |
+| Log group `/aws/lambda/lore-prod-animation-verifier` | Satu-satunya tempat log verifier. Retensi 7 hari dan role eksekusi tanpa `logs:CreateLogGroup` mencegah log group liar tanpa retensi | Pengecualian dicek lebih dulu: hanya alamat `aws_cloudwatch_log_group.animation_verifier` dengan nama itu dan `retention_in_days = 7` yang lolos. Tipe `aws_cloudwatch_log_group` tetap ada di denylist, jadi log group lain ditolak. `check-cost-static` menolak berkas `.tf` yang mendeklarasikan log group bernama selain `animation_verifier` dan mencetak berkas serta namanya |
+
+Komponen tag `animation` ditambahkan ke daftar Component yang sah ([08-tagging.md](./08-tagging.md)), dan `aws_lambda_function`, `aws_ecr_repository`, serta `aws_s3_bucket` wajib punya tag `Name`. Perubahan IAM yang menyertainya (`DenyLogGroupsOtherThanVerifier` dan pernyataan Allow per resource) ada di [02-iam-and-oidc.md](./02-iam-and-oidc.md) bagian 5.3 dan menunggu bootstrap manual dengan persetujuan pengguna.
+
+Pengecualian ini tidak melonggarkan batas lain: tidak ada perubahan ukuran instance, IOPS, atau retensi backup.
 
 ## 5. Lima lapis penegakan
 
@@ -111,6 +132,8 @@ jq -e '[.resource_changes[]
 
 Pengecualian resmi (misalnya `aws_nat_gateway` saat `nat_mode = "gateway"`) membutuhkan perubahan di bootstrap dan di script pemeriksa, lewat PR terpisah.
 
+Sejak R14 contoh `jq` di atas tidak lagi lengkap: `scripts/ci/check-cost` mengecualikan satu alamat log group (`aws_cloudwatch_log_group.animation_verifier`, nama `/aws/lambda/lore-prod-animation-verifier`, retensi 7) sebelum memeriksa denylist, lalu memeriksa batas Lambda, ECR, dan S3 di bagian 4.3. `check-cost-static` melakukan hal yang sama pada berkas `.tf`. Daftar tipe dan batasnya ada di `scripts/ci/policy_rules.py` (`ALLOWED_COMPONENTS`, `DENYLIST_RESOURCE_TYPES`, `MAX_LAMBDA_MEMORY_MB`, `MAX_LAMBDA_TIMEOUT_S`, `LOG_GROUP_EXCEPTION`), yang dipakai bersama oleh `check-tags`, `check-cost`, dan `check-cost-static`. Fixture plan valid dan satu fixture tidak valid per kondisi ada di `scripts/ci/fixtures/`, dan tiap aturan dijaga tes di `scripts/ci/test-checkers.py`.
+
 ## 6. AWS Budgets
 
 Dibuat oleh bootstrap (tugas R1), bukan Terraform, agar pipeline tidak bisa mengubahnya.
@@ -142,12 +165,15 @@ Monitor tipe "AWS services" dan subscription email ke `<EMAIL_ALERT>` dengan amb
 | EBS dan snapshot yatim | Tagihan tanpa resource aktif | Teardown memeriksa volume dan snapshot. Tag memudahkan pencarian |
 | Autoscaling storage RDS | Storage tumbuh tanpa disadari | `max_allocated_storage` tidak diset |
 | Data transfer keluar | Per GB di atas kuota gratis | Trafik kecil. Pantau di Cost Explorer |
-| CloudWatch Logs | Ingestion dan storage | Tidak dipakai. Rotasi log Docker lokal |
+| CloudWatch Logs | Ingestion dan storage | Hanya satu log group verifier animasi, retensi 7 hari (bagian 4.3). Perkiraan sekitar US$0,003 per bulan pada skenario terburuk (bagian 12.1). Selain itu tidak dipakai. Rotasi log Docker lokal |
 | Jumlah secret | US$0,4 per secret | Satu secret saja |
 | Hosted zone, KMS CMK | Biaya bulanan tetap | Denylist |
 | Snapshot final RDS | Biaya kecil selama tersimpan | Hapus saat teardown |
 | Nilai secret di tfstate | Role plan bisa membaca state, dan state tersimpan di S3 | Secret tidak dikelola Terraform. Dibuat manual lewat `aws ssm put-parameter` ([03-compute.md](./03-compute.md) bagian 4). Audit di R11 |
 | Instance RDS restore drill | Biaya per jam | Hapus segera setelah drill |
+| Lambda verifier (R14) | GB-detik membengkak bila banyak run atau percobaan ulang | Batas SSM `ANIMATION_DAILY_PER_IP=30`, `ANIMATION_MAX_CONCURRENT_GLOBAL=2`, `ANIMATION_MAX_ATTEMPTS=4`. Tanpa reserved atau provisioned concurrency. Pantau durasi dan jumlah invokasi di Cost Explorer (filter `Component=animation`) |
+| Gemini untuk animasi (R14) | Sampai 4 panggilan per animasi, keluaran sampai 12000 token per panggilan. Tidak ada di tagihan AWS | Batas yang sama di atas. Pantau di konsol Google AI Studio atau Cloud Billing, bukan di AWS |
+| Bucket dan ECR animasi (R14) | Objek tidak pernah kedaluwarsa, image menumpuk | Ukuran bulanan sekitar 150 MB di skenario terburuk. ECR menyimpan 5 image terbaru. Tinjau ukuran bucket bulanan |
 
 ## 9. Batas gratis sisi GitHub
 
@@ -194,3 +220,32 @@ Status pengecekan pada penutupan fase infra (R1–R12, tanpa menjalankan teardow
   - Gross tercatat awal: `Component=nat` (`$0.1149`), `Component=bootstrap` (`$0.00005`), `EC2 - Other` (`$0.000036`) seluruhnya tertutup kredit/Free Plan offset. (Komponen RDS & EC2 `web`/`api` terbaru baru tercermin penuh setelah ~24–48 jam uptime / evaluasi 7 hari.)
 - **Penyesuaian guardrail `gp3` (R10):** `DenyRdsPiops` pada `lore-guardrail-deny.json` disesuaikan ke `rds:Piops > 3000` dan `scripts/ci/check-cost` mengizinkan `iops <= 3000` pada `storage_type = "gp3"` karena `gp3` RDS di `ap-southeast-3` memiliki baseline gratis `3.000` IOPS (`io1`/`io2` dan `> 3000` IOPS tetap ditolak).
 - **Audit secret & hardening (R11):** Scan `s3://lore-tfstate-<ACCOUNT_ID>/lore/prod/terraform.tfstate`, 10 run GitHub Actions terbaru, dan `/var/log/cloud-init-output.log` EC2 `web` & `api` menunjukkan **0 secret leak**; `/opt/lore/.env` berizin `600 root:root`.
+
+### 12.1 Estimasi biaya tambahan fitur animasi (R14)
+
+Fitur animasi (spesifikasi `ai-remotion-animation`, dokumen [12-remotion-animation.md](./12-remotion-animation.md)) menambah Lambda, ECR, S3, dan satu log group. Fitur ini tidak menaikkan ukuran instance, IOPS, atau retensi backup, jadi tabel di bagian 2 tidak berubah.
+
+**Skenario terburuk.** 30 animasi per hari selama 30 hari = 900 animasi per bulan, masing-masing 4 invokasi Verifier_Lambda selama 60 detik pada 1536 MB (1,5 GB). Ini sengaja jauh di atas pemakaian normal supaya angkanya menjadi batas atas. Region `ap-southeast-3`. Semua harga di bawah memakai basis us-east-1 dari ingatan, dan harga Jakarta kemungkinan lebih tinggi `[belum diverifikasi]`. Kesimpulan tentang persetujuan di bawah tidak berubah oleh selisih itu, karena angkanya sudah di atas ambang.
+
+| Komponen | Masukan | Rumus | Hasil per bulan |
+|---|---|---|---|
+| Lambda compute | 900 x 4 x 60 detik x 1,5 GB = 324.000 GB-detik | 324.000 x US$0,0000166667 per GB-detik (harga x86) `[belum diverifikasi]` | US$5,4000 |
+| Lambda request | 900 x 4 = 3.600 request | 3.600 x US$0,20 per juta request `[belum diverifikasi]` | US$0,0007 |
+| ECR | 5 image x sekitar 0,45 GB terkompres = 2,25 GB (ukuran image belum terukur) | 2,25 x US$0,10 per GB-bulan `[belum diverifikasi]` | US$0,2250 |
+| S3 | 0,15 GB baru per bulan, 2.700 PUT (900 x 3 objek), sampai 3.600 GET dan HEAD, sekitar 0,12 GB transfer keluar | 0,15 x US$0,025 + 2.700 x US$0,005 per 1000 + 3.600 x US$0,0004 per 1000 + 0,12 x US$0,12 per GB = 0,0038 + 0,0135 + 0,0014 + 0,0144 `[belum diverifikasi]` | US$0,0331 |
+| CloudWatch Logs (retensi 7 hari) | 3.600 invokasi x 1,5 KB = 5,4 MB = 0,0054 GB | 0,0054 x US$0,50 per GB ingestion `[belum diverifikasi]` | US$0,0027 |
+| Transfer api ke Lambda lewat NAT instance | sekitar 600 MB = 0,6 GB | 0,6 x US$0,12 per GB, batas atas dari rentang US$0,01 sampai US$0,12 `[belum diverifikasi]` | US$0,0720 |
+| Jumlah baris di atas | | 5,4000 + 0,0007 + 0,2250 + 0,0331 + 0,0027 + 0,0720 = 5,7335, dibulatkan ke atas ke sen | US$5,74 |
+| Perkiraan bila free tier Lambda berlaku | 400.000 GB-detik dan 1 juta request gratis per bulan `[belum diverifikasi]` untuk akun paket Free | baris compute dan request menjadi 0: 0,2250 + 0,0331 + 0,0027 + 0,0720 = 0,3328, dibulatkan ke atas | US$0,34 |
+| Biaya Gemini (di luar total AWS) | sampai 3.600 panggilan per bulan (900 x 4), keluaran sampai 12000 token per panggilan | panggilan x (token masukan + token keluaran) x harga per token model `AI_ANIMATION_MODEL` atau `AI_MODEL` `[belum diverifikasi]` | tidak dihitung di sini, ditagih Google dan bukan AWS |
+
+Pemakaian nyata diperkirakan jauh di bawah skenario ini: satu invokasi biasanya 5 sampai 15 detik dan rata-rata sekitar 1,5 percobaan, sekitar 20.000 GB-detik per bulan (sekitar US$0,33 sebelum free tier) `[belum diverifikasi]` sampai ada data CloudWatch.
+
+**Paket akun.** Akun berada di paket Free dengan kredit promo, seperti tercatat di bagian 12 di atas (`accountPlanType: FREE`, sisa kredit US$159,47 berlaku sampai 2027-04-24, per 19 Nov 2026). Apakah free tier Lambda (400.000 GB-detik) berlaku untuk akun paket Free, apakah kredit promo menutup Lambda, ECR, dan S3, dan berapa sisa kredit pada saat PR di-merge, semuanya `[belum diverifikasi]`. Bukti yang harus dijalankan operator: `aws freetier get-account-plan-state` (langkah O-7 di dokumen 12). Estimasi dibandingkan dengan ambang US$5 **sebelum** kredit, karena kredit bisa habis atau berakhir.
+
+Total di bawah adalah jumlah baris tabel di atas untuk skenario terburuk dan tanpa free tier, yaitu batas atas kotor yang dibandingkan dengan ambang US$5 (asumsi A-6 spesifikasi):
+
+Total tambahan AWS per bulan: US$5,74
+Persetujuan pengguna: 2026-11-28
+
+Angka itu US$5 atau lebih. Menurut Requirement 41.5, PR infra pertama fitur animasi **tidak boleh di-merge tanpa persetujuan pengguna secara eksplisit**. Persetujuan itu adalah pernyataan manusia: pengguna menulis sendiri satu baris berawalan `Persetujuan pengguna`, diikuti titik dua dan tanggal UTC `YYYY-MM-DD`, tepat di bawah baris total di atas. Agen dan skrip tidak boleh menulisnya. Tes `scripts/ci/test-checkers.py` (tugas 35.5) gagal bila baris total hilang, ada lebih dari satu, atau angkanya 5 atau lebih tanpa baris persetujuan itu. Merahnya tes itu sampai pengguna menyetujui adalah perilaku yang benar. Bila free tier terbukti berlaku untuk akun ini, angka di baris total boleh diperbarui lewat PR menjadi angka setelah free tier (sekitar US$0,34) dan baris persetujuan tidak lagi dibutuhkan.

@@ -1,0 +1,12 @@
+{
+  "kind": "puzzle",
+  "title": "Only the title is trimmed",
+  "text": "  keep the spaces around this text  ",
+  "concepts": ["  "],
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "forbidden_tokens": ["  ", "Ya", "ya"]
+}

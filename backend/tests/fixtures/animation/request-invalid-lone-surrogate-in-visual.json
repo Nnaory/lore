@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "A lone surrogate inside the visual",
+  "text": "A lone low surrogate in a nested label is rejected like any other.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2], "label": "A\udc00" }]
+  },
+  "language": "en"
+}
