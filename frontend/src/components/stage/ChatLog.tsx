@@ -61,6 +61,21 @@ export function ChatLog({ entries, onClose }: ChatLogProps) {
                 <span className="text-cream">{entry.text}</span>
               </>
             )}
+            {entry.kind === "question" && (
+              <>
+                <span className="font-mono text-[12px] font-bold mr-2 text-ember">YOU</span>
+                <span className="text-cream">{entry.text}</span>
+              </>
+            )}
+            {entry.kind === "answer" && (
+              <>
+                <span className="font-mono text-[12px] font-bold mr-2 text-gold">{entry.name}</span>
+                <span className="font-mono text-[11px] uppercase tracking-[0.08em] text-muted mr-2">
+                  Q&amp;A
+                </span>
+                <span className="text-cream">{entry.text}</span>
+              </>
+            )}
             {entry.kind === "narration" && <span className="text-muted">{entry.text}</span>}
             {entry.kind === "lesson" && (
               <div className="pl-3 border-l-2 border-gold">

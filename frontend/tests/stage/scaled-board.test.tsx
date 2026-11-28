@@ -181,11 +181,17 @@ describe("Stage shortcuts and input", () => {
     expect(screen.queryByTestId("chat-log")).toBeNull();
   });
 
-  it("keeps the 'type something' input disabled", () => {
+  it("enables the ask input on narration/dialogue beats and disables it on puzzle beats", () => {
     render(<StoryViewer story={linearStory} characters={characters} />);
     const ask = screen.getByTestId("ask-input") as HTMLInputElement;
-    expect(ask.disabled).toBe(true);
-    expect(ask.placeholder).toContain("coming soon");
+    expect(ask.disabled).toBe(false);
+    expect(ask.placeholder).toContain("Ask ");
+
+    for (let i = 0; i < 50 && !screen.queryByTestId("puzzle-interaction"); i++) {
+      key(" ");
+    }
+    expect((screen.getByTestId("ask-input") as HTMLInputElement).disabled).toBe(true);
+    expect((screen.getByTestId("ask-input") as HTMLInputElement).placeholder).toContain("Finish the puzzle");
   });
 });
 

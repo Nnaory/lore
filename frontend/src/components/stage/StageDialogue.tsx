@@ -5,11 +5,10 @@
  * (`useTypewriter`: 25 ms per character in `animate`, instant in `fast`).
  * Click on the text (or SPACE/Enter while it has focus) first shows a line
  * that is still typing in full, then calls `onAdvance` when `canAdvance`.
- * Name tag: the speaker's `Character.name`, `NARRATION` for narration and
+ * Tag: the speaker's `Character.name`, `NARRATION` for narration,
  * `LESSON` for lessons (the lesson title sits beside the tag on desktop; the text is the
- * body only). Text longer than the desktop box is paged (`paginateText`). The
- * `type something` input stays disabled ("coming soon"). Placed at the
- * layout's dialogue box (STAGE_BOXES) with z 10: the desktop sprite (z 20) is
+ * body only), or the answering character's `name` for inline Q&A replies. Text longer than the
+ * desktop box is paged (`paginateText`). Placed at the layout's dialogue box (STAGE_BOXES) with z 10: the desktop sprite (z 20) is
  * in front of it, the phone sprite (z 5) behind it. Existing test hooks:
  * story-main, scene-content, character-name, pacing-toggle, log-chat-button,
  * plus narration-block / learning-card / character-bubble around the text.
@@ -45,8 +44,14 @@ export interface StageDialogueProps {
   onOpenLog: () => void;
   /** Role line next to the name tag (desktop only). */
   speakerRole?: string;
-  /** Who the (disabled) ask input would address. */
+  /** Who the ask input addresses. */
   askName?: string;
+  /** Called when the player submits a question from the dialogue bar. */
+  onAsk?: (question: string) => void;
+  /** Disables the ask input (e.g. during puzzle, ending, or in-flight request). */
+  askDisabled?: boolean;
+  /** Optional custom placeholder for the ask input. */
+  askPlaceholder?: string;
   /** Non-scrolled puzzle feedback rendered above choices on phone. */
   feedback?: ReactNode;
   /** Choice buttons shown inside the box on phone. */
@@ -65,7 +70,9 @@ export interface StageDialogueProps {
  */
 export function dialogueParts(entry: ChatEntry | null): { tag: string; text: string } {
   if (!entry) return { tag: NARRATION_TAG, text: "" };
-  if (entry.kind === "dialogue") return { tag: entry.name, text: entry.text };
+  if (entry.kind === "dialogue" || entry.kind === "answer") {
+    return { tag: entry.name, text: entry.text };
+  }
   if (entry.kind === "lesson") return { tag: LESSON_TAG, text: entry.text };
   return { tag: NARRATION_TAG, text: entry.text };
 }
@@ -82,6 +89,9 @@ export function StageDialogue({
   onOpenLog,
   speakerRole,
   askName,
+  onAsk,
+  askDisabled = false,
+  askPlaceholder,
   feedback,
   choices,
   actions,
@@ -147,9 +157,13 @@ export function StageDialogue({
   }
 
   function wrapEntry(paragraph: ReactNode): ReactNode {
-    if (entry?.kind === "dialogue") {
+    if (entry?.kind === "dialogue" || entry?.kind === "answer") {
       return (
-        <div data-testid="character-bubble" data-character-id={entry.characterId}>
+        <div
+          data-testid="character-bubble"
+          data-character-id={entry.characterId}
+          {...(entry.kind === "answer" ? { "data-qa-reply": "true" } : {})}
+        >
           {paragraph}
         </div>
       );
@@ -161,7 +175,7 @@ export function StageDialogue({
         </div>
       );
     }
-    if (entry?.kind === "narration") {
+    if (entry?.kind === "narration" || entry?.kind === "question") {
       return (
         <div data-testid="narration-block" aria-label="Narration">
           {paragraph}
@@ -172,6 +186,8 @@ export function StageDialogue({
   }
 
   const askLabel = askName ?? "a character";
+  const resolvedPlaceholder =
+    askPlaceholder ?? (layout === "phone" ? `Ask ${askLabel}…` : `Ask ${askLabel} something…`);
   return (
     <div
       data-testid="stage-dialogue"
@@ -181,16 +197,21 @@ export function StageDialogue({
         className="h-full"
         speakerName={tag}
         speakerRole={
-          entry?.kind === "dialogue" ? speakerRole : entry?.kind === "lesson" ? entry.title : undefined
+          entry?.kind === "dialogue" || entry?.kind === "answer"
+            ? speakerRole
+            : entry?.kind === "lesson"
+              ? entry.title
+              : undefined
         }
         text={visible}
         feedback={feedback}
         choices={choices}
         mode={mode}
         onModeChange={onModeChange}
+        onAsk={onAsk}
         onOpenLog={onOpenLog}
-        askDisabled
-        askPlaceholder={`Ask ${askLabel} something… (coming soon)`}
+        askDisabled={askDisabled}
+        askPlaceholder={resolvedPlaceholder}
         onAdvance={handleAdvance}
         wrapText={wrapText}
         testIds={{

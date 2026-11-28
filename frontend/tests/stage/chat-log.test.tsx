@@ -42,10 +42,19 @@ const entries: ChatEntry[] = [
     text: "Stay close.",
   },
   { kind: "lesson", title: "Gravity", text: "Things fall." },
+  { kind: "question", text: "Why does it fall?" },
+  {
+    kind: "answer",
+    characterId: "c1",
+    name: "Mira",
+    expression: "smile",
+    expressionKey: "smile",
+    text: "Gravity pulls mass together.",
+  },
 ];
 
 describe("ChatLog", () => {
-  it("renders narration, dialogue and lesson entries", () => {
+  it("renders narration, dialogue, lesson, question and answer entries", () => {
     render(<ChatLog entries={entries} onClose={() => {}} />);
     const dialog = screen.getByRole("dialog");
     expect(dialog.getAttribute("aria-labelledby")).toBe("chat-log-title");
@@ -55,6 +64,10 @@ describe("ChatLog", () => {
     expect(text).toContain("Stay close.");
     expect(text).toContain("Lesson · Gravity");
     expect(text).toContain("Things fall.");
+    expect(text).toContain("YOU");
+    expect(text).toContain("Why does it fall?");
+    expect(text).toContain("Q&A");
+    expect(text).toContain("Gravity pulls mass together.");
   });
 
   it("shows 'Nothing yet.' when there are no entries", () => {
