@@ -1,0 +1,30 @@
+{
+  "request": {
+    "kind": "lesson",
+    "title": "Walking versus cycling",
+    "text": "Distance grows faster for the cyclist.",
+    "concepts": ["speed"],
+    "visual": {
+      "kind": "plot",
+      "x_label": "time (s)",
+      "y_label": "distance (m)",
+      "series": [
+        { "label": "walking", "points": [[0, 0], [1, 2], [2, 4]], "tone": "primary" },
+        { "points": [[0, 0], [1, 3], [2, 6]] },
+        { "label": "cycling", "points": [[0, 0], [1, 5], [2, 10]], "tone": "secondary" }
+      ],
+      "caption": "Steeper line means higher speed."
+    },
+    "language": "en"
+  },
+  "required_tokens": [
+    "Walking versus cycling",
+    "Steeper line means higher speed.",
+    "time (s)",
+    "distance (m)",
+    "walking",
+    "cycling"
+  ],
+  "skipped_tokens": [],
+  "effective_forbidden_tokens": []
+}

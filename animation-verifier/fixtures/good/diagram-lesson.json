@@ -1,0 +1,31 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "diagram",
+    "layout": "cycle",
+    "nodes": [
+      { "id": "evap", "label": "Evaporation", "detail": "Heat lifts water as vapour" },
+      { "id": "cond", "label": "Condensation", "detail": "Vapour cools into droplets" },
+      { "id": "prec", "label": "Precipitation", "detail": "Droplets fall as rain" }
+    ],
+    "edges": [
+      { "from": "evap", "to": "cond", "label": "rises" },
+      { "from": "cond", "to": "prec", "label": "falls" },
+      { "from": "prec", "to": "evap", "label": "flows back" }
+    ],
+    "caption": "Water keeps cycling between sea, sky and land."
+  },
+  "required_tokens": [
+    "Water keeps cycling between sea, sky and land.",
+    "Evaporation",
+    "Heat lifts water as vapour",
+    "Condensation",
+    "Vapour cools into droplets",
+    "Precipitation",
+    "Droplets fall as rain",
+    "rises",
+    "falls",
+    "flows back"
+  ],
+  "forbidden_tokens": []
+}

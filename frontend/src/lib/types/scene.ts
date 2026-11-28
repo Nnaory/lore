@@ -5,6 +5,7 @@
  * Each scene has a type that determines how it is rendered and processed.
  */
 
+import type { AnimationReference } from "./animation";
 import type { LessonVisual } from "./visual";
 
 // ---------------------------------------------------------------------------
@@ -38,6 +39,8 @@ export type LearningContent = {
   concept_ids: string[];
   /** Illustration drawn on the stage canvas while this lesson is shown. */
   visual?: LessonVisual;
+  /** AI-written animation that replaces the drawn visual while this lesson is shown. No `pause_at_frame`. */
+  animation?: AnimationReference;
 };
 
 /** Union of all content block types that can appear inside a scene. */

@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - "frontend/src/**"
+      - "frontend/sandbox-runtime/**"
+      - "frontend/scripts/**"
       - "frontend/public/**"
       - "frontend/package.json"
       - "frontend/package-lock.json"
@@ -57,6 +59,9 @@ jobs:
           context: frontend
           push: true
           tags: ${{ env.IMAGE }}:${{ steps.meta.outputs.tag }}
+          # Animation flag (Requirement 36.2): a repository variable, `off` when unset or empty.
+          # `next build` inlines it, so changing it needs a rebuild (a run with an empty `tag`).
+          build-args: NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}

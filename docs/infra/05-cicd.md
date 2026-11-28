@@ -1,8 +1,8 @@
 # 05 CI/CD dengan GitHub Actions
 
-**Tujuan dokumen.** Spesifikasi pipeline lore: pembagian tugas GitHub dan AWS, pengaturan repo, empat workflow (`ci`, `infra`, `release-web`, `release-api`), variabel, rollback, dan batas gratis yang harus dijaga. Pola mengikuti `zero-to-prod` dengan perbaikan yang dijelaskan di [00-overview.md](./00-overview.md) bagian 8.
+**Tujuan dokumen.** Spesifikasi pipeline lore: pembagian tugas GitHub dan AWS, pengaturan repo, lima workflow (`ci`, `infra`, `release-web`, `release-api`, `release-verifier`), variabel, rollback, dan batas gratis yang harus dijaga. Pola mengikuti `zero-to-prod` dengan perbaikan yang dijelaskan di [00-overview.md](./00-overview.md) bagian 8.
 
-Status: terimplementasi (R2, R5, R7–R10)
+Status: terimplementasi (R2, R5, R7–R10). R14 (job `verifier` dan `contracts`, `release-verifier.yml`) sudah ditulis di repo tetapi belum di-merge dan belum pernah berjalan di GitHub `[belum diverifikasi]`.
 
 ## 1. Prinsip
 
@@ -17,6 +17,7 @@ Status: terimplementasi (R2, R5, R7–R10)
 |---|---|---|
 | Lint, type check, test, build | Actions (`ci.yml`) | Ya, runner standar di repo publik [terverifikasi: docs.github.com/en/billing/concepts/product-billing/github-actions] |
 | Build dan push image | Actions dan GHCR (`release-*.yml`) | Ya, container registry saat ini gratis [terverifikasi: docs.github.com/en/billing/concepts/product-billing/github-packages] |
+| Build image verifier animasi dan update fungsi Lambda | Actions (`release-verifier.yml`) dengan role `lore-gh-deploy`, image di ECR | Actions gratis. ECR berbiaya kecil, dihitung di [07-cost-guardrails.md](./07-cost-guardrails.md) bagian 12.1 |
 | Plan dan apply Terraform | Actions (`infra.yml`) dengan role OIDC | Ya (Actions). State di S3 berbiaya sen |
 | Persetujuan apply | Environment `production` | Ya di repo publik [terverifikasi: docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments] |
 | Update dependensi | Dikelola manual (Dependabot tidak dipakai) | - |
@@ -30,7 +31,7 @@ Status: terimplementasi (R2, R5, R7–R10)
 | Permission `GITHUB_TOKEN` default | Read. Setiap workflow menulis `permissions:` eksplisit |
 | Workflow dari fork | Wajib persetujuan untuk kontributor baru |
 | `pull_request_target` | Tidak dipakai |
-| Branch protection `main` | PR wajib. Force push dan penghapusan dilarang. Status check wajib: `ci / web`, `ci / api`, `ci / docker`, `ci / terraform` (verifikasi nama konteks saat mengatur) |
+| Branch protection `main` | PR wajib. Force push dan penghapusan dilarang. Status check wajib: `ci / web`, `ci / api`, `ci / docker`, `ci / terraform` (verifikasi nama konteks saat mengatur). `ci/verifier` dan `ci/contracts` (R14) belum diwajibkan: menambahkannya ke ruleset `protection-main` adalah pengaturan repositori manual yang **menunggu persetujuan pengguna** (bagian 5.1) |
 | Check yang TIDAK diwajibkan | `infra / plan`. Workflow dengan path filter yang tidak dipicu membuat check menggantung dan memblokir merge |
 | Job yang dilewati | Job yang di-skip lewat `if` pada langkahnya tetap sukses sebagai status check. Job `api` memakai pola ini selama `backend/` belum ada |
 | Environment `production` | Reviewer wajib pada job `apply`. Deployment branch hanya `main` |
@@ -68,7 +69,9 @@ Pemicu: `pull_request` dan `push` ke `main`. Izin: `contents: read`. `concurrenc
 | `web` | `actions/setup-node` dengan `node-version-file: .nvmrc` dan cache npm. `npm ci`. `npm run lint`. `npx tsc --noEmit`. `npx vitest run --testTimeout=60000`. `npm run build` dengan `AI_PROVIDER=dummy` |
 | `api` | Dilewati jika `backend/` belum ada. Python 3.12 dengan cache pip. `ruff check`. `ruff format --check`. `pytest`. Service container Postgres untuk test DB nanti |
 | `docker` | Build image web dan api dengan `push: false` memakai cache `type=gha`. Menangkap Dockerfile yang rusak sebelum merge |
-| `terraform` | `terraform fmt -check -recursive`. `terraform init -backend=false`. `terraform validate`. Pemeriksa biaya statis (`scripts/ci/check-cost-static`, memindai file `.tf` untuk tipe resource denylist) |
+| `terraform` | `terraform fmt -check -recursive`. `terraform init -backend=false`. `terraform validate`. Pemeriksa biaya statis (`scripts/ci/check-cost-static`, memindai file `.tf` untuk tipe resource denylist). Sejak R14 juga `scripts/ci/test-checkers.py -v` dan `shellcheck` untuk skrip bootstrap, verifikasi, deploy, dan `scripts/ci/*.sh` |
+| `verifier` (`ci/verifier`, R14) | Bagian 5.1. Lint, typecheck, korpus fixture verifier, build image Lambda, dan uji image di bawah Runtime Interface Emulator |
+| `contracts` (`ci/contracts`, R14) | Bagian 5.1. Kesamaan salinan kontrak animasi dan versi pustaka runtime |
 
 Alasan `--testTimeout=60000`: test yang merender `StoryViewer` dan `CampaignPlayer` timeout acak di batas 5 detik pada full run (juga di `main` yang bersih). Dengan timeout 60 detik semuanya lulus. Mengubah `vitest.config.ts` adalah keputusan terpisah dan tidak dilakukan di sini.
 
@@ -121,6 +124,31 @@ jobs:
 ```
 
 `hashFiles()` tidak dipakai di `if` tingkat job karena fungsinya tidak tersedia di sana [belum diverifikasi], jadi deteksi dilakukan di langkah pertama.
+
+### 5.1 Job `verifier` dan `contracts` (R14)
+
+Dua job ini ada di `ci.yml` untuk fitur animasi (spesifikasi `ai-remotion-animation`). Nama check-nya `ci/verifier` dan `ci/contracts`. Action dipin ke SHA yang sama dengan job lama.
+
+**`verifier`.** `working-directory: animation-verifier`. Urutan langkah penting:
+
+1. `actions/setup-node` dengan `node-version-file: animation-verifier/.nvmrc` (Node 22) dan cache npm dari `animation-verifier/package-lock.json`, lalu `npm ci`.
+2. `npm run lint`, `npx tsc --noEmit`, dan `npm run typecheck` (`tsc` memakai dua tsconfig: `tsconfig.json` untuk `src/`, `tsconfig.typecheck.json` untuk tes dan konfigurasi).
+3. `npx vitest run`. Korpus fixture `good/`, `bad/`, dan `warn/` berjalan di sini dan menulis `animation-verifier/.corpus-results.json` (berkas itu di-ignore git). Langkah ini **harus** ada di job yang sama dan sebelum langkah RIE, karena langkah RIE membaca berkas itu.
+4. `shellcheck scripts/ci/*.sh`.
+5. `docker/setup-buildx-action`, lalu `docker/build-push-action` dengan `context: animation-verifier`, `load: true`, `push: false`, tag `lore-verifier:ci`, `platforms: linux/amd64`, `provenance: false`, `sbom: false`. Satu platform tanpa provenance dan SBOM karena Lambda menolak OCI image index.
+6. `scripts/ci/verifier-rie-check.sh lore-verifier:ci animation-verifier`: menjalankan image di bawah Lambda Runtime Interface Emulator (`--memory 1536m --read-only --tmpfs /tmp`), mengirim setiap fixture `good/` dan `bad/` lewat `curl`, dan membandingkan `ok` dan daftar kode (terurut dan unik) dengan `.corpus-results.json` dari Vitest. Satu perbedaan menggagalkan job. Toleransi sempit hanya untuk `bad/render-resource-limit.ts`, yang bisa berakhir `RENDER_FRAME_TIMEOUT` pada runner lambat.
+
+**`contracts`.** Hanya pustaka standar Python 3.12 (`actions/setup-python`), tanpa instal dependensi:
+
+1. `python3 scripts/sync-animation-contract.py --check`: salinan kontrak (`animation-verifier/contract/animation-contract.json` dan salinan di backend dan frontend) harus identik.
+2. `python3 scripts/ci/check-animation-versions.py`: versi `react`, `react-dom`, `remotion`, dan `@remotion/player` dipin persis dan sama di `animation-verifier/package.json`, `frontend/package.json`, serta kedua `package-lock.json`.
+
+**Yang menunggu tindakan manusia:**
+
+- `animation-verifier/package-lock.json` belum di-commit, jadi `npm ci`, cache setup-node, `docker build` verifier, dan `check-animation-versions.py` gagal sampai operator menjalankan `cd animation-verifier && npm install --save-exact` secara online dan meng-commit lockfile itu. Lockfile tidak boleh ditulis tangan. Selama itu `ci/verifier` dan `ci/contracts` merah (perilaku yang benar).
+- Job `web` dan `docker` berhenti di `prebuild` (`build-sandbox.mjs`) sampai `@fontsource/space-grotesk` dan `@fontsource/jetbrains-mono` terpasang dengan `npm install --save-dev --save-exact` di `frontend/` dan lockfile frontend di-commit.
+- Menambahkan `ci/verifier` dan `ci/contracts` ke required checks ruleset `protection-main` adalah pengaturan repositori manual dan **menunggu persetujuan pengguna**. Sampai itu dilakukan, kedua check tampil tetapi tidak memblokir merge.
+- Di runner GitHub (memori bebas minimal 3 GiB) kasus korpus 1,4 GB aktif otomatis untuk pertama kalinya `[belum diverifikasi]`.
 
 ## 6. `infra.yml`
 
@@ -204,8 +232,9 @@ Pemicu:
 
 | Workflow | Path filter push ke `main` |
 |---|---|
-| `release-web.yml` | `src/**`, `public/**`, `package.json`, `package-lock.json`, `next.config.ts`, `tsconfig.json`, `Dockerfile`, file workflow itu sendiri |
+| `release-web.yml` | `frontend/src/**`, `frontend/sandbox-runtime/**`, `frontend/scripts/**`, `frontend/public/**`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/next.config.ts`, `frontend/tsconfig.json`, `frontend/.nvmrc`, `frontend/Dockerfile`, `frontend/.dockerignore`, `scripts/ci/ssm-deploy.sh`, file workflow itu sendiri |
 | `release-api.yml` | `backend/**`, file workflow itu sendiri |
+| `release-verifier.yml` (R14) | `animation-verifier/**`, `scripts/ci/verifier-release.sh`, file workflow itu sendiri. Bagian 7.1 |
 
 Keduanya juga punya `workflow_dispatch` dengan input `tag` (rollback, melewati build). `concurrency: lore-prod-deploy-<komponen>` tanpa cancel. Perubahan yang hanya menyentuh `infra/**`, `deploy/**`, `docs/**`, atau `*.md` tidak memicu rilis.
 
@@ -295,6 +324,30 @@ jobs:
 
 Semantik `inputs` pada event `push` (kosong) dan ekspresi `needs.build.outputs.tag || inputs.tag` diverifikasi saat implementasi [belum diverifikasi].
 
+**Flag web animasi (R14).** Langkah `docker/build-push-action` di `release-web.yml` memberi `build-args: NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}`. Variabel repositori kosong atau tidak ada berarti `off`. `next build` menanamkan nilainya ke bundle, jadi mengubah variabel tidak berpengaruh sampai ada build baru. **Mematikan Flag_Web:** setel variabel repositori ke `off`, lalu jalankan `release-web` lewat `workflow_dispatch` dengan input `tag` **kosong** (membangun ulang). Input `tag` yang terisi melewati build dan memakai ulang image lama dengan flag lama, jadi tidak mematikan apa pun. Menyalakan Flag_Web (`on`) hanya setelah syarat di [12-remotion-animation.md](./12-remotion-animation.md) terpenuhi.
+
+### 7.1 `release-verifier.yml` (R14)
+
+Merilis image Lambda verifier ke ECR dan memperbarui fungsi. Pemicu: `push` ke `main` dengan filter path di atas, dan `workflow_dispatch` dengan input `tag` (rollback, melewati build). `permissions: {}` di tingkat workflow, `concurrency: lore-prod-deploy-verifier` tanpa cancel.
+
+Satu job `release`: Environment `production-release`, izin `contents: read` dan `id-token: write`, role `lore-gh-deploy` lewat `vars.AWS_ROLE_DEPLOY_ARN`, lalu `docker/setup-buildx-action` dan `scripts/ci/verifier-release.sh build-and-release "$TAG_INPUT"`. Input `tag` masuk skrip lewat variabel lingkungan `TAG_INPUT`, bukan lewat teks shell, dan skrip menolak nilai yang bukan `^sha-[0-9a-f]{7}$` sebelum panggilan `aws` pertama.
+
+Perilaku `verifier-release.sh` (bash, `set -euo pipefail`):
+
+1. Tag kosong: `sha-<7 karakter pertama $GITHUB_SHA>`. Bila tag itu sudah ada di ECR (tag immutable), build dilewati. Selain itu login ke ECR (ID akun disamarkan dengan `::add-mask::`) dan `docker buildx build --platform linux/amd64 --provenance=false --sbom=false --push`. Tag terisi (rollback): wajib sudah ada di ECR.
+2. Fungsi belum ada (`ResourceNotFoundException`): cetak `[warn] function lore-prod-animation-verifier does not exist yet`, tulis tag ke parameter SSM `/lore/prod/verifier/release/image_tag`, keluar 0. Ini rilis pertama yang diharapkan sebelum PR infra kedua (`animation_verifier_image_tag`) membuat fungsi.
+3. Fungsi ada: baca tag sebelumnya, `update-function-code`, tunggu `function-updated`, lalu panggil dua fixture dari `animation-verifier/fixtures/release-smoke.json` (satu bagus harus `ok=true`, satu buruk harus `ok=false` dengan semua kode yang diharapkan dan tanpa kode berawalan `VERIFIER_`).
+4. Gagal di langkah 3: fungsi dikembalikan ke tag sebelumnya, job gagal, parameter tidak ditulis.
+5. Sukses: `put-parameter --overwrite`, dan tag parameter (`Project`, `Environment`, `Component=animation`, `ManagedBy=github-actions`, `Repo`) bila parameter baru.
+
+Hal yang perlu diketahui:
+
+- Filter path `animation-verifier/**` memicu run begitu PR animasi di-merge ke `main`. Run itu **merah** sampai bootstrap manual selesai (role deploy belum punya izin ECR dan Lambda), PR infra pertama membuat repositori ECR, dan `animation-verifier/package-lock.json` ada. Itu perilaku yang diharapkan, bukan bug.
+- `release-verifier.yml` tidak menyentuh image web atau api dan tidak menyalakan fitur. Flag_Api tetap lewat PR infra `animation_enabled`.
+- Rollback: jalankan workflow ini lewat `workflow_dispatch` dengan `tag` sebelumnya (`gh workflow run release-verifier.yml -f tag=sha-<7 hex>`). Tag itu harus masih ada di ECR (lifecycle menyimpan lima image terbaru).
+- `scripts/ci/verifier-release.sh` harus di-commit dengan bit eksekusi (mode 755), karena workflow memanggilnya langsung dan tes memeriksa bitnya.
+- Skrip belum pernah berjalan terhadap AWS nyata. `shellcheck` dan uji dengan stub `aws` dan `docker` ada di `scripts/ci/test-checkers.py` `[belum diverifikasi]` terhadap ECR dan Lambda sungguhan.
+
 ## 8. Workflow opsional
 
 Workflow terjadwal (cron) yang `curl` ke `APP_URL` dan membuka issue jika gagal. Gratis di repo publik dan menjadi pengganti alarm dasar tanpa CloudWatch (Q14). Tidak termasuk default.
@@ -308,6 +361,7 @@ Workflow terjadwal (cron) yang `curl` ke `APP_URL` dan membuka issue jika gagal.
 | `AWS_ROLE_APPLY_ARN` | `vars` | ARN `lore-gh-apply` |
 | `AWS_ROLE_DEPLOY_ARN` | `vars` | ARN `lore-gh-deploy` |
 | `APP_URL` | `vars` | `http://<EIP_WEB>` atau `https://<DOMAIN>` |
+| `NEXT_PUBLIC_ANIMATIONS` | `vars` (opsional) | `on` atau `off`. Kosong atau tidak ada dibaca `off`. Dibaca `release-web.yml` saat build (bagian 7). `on` hanya setelah syarat di [12-remotion-animation.md](./12-remotion-animation.md) terpenuhi |
 
 Tidak ada secret GitHub untuk infra. ARN role bukan secret, tetapi `vars` repo tidak ditampilkan publik.
 
@@ -347,3 +401,7 @@ Jika repo berubah menjadi privat, Environments yang sudah dikonfigurasi diabaika
 | Plan gagal dengan state lock | Run apply sebelumnya masih berjalan atau file `.tflock` tertinggal | Tunggu concurrency group selesai. Hapus lock hanya setelah memastikan tidak ada run aktif |
 | Caddy gagal ACME | DNS belum mengarah ke `<EIP_WEB>`, atau port 80 tertutup | Cek A record dan SG. Lihat [09-runbook.md](./09-runbook.md) |
 | Deploy sukses tetapi versi tidak berubah | Parameter `image_tag` tidak terbarui, atau `docker compose pull` gagal | Baca output command SSM dan nilai parameter |
+| `release-verifier` merah di rilis pertama | Bootstrap manual belum dijalankan (izin ECR dan Lambda), repositori ECR belum dibuat PR infra pertama, atau `animation-verifier/package-lock.json` belum ada | Selesaikan bootstrap, PR infra pertama, dan lockfile (bagian 7.1), lalu jalankan ulang workflow |
+| `ci/verifier` gagal di `npm ci` | `animation-verifier/package-lock.json` belum di-commit | Operator menjalankan `npm install --save-exact` online di `animation-verifier/` dan meng-commit lockfile |
+| `ci/verifier` gagal di `verifier-rie-check.sh` | Hasil image berbeda dari `.corpus-results.json` Vitest, atau docker tidak bisa memulai image | Baca baris `[fail]` skrip (fixture dan kode yang berbeda), jalankan `npx vitest run` ulang di `animation-verifier/`, lalu build ulang image |
+| `ci/contracts` gagal | Salinan kontrak berbeda, atau pin `react`, `react-dom`, `remotion`, `@remotion/player` tidak sama di empat sumber | `python3 scripts/sync-animation-contract.py` (menulis salinan), atau samakan pin dan lockfile |

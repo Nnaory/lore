@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Output of scripts/build-sandbox.mjs (a minified bundle); never committed.
+    "public/sandbox/**",
   ]),
 ]);
 

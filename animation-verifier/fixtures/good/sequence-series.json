@@ -1,0 +1,29 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "diagram",
+    "layout": "flow",
+    "nodes": [
+      { "id": "read", "label": "Read", "detail": "Take in the material" },
+      { "id": "practise", "label": "Practise", "detail": "Answer small questions" },
+      { "id": "recall", "label": "Recall", "detail": "Test yourself later" }
+    ],
+    "edges": [
+      { "from": "read", "to": "practise", "label": "next" },
+      { "from": "practise", "to": "recall", "label": "then" }
+    ],
+    "caption": "Read, practise, then recall: each step feeds the next."
+  },
+  "required_tokens": [
+    "Read, practise, then recall: each step feeds the next.",
+    "Read",
+    "Take in the material",
+    "Practise",
+    "Answer small questions",
+    "Recall",
+    "Test yourself later",
+    "next",
+    "then"
+  ],
+  "forbidden_tokens": []
+}

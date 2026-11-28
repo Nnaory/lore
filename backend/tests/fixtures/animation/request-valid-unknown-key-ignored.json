@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "Unknown keys are dropped",
+  "text": "A key the contract does not know is ignored, as Zod does by default.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "future_field": { "nested": true }
+}

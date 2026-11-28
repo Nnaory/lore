@@ -66,3 +66,19 @@ def ai_provider_ready(env: Mapping[str, str] | None = None) -> bool:
     """True only when AI_PROVIDER is "google" and a key is configured."""
     source = os.environ if env is None else env
     return source.get("AI_PROVIDER") == "google" and gemini_config_from_env(source) is not None
+
+
+def animation_models_from_env(env: Mapping[str, str] | None = None) -> tuple[str, ...]:
+    """Models for animation generation, tried in order.
+
+    Uses `AI_ANIMATION_MODEL` (comma separated, entries trimmed, empty entries dropped). When
+    that yields no entry it falls back to `AI_MODEL` with the same splitting, then to
+    `DEFAULT_MODELS`. It reads models only; the key, timeouts and deadline still come from
+    `gemini_config_from_env`.
+    """
+    source = os.environ if env is None else env
+
+    def split(name: str) -> tuple[str, ...]:
+        return tuple(m.strip() for m in source.get(name, "").split(",") if m.strip())
+
+    return split("AI_ANIMATION_MODEL") or split("AI_MODEL") or DEFAULT_MODELS

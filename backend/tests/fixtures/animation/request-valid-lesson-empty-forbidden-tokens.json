@@ -1,0 +1,12 @@
+{
+  "kind": "lesson",
+  "title": "Empty forbidden list on a lesson",
+  "text": "An empty forbidden_tokens list is the same as leaving it out.",
+  "concepts": [],
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "forbidden_tokens": []
+}

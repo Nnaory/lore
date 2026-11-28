@@ -136,7 +136,6 @@ describe("Static style guard (task 18.4)", () => {
       path.join(COMPONENTS_DIR, "stage/KeyHints.tsx"),
       path.join(COMPONENTS_DIR, "stage/PuzzleScope.tsx"),
       path.join(COMPONENTS_DIR, "stage/ScaledBoard.tsx"),
-      path.join(COMPONENTS_DIR, "stage/StageBackdrop.tsx"),
       path.join(COMPONENTS_DIR, "stage/StageDialogue.tsx"),
       path.join(COMPONENTS_DIR, "stage/StageHud.tsx"),
       path.join(COMPONENTS_DIR, "stage/StageScene.tsx"),

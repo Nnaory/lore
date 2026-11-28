@@ -10,27 +10,27 @@ describe("STAGE_BOXES desktop (§4.1)", () => {
   it("matches the spec numbers", () => {
     expect(d.board).toEqual({ width: 1440, height: 900 });
     expect(d.hud).toEqual({ x: 0, y: 0, width: 1440, height: 64 });
-    expect(d.stage).toEqual({ x: 120, y: 92, width: 1200, height: 675 });
-    expect(d.scene).toEqual({ x: 0, y: 0, cols: 167, rows: 57, fontPx: 12 });
-    expect(d.canvas).toEqual({ x: 432, y: 32, width: 736, height: 414 });
+    expect(d.stage).toEqual({ x: 0, y: 64, width: 1440, height: 836 });
+    expect(d.scene).toEqual({ x: 0, y: 0, cols: 167, rows: 57, fontPx: 14.37 });
+    expect(d.canvas).toEqual({ x: 472, y: 14, width: 736, height: 414 });
     expect(d.dialogue).toEqual({
-      x: 300,
-      y: 470,
-      width: 876,
+      x: 344,
+      y: 614,
+      width: 960,
       height: 181,
       nameTagLeft: 96,
       nameTagTop: -18,
     });
     expect(d.sprite).toEqual({
-      x: 20,
-      y: 99,
+      x: 64,
+      y: 260,
       width: 317,
       height: 576,
       cols: 44,
       rows: 48,
       fontPx: 12,
     });
-    expect(d.keyHints).toEqual({ y: 800, width: 1440 });
+    expect(d.keyHints).toEqual({ y: 806, width: 1440 });
   });
 });
 
@@ -51,6 +51,7 @@ describe("STAGE_BOXES phone (§4.2)", () => {
       fontPx: 8,
     });
     expect(p.dialogue).toEqual({ x: 12, y: 582, width: 366, height: 250 });
+    expect(p.dialoguePuzzle).toEqual({ x: 12, y: 404, width: 366, height: 428 });
   });
 });
 

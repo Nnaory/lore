@@ -1,0 +1,33 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_cloudwatch_log_group.other",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "other",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "kms_key_id": null,
+          "name": "/aws/lambda/other",
+          "name_prefix": null,
+          "retention_in_days": 7,
+          "skip_destroy": false,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-other-logs"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true}
+      }
+    }
+  ]
+}

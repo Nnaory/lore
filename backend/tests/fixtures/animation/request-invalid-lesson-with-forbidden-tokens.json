@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "Forbidden tokens on a lesson",
+  "text": "Only a puzzle may send forbidden_tokens.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "forbidden_tokens": ["seven"]
+}

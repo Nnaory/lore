@@ -1,0 +1,10 @@
+{
+  "kind": "quiz",
+  "title": "Unsupported kind",
+  "text": "Only lesson and puzzle are supported.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

@@ -8,7 +8,7 @@
  * Optional props (task 1.4; defaults keep the Kit look): `askDisabled` disables the ask input,
  * `onAdvance` makes the text area a click/Enter/Space target, `testIds` adds data-testid hooks,
  * `nameTag={false}` hides the speaker tag, `wrapText` wraps the paragraph, `testIds.mode` marks the fast|animate group. ChoiceButton adds `letter`, `title`, `testId`,
- * `ariaPressed`, `disabled`; its label clamps to 2 lines.
+ * `ariaPressed`, `disabled`; its label clamps to 2 lines (4 on desktop, where the button grows to fit an answer of up to 80 characters).
  * Task 5.5 (Home B): ottomBar swaps the whole bottom bar; padLeft sets the desktop text/name-tag inset.
  * Phone (task 2.3): the text area scrolls inside the fixed 250px box (`min-h-0`), and the bottom bar
  * sits directly under the choices (the 8px gap above it is desktop only).
@@ -31,6 +31,8 @@ interface Props {
   /** Name colour: gold by default; a character's cloth colour on Home B (Hazel = var(--color-cloth-hazel)). */
   nameColor?: string;
   text: string;
+  /** Optional non-scrolled status/feedback banner rendered above choices on phone. */
+  feedback?: ReactNode;
   /** Optional choice buttons (render <ChoiceButton>s). */
   choices?: ReactNode;
   mode: TextMode;
@@ -55,7 +57,7 @@ interface Props {
 }
 
 export function DialogueBox({
-  speakerName, speakerRole, nameColor, text, choices, mode, onModeChange, onAsk, onOpenLog,
+  speakerName, speakerRole, nameColor, text, feedback, choices, mode, onModeChange, onAsk, onOpenLog,
   askPlaceholder = `Ask ${speakerName.charAt(0) + speakerName.slice(1).toLowerCase()} something…`,
   askDisabled = false, onAdvance, testIds, nameTag = true, wrapText, bottomBar, padLeft, className,
 }: Props) {
@@ -68,7 +70,7 @@ export function DialogueBox({
         <span className="text-xs md:text-[13px]" style={{ color: nameColor ?? 'var(--color-gold)' }}>
           {speakerName.toUpperCase()}
         </span>
-        {speakerRole && <span className="hidden font-normal tracking-normal text-[11px] text-muted md:inline">{speakerRole}</span>}
+        {speakerRole && <span className="hidden font-normal tracking-normal text-[11px] text-muted md:inline-block md:max-w-[460px] md:truncate" title={speakerRole}>{speakerRole}</span>}
       </div>}
 
       <div
@@ -81,14 +83,24 @@ export function DialogueBox({
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onAdvance(); }
           },
         } : {})}
-        className={`relative min-h-0 flex-1 px-4 pt-5 max-md:overflow-y-auto md:pl-[var(--dlg-pl,6rem)] md:pr-14 md:pt-[26px] ${onAdvance ? 'cursor-pointer' : ''}`}
+        className={`relative min-h-0 flex-1 pl-4 pr-7 pt-5 max-md:overflow-y-auto md:pl-[var(--dlg-pl,6rem)] md:pr-14 md:pt-[26px] ${onAdvance ? 'cursor-pointer' : ''}`}
       >
         {wrapText ? wrapText(paragraph) : paragraph}
         <span aria-hidden className="absolute bottom-0.5 right-3 text-xs text-ember md:right-6 md:text-sm">▼</span>
       </div>
 
+      {feedback && (
+        <div
+          className="shrink-0 px-2.5 md:hidden"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          {feedback}
+        </div>
+      )}
+
       {choices && (
-        <div role="group" aria-label="Choices" className="flex gap-1.5 px-2.5 pb-2.5 pt-2 md:hidden">
+        <div role="group" aria-label="Choices" className="flex shrink-0 flex-col gap-1.5 px-2.5 pb-2 pt-1.5 md:hidden">
           {choices}
         </div>
       )}
@@ -139,9 +151,8 @@ export function DialogueBox({
 }
 
 /**
- * Answer chip. Desktop puts these in the canvas frame; phone puts them in the dialogue box.
- * Optional: `letter` prefix (A, B, ...), `title` (tooltip, defaults to the label because the label
- * clamps to 2 lines), `testId`, `ariaPressed`, `disabled`.
+ * Answer chip. Desktop places these below the canvas frame (clamped up to 4 lines);
+ * phone stacks them full-width inside the expanded puzzle dialogue box with zero truncation.
  */
 export function ChoiceButton({
   label, state, onClick, letter, title, testId, ariaPressed, disabled,
@@ -158,9 +169,9 @@ export function ChoiceButton({
       data-testid={testId}
       aria-pressed={ariaPressed}
       disabled={disabled}
-      className={`h-11 min-w-0 flex-1 border-2 px-4 font-mono text-xs font-bold tracking-[0.08em] disabled:cursor-not-allowed md:min-w-[112px] md:flex-initial md:text-[13px] ${look}`}
+      className={`min-h-11 w-full border-2 px-3 py-1.5 text-left font-mono text-xs font-bold tracking-[0.06em] disabled:cursor-not-allowed md:h-auto md:w-auto md:min-h-11 md:min-w-[112px] md:max-w-[220px] md:flex-initial md:text-center md:text-[13px] ${look}`}
     >
-      <span className="line-clamp-2">{letter && <span aria-hidden className="mr-2">{letter}</span>}{label}</span>
+      <span className="block md:line-clamp-4">{letter && <span aria-hidden className="mr-2">{letter}</span>}{label}</span>
     </button>
   );
 }

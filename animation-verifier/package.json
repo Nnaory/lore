@@ -1,0 +1,35 @@
+{
+  "name": "lore-animation-verifier",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Verifier Lambda untuk Main_File animasi Remotion: tujuh langkah pemeriksaan sebelum berkas disimpan.",
+  "type": "module",
+  "engines": {
+    "node": "22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc -p eslint-plugin-lore/tsconfig.json",
+    "lint": "eslint -c eslint.package.config.mjs --max-warnings 0 .",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.typecheck.json"
+  },
+  "dependencies": {
+    "@eslint/js": "9.39.5",
+    "@remotion/player": "4.0.543",
+    "@types/react": "19.3.0",
+    "esbuild": "0.28.2",
+    "eslint": "9.39.5",
+    "jsdom": "26.1.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.543",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.1",
+    "zod": "3.25.28"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "fast-check": "4.10.3",
+    "vitest": "3.2.3"
+  }
+}

@@ -5,8 +5,8 @@
  * `ScaledBoard`. One tree serves both layouts, so layout switches do not
  * remount state:
  *
- *   StageBackdrop, StageHud, then the stage panel with
- *   StageScene (ASCII), CanvasPane (only for lesson, visual and decision, OQ-12),
+ *   StageHud, then the stage panel with
+ *   StageScene (ASCII), CanvasPane (only for lesson, visual and puzzle, OQ-12),
  *   StageSprite (speaker), StageDialogue (typewriter, choices on phone, shortcuts)
  *   and an overlay for endings, completion, failure and navigation errors.
  *
@@ -17,6 +17,17 @@
  * Story logic is unchanged: useStoryPlayer drives navigation/HP/bad branches,
  * right and wrong come only from usePuzzleInteraction, and knowledge evidence
  * is reported through onKnowledgeUpdate.
+ *
+ * AI animations (design 7.6, K-6, Requirements 30.11 to 30.13, 30.17, 31.2, 36.7). Only when the
+ * build flag is on (`readAnimationsFlag`) and the puzzle has an `animation`, or the lesson has a
+ * visual and `animationForStep` finds a reference for its step, the scene the Stage would draw
+ * becomes the `fallback` of an `{ kind: "animation" }` scene. Nothing else about `framed` changes:
+ * the key is the one the Stage already used (`puzzle:<id>`, or the step key of a drawn lesson), so
+ * one iframe keeps playing across the chunks of one lesson step. With the flag off, or without a
+ * reference, `withAnimation` returns the old scene object untouched, so the Stage is exactly what
+ * it was before the feature and nothing asks the animation API for anything. The animation gets
+ * the answer only through `CanvasPane` (`interaction.isCorrect`); no message from the iframe
+ * reaches `useStoryPlayer`, `usePuzzleInteraction` or `validateMultipleChoice`.
  */
 
 "use client";
@@ -26,7 +37,11 @@ import type { StoryBlueprint } from "@/lib/types/story";
 import type { Character, Genre } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
 import type { Scene, SceneContent } from "@/lib/types/scene";
+import type { AnimationReference } from "@/lib/types/animation";
+import { readAnimationsFlag } from "@/lib/animation/flags";
+import { animationForStep } from "@/lib/animation/targets";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
+import { lessonStepInfo } from "@/lib/story/lesson-steps";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
 import { loadStoredPacing, motionAllowed, savePacing, type Pacing } from "@/lib/story/pacing";
 import { initialTextMode } from "@/lib/dialogue/typewriter";
@@ -44,7 +59,6 @@ import { StoryFailure } from "./StoryFailure";
 import { StoryComplete } from "./StoryComplete";
 import { EndingDisplay } from "./EndingDisplay";
 import { ScaledBoard } from "@/components/stage/ScaledBoard";
-import { StageBackdrop } from "@/components/stage/StageBackdrop";
 import { StageHud } from "@/components/stage/StageHud";
 import { StageScene } from "@/components/stage/StageScene";
 import { StageSprite } from "@/components/stage/StageSprite";
@@ -58,6 +72,7 @@ import {
   PuzzleFeedback,
   type FramedScene,
 } from "@/components/stage/CanvasPane";
+import type { AnimationSceneProps } from "@/components/stage/StageCanvas";
 import type { ChatEntry } from "@/components/stage/chat-entry";
 import { ChatLog } from "@/components/stage/ChatLog";
 import { emotionFor, type Emotion } from "@/components/stage/emotion";
@@ -130,15 +145,29 @@ function speakerFor(scene: Scene | null, blockIndex: number, characters: Charact
   return { character: (present && byId.get(present)) || characters[0] };
 }
 
+/**
+ * The scene to hand to `CanvasPane`: `fallback` itself (the same object) without a reference, or
+ * an `animation` scene that carries `fallback` as its Fallback_Scene. The caller passes no
+ * reference when the build flag is off, so this is the only place that wraps.
+ */
+function withAnimation(fallback: AnimationSceneProps["fallback"], reference: AnimationReference | undefined): FramedScene {
+  return reference ? { kind: "animation", props: { animation: reference, fallback } } : fallback;
+}
+
 /** Region above the dialogue box that endings, completion, failure and errors cover. */
 const OVERLAY_BOX: Record<StageLayout, { left: number; top: number; width: number; height: number }> = {
-  desktop: { left: 0, top: 0, width: 1200, height: 466 },
+  desktop: { left: 0, top: 0, width: 1440, height: 598 },
   phone: { left: 0, top: 56, width: 390, height: 522 },
 };
 
-/** The stage panel in board coordinates: the framed panel on desktop, the whole board on phone. */
+/** The full-screen foreground Stage region in board coordinates (below the HUD on desktop). */
 const PANEL_BOX: Record<StageLayout, { left: number; top: number; width: number; height: number }> = {
-  desktop: { left: 120, top: 92, width: 1200, height: 675 },
+  desktop: {
+    left: STAGE_BOXES.desktop.stage.x,
+    top: STAGE_BOXES.desktop.stage.y,
+    width: STAGE_BOXES.desktop.stage.width,
+    height: STAGE_BOXES.desktop.stage.height,
+  },
   phone: { left: 0, top: 0, width: 390, height: 844 },
 };
 
@@ -353,11 +382,20 @@ export function StoryViewer({
 
   let framed: { scene: FramedScene; key: string; label: string } | null = null;
   let puzzleMissing = false;
+  // Read once per render. Off (or unset) means the animation code below is never reached.
+  const animationsOn = readAnimationsFlag();
   if (!navigationError && !isFailed) {
     if (currentScene?.type === "puzzle") {
       if (puzzle) {
         framed = {
-          scene: { kind: "decision", props: { label: "", count: Math.min(puzzle.choices.length, 4), seed } },
+          // The AI's picture of the problem when it made one; the question alone otherwise. With
+          // the flag on and an animation on the puzzle, that scene is the animation's fallback.
+          scene: withAnimation(
+            puzzle.visual
+              ? { kind: "puzzle", props: { question: puzzle.question, visual: puzzle.visual, seed } }
+              : { kind: "decision", props: { label: puzzle.question, seed } },
+            animationsOn ? puzzle.animation : undefined
+          ),
           key: `puzzle:${puzzle.puzzle_id}`,
           label: canvasLocation,
         };
@@ -365,14 +403,23 @@ export function StoryViewer({
         puzzleMissing = true;
       }
     } else if (currentScene?.type !== "ending" && currentBlock?.type === "learning_info") {
-      // A concept may be taught in several steps (lesson blocks) in one scene.
-      const lessons = (blocks ?? []).filter((b) => b.type === "learning_info");
-      const step = { index: lessons.indexOf(currentBlock), total: lessons.length };
+      // A concept may be taught in several steps in one scene, and a long step is stored as
+      // several blocks (chunks) with the same title and visual: count steps, not chunks.
+      const info = lessonStepInfo(blocks ?? [], blockIndex);
+      const step = info ? { index: info.index, total: info.total } : undefined;
       framed = {
         scene: currentBlock.visual
-          ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
+          ? withAnimation(
+              { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } },
+              // The reference sits on the first block of the step, so every chunk finds the same one.
+              animationsOn ? animationForStep(blocks ?? [], blockIndex) : undefined
+            )
           : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } },
-        key: entryKey,
+        // A drawn visual keeps playing across the chunks of one step; a text lesson shows its chunk.
+        key:
+          currentBlock.visual && info
+            ? `${story.story_id}:${currentScene?.scene_id ?? ""}:lesson:${info.index}`
+            : entryKey,
         label: canvasLocation,
       };
     }
@@ -455,7 +502,27 @@ export function StoryViewer({
 
   return (
     <div data-testid="story-viewer">
-      <ScaledBoard>
+      {/* Full-viewport gameplay canvas without pumpkins; lore-grid-bg fills edge-to-edge in solid ink + 24px grid. */}
+      <ScaledBoard
+        rootClassName="lore-grid-bg"
+        fullBleed={(layout) => (
+          <>
+            <StageScene fullBleed layout={layout} seed={seed + 1} />
+            <StageHud
+              fullWidth
+              layout={layout}
+              storyTitle={story.title}
+              chapterIndex={chapterIndex}
+              chapterCount={story.chapters.length}
+              chapterTitle={currentChapter?.title}
+              location={currentScene?.location}
+              hp={hp}
+              failed={isFailed}
+              onExit={onExit ? () => setShowExitConfirm(true) : undefined}
+            />
+          </>
+        )}
+      >
         {(layout) => (
           <PuzzleScope
             key={puzzleScopeKey}
@@ -476,24 +543,10 @@ export function StoryViewer({
                 Boolean(otherCharacter && otherCastId);
               return (
                 <>
-                  <StageBackdrop layout={layout} />
-                  <StageHud
-                    layout={layout}
-                    storyTitle={story.title}
-                    chapterIndex={chapterIndex}
-                    chapterCount={story.chapters.length}
-                    chapterTitle={currentChapter?.title}
-                    location={currentScene?.location}
-                    hp={hp}
-                    failed={isFailed}
-                    onExit={onExit ? () => setShowExitConfirm(true) : undefined}
-                  />
                   <div
                     data-testid="stage-panel"
-                    className={phone ? "" : "bg-ink outline outline-2 outline-smoke"}
                     style={{ position: "absolute", ...PANEL_BOX[layout], overflow: "hidden" }}
                   >
-                    <StageScene layout={layout} seed={seed + 1} />
                     {framed && (
                       <div
                         style={{
@@ -501,8 +554,8 @@ export function StoryViewer({
                           left: canvasBox.x,
                           top: canvasBox.y,
                           width: canvasBox.width,
-                          height: canvasBox.height,
-                          zIndex: 5,
+                          height: phone ? canvasBox.height : undefined,
+                          zIndex: puzzle && !phone ? 15 : 5,
                         }}
                       >
                         <CanvasPane
@@ -543,6 +596,7 @@ export function StoryViewer({
                     <StageDialogue
                       layout={layout}
                       entry={entry}
+                      entryKey={entryKey}
                       mode={pacing}
                       onModeChange={changePacing}
                       canAdvance={canAdvance}
@@ -551,6 +605,20 @@ export function StoryViewer({
                       speakerRole={speaker.character?.role}
                       askName={speaker.character?.name}
                       modalOpen={modalOpen}
+                      boxOverride={
+                        phone && puzzle && interaction ? STAGE_BOXES.phone.dialoguePuzzle : undefined
+                      }
+                      feedback={
+                        phone && puzzle && interaction ? (
+                          <PuzzleFeedback
+                            puzzle={puzzle}
+                            interaction={interaction}
+                            hideQuestion
+                            surfaceClassName="mt-1.5 border border-smoke bg-ink px-2.5 py-1.5"
+                            maxHeightClassName="max-h-28"
+                          />
+                        ) : undefined
+                      }
                       choices={
                         phone && puzzle && interaction ? (
                           <div
@@ -569,24 +637,17 @@ export function StoryViewer({
                         ) : undefined
                       }
                       actions={
-                        (phone && puzzle && interaction) || badBranchDone ? (
-                          <>
-                            {phone && puzzle && interaction && (
-                              <PuzzleFeedback puzzle={puzzle} interaction={interaction} />
-                            )}
-                            {badBranchDone && (
-                              <Button variant="outline" data-testid="bad-branch-return-btn" onClick={returnToPuzzle}>
-                                <Icon name="back" size={16} />
-                                Try a different choice
-                              </Button>
-                            )}
-                          </>
+                        badBranchDone ? (
+                          <Button variant="outline" data-testid="bad-branch-return-btn" onClick={returnToPuzzle}>
+                            <Icon name="back" size={16} />
+                            Try a different choice
+                          </Button>
                         ) : undefined
                       }
                     />
                     {overlayFor(layout)}
+                    {!phone && <KeyHints />}
                   </div>
-                  {!phone && <KeyHints />}
                 </>
               );
             }}

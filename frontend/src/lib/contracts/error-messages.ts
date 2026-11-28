@@ -15,6 +15,24 @@ export const BUILD_MESSAGES = {
   notConfigured:
     "The AI storyteller isn't set up on this server yet. Contact the admin or check the API key, then try again.",
   unexpected: "Something went wrong while building your story. Try again.",
+  // Lesson animations (design 11.1). Each is at most 160 characters; the failed ones say the
+  // standard drawings stay in place, so the story is still playable.
+  animationNotConfigured:
+    "Lesson animations are not turned on for this server. The standard drawings will be used.",
+  animationQuotaExceeded:
+    "This device reached its limit of saved animations. The standard drawings will be used.",
+  animationVerificationFailed:
+    "An animation could not be made to run correctly. The standard drawing will be used.",
+  animationTimeout: "An animation took too long to make. Try again, or skip it.",
+  animationVerifierUnavailable:
+    "The animation checker is unavailable right now. Try again, or skip it.",
+  animationStorageFailed: "An animation could not be saved. Try again, or skip it.",
+  streamInterrupted:
+    "The connection dropped while the animation was being made. Try again, or skip it.",
+  // Client-side only: `attachAnimation` refused a finished animation (Requirement 24.17). The
+  // story stays as it was, so there is nothing to retry.
+  animationAttachFailed:
+    "An animation could not be added to the story. The standard drawing will be used.",
 } as const;
 
 /** A user-facing message for an AI route error code. */
@@ -35,6 +53,24 @@ export function messageForCode(code: string): string {
     case "VALIDATION_FAILED":
     case "OUTPUT_PARSE_FAILED":
       return BUILD_MESSAGES.storyFailed;
+    case "ANIMATION_NOT_CONFIGURED":
+      return BUILD_MESSAGES.animationNotConfigured;
+    case "ANIMATION_QUOTA_EXCEEDED":
+      return BUILD_MESSAGES.animationQuotaExceeded;
+    case "ANIMATION_VERIFICATION_FAILED":
+      return BUILD_MESSAGES.animationVerificationFailed;
+    case "ANIMATION_TIMEOUT":
+      return BUILD_MESSAGES.animationTimeout;
+    case "ANIMATION_VERIFIER_UNAVAILABLE":
+      return BUILD_MESSAGES.animationVerifierUnavailable;
+    case "ANIMATION_STORAGE_FAILED":
+      return BUILD_MESSAGES.animationStorageFailed;
+    case "ANIMATION_ATTACH_FAILED":
+      return BUILD_MESSAGES.animationAttachFailed;
+    case "STREAM_INTERRUPTED":
+      return BUILD_MESSAGES.streamInterrupted;
+    case "NETWORK":
+      return BUILD_MESSAGES.network;
     default:
       return BUILD_MESSAGES.unexpected;
   }

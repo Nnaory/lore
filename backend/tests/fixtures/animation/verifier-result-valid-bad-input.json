@@ -1,0 +1,18 @@
+{
+  "ok": false,
+  "diagnostics": [
+    {
+      "tool": "verifier",
+      "code": "VERIFIER_BAD_INPUT",
+      "severity": "error",
+      "message": "The input does not match the verifier schema."
+    }
+  ],
+  "summary": {
+    "verifier_version": "0.1.0",
+    "contract_version": 1,
+    "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+    "checks": [],
+    "truncated": false
+  }
+}

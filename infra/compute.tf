@@ -139,9 +139,12 @@ resource "aws_instance" "api" {
     cpu_credits = "standard"
   }
 
+  # Hop limit 2 only on api (spec ai-remotion-animation, D-13): the API container runs in a
+  # Docker bridge network, so the extra hop lets boto3 reach IMDSv2 for the instance role
+  # credentials used for S3 and Lambda. IMDSv2 stays required; web and nat stay at 1.
   metadata_options {
     http_tokens                 = "required"
-    http_put_response_hop_limit = 1
+    http_put_response_hop_limit = 2
   }
 
   root_block_device {

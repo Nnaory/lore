@@ -1,0 +1,33 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_ecr_repository.animation_verifier",
+      "mode": "managed",
+      "type": "aws_ecr_repository",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "encryption_configuration": [{"encryption_type": "AES256", "kms_key": null}],
+          "force_delete": null,
+          "image_scanning_configuration": [{"scan_on_push": true}],
+          "image_tag_mutability": "MUTABLE",
+          "name": "lore-prod-animation-verifier",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-ecr"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "registry_id": true, "repository_url": true}
+      }
+    }
+  ]
+}

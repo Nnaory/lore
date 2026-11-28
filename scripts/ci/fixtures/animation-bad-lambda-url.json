@@ -1,0 +1,23 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_lambda_function_url.animation_verifier",
+      "mode": "managed",
+      "type": "aws_lambda_function_url",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "authorization_type": "NONE",
+          "function_name": "lore-prod-animation-verifier",
+          "invoke_mode": "BUFFERED"
+        },
+        "after_unknown": {"cors": true, "function_arn": true, "function_url": true, "id": true, "url_id": true}
+      }
+    }
+  ]
+}

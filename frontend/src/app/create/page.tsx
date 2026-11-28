@@ -172,6 +172,8 @@ export default function CreatePage() {
         onConfirmConcepts={generation.confirmConcepts}
         onRetry={generation.retry}
         onBack={backToForm}
+        onRetryAnimation={generation.retryAnimation}
+        onSkipAnimation={generation.skipAnimation}
       />
     );
   }

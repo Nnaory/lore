@@ -16,7 +16,14 @@ from dataclasses import dataclass, field
 
 import httpx2
 
-from app.ai.gemini_client import GeminiRequest, GeminiResult, Sleep, generate_json
+from app.ai.gemini_client import (
+    GeminiRequest,
+    GeminiResult,
+    GeminiTextResult,
+    Sleep,
+    generate_json,
+    generate_text,
+)
 from app.ai.settings import GeminiConfig
 
 
@@ -38,6 +45,15 @@ class AiContext:
 
     async def generate_json(self, request: GeminiRequest) -> GeminiResult:
         return await generate_json(
+            request,
+            self.config,
+            client=self.runtime.http_client,
+            sleep=self.runtime.sleep,
+            monotonic=self.runtime.monotonic,
+        )
+
+    async def generate_text(self, request: GeminiRequest) -> GeminiTextResult:
+        return await generate_text(
             request,
             self.config,
             client=self.runtime.http_client,

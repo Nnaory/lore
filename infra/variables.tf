@@ -64,3 +64,39 @@ variable "site_address" {
   type        = string
   default     = ""
 }
+
+# Animation feature (spec ai-remotion-animation, design 8.1). CI has no tfvars, so values are
+# changed by editing `default` through a PR.
+
+variable "animation_enabled" {
+  description = "Turn the animation feature on in the API (SSM ANIMATION_ENABLED)."
+  type        = bool
+  default     = false
+}
+
+variable "animation_verifier_image_tag" {
+  description = "ECR tag of the verifier image. Empty means the Lambda is not created yet."
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.animation_verifier_image_tag == "" || can(regex("^sha-[0-9a-f]{7}$", var.animation_verifier_image_tag))
+    error_message = "animation_verifier_image_tag must be empty or match sha-xxxxxxx."
+  }
+}
+
+variable "animation_cors_extra_origins" {
+  description = "Extra browser origins allowed to GET animation objects (at most 5)."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = length(var.animation_cors_extra_origins) <= 5
+    error_message = "At most 5 extra origins."
+  }
+
+  validation {
+    condition     = alltrue([for o in var.animation_cors_extra_origins : can(regex("^https?://[^/*]+$", o))])
+    error_message = "Each origin must look like https://host (no wildcard, no path)."
+  }
+}

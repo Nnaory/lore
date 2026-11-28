@@ -10,18 +10,62 @@ Differences that matter on the wire:
   keeps a null `continuity_summary` instead of dropping it with the other unset optionals.
 - A learning block's `visual` is optional and lenient: an invalid or null value is dropped, not
   an error, so one bad drawing spec never makes a story unreadable (Zod `.transform` + `.optional`).
+  A puzzle's `visual` (a free drawing of the question, same five kinds) is lenient the same way.
+  `dump()` omits it when empty, so stories without one are written exactly as before.
 - `location` and `on_incorrect_scene_id` are optional and omitted, never null.
+- `animation` on a learning block and on a puzzle points at an AI-written animation
+  (`AnimationReference`). It is lenient like `visual`: `null`, a non-object, an invalid reference or
+  one on the wrong side of the pause rule is dropped, never an error, so a bad pointer cannot make
+  a story unreadable (Requirements 22.3, 22.4). A lesson reference must not carry `pause_at_frame`
+  (even `null`); a puzzle reference must, because the board stops there. Unknown keys of a
+  reference are dropped. `dump()` omits it when empty, so a story that never had the key does not
+  gain one (22.5, 22.15). `generate-story` never writes it: the story text is built from the engine
+  skeleton and Gemini's text slots only, so the key is always absent in what it returns (22.13).
+  Zod mirrors this in `animation.schema.ts`; both read `tests/fixtures/animation/reference-*.json`.
 """
 
 from __future__ import annotations
 
 from typing import Annotated, Any, Literal
 
-from pydantic import BeforeValidator, Field, Strict, model_validator
+from pydantic import BeforeValidator, Field, Strict, ValidationError, model_validator
 
+from app.ai.animation.models import AnimationReference
 from app.ai.contracts.campaign import NonEmptyText, Number, Text
 from app.ai.contracts.visual import VisualInvalid, parse_lesson_visual
 from app.ai.zod_compat import ZodModel
+
+
+def _visual_or_none(value: object) -> object:
+    """Keep a valid visual (as its model); anything else becomes None."""
+    parsed = parse_lesson_visual(value)
+    return None if isinstance(parsed, VisualInvalid) else parsed.visual
+
+
+_PAUSE_KEY = "pause_at_frame"
+
+
+def _reference_or_none(value: dict[Any, Any]) -> AnimationReference | None:
+    """The reference as its model, or None when it is not a valid Animation_Reference."""
+    try:
+        return AnimationReference.model_validate(value)
+    except ValidationError:
+        return None
+
+
+def _lesson_animation_or_none(value: object) -> object:
+    """A lesson reference has no `pause_at_frame` key (any value, null too); else it is dropped."""
+    if not isinstance(value, dict) or _PAUSE_KEY in value:
+        return None
+    return _reference_or_none(value)
+
+
+def _puzzle_animation_or_none(value: object) -> object:
+    """A puzzle reference has a valid `pause_at_frame`; a missing key or a null drops it."""
+    if not isinstance(value, dict) or _PAUSE_KEY not in value:
+        return None
+    return _reference_or_none(value)
+
 
 # --- puzzle -----------------------------------------------------------------------------------
 
@@ -44,6 +88,19 @@ class Puzzle(ZodModel):
     incorrect_feedback: NonEmptyText
     correct_feedback: NonEmptyText
     retry_allowed: Annotated[bool, Strict()]
+    # A drawing of the question (vectors, plot, diagram, table or formula). It is never a source
+    # of truth for the answer: the game engine judges `correct_choice_id`.
+    visual: Annotated[Any, BeforeValidator(_visual_or_none)] = None
+    # The animation shown when the puzzle opens; it always carries `pause_at_frame`, where the
+    # board stops for the question. Dropped when invalid, never an error (Requirement 22.3).
+    animation: Annotated[Any, BeforeValidator(_puzzle_animation_or_none)] = None
+
+    # Same name as the base check on purpose: the override replaces it, because `visual` and
+    # `animation` accept null (an invalid value is dropped) and no other field here is optional.
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_null_optional(cls, data: Any) -> Any:
+        return data
 
     @model_validator(mode="after")
     def _correct_choice_exists(self) -> Puzzle:
@@ -67,21 +124,18 @@ class DialogueContent(ZodModel):
     text: NonEmptyText
 
 
-def _visual_or_none(value: object) -> object:
-    """Keep a valid visual (as its model); anything else becomes None."""
-    parsed = parse_lesson_visual(value)
-    return None if isinstance(parsed, VisualInvalid) else parsed.visual
-
-
 class LearningContent(ZodModel):
     type: Literal["learning_info"]
     title: NonEmptyText
     body: NonEmptyText
     concept_ids: Annotated[list[Text], Field(min_length=1)]
     visual: Annotated[Any, BeforeValidator(_visual_or_none)] = None
+    # A lesson animation plays through without stopping, so it has no `pause_at_frame`. Dropped
+    # when invalid, never an error (Requirement 22.3).
+    animation: Annotated[Any, BeforeValidator(_lesson_animation_or_none)] = None
 
-    # Same name as the base check on purpose: the override replaces it, because `visual` accepts
-    # null (Zod `z.unknown()`) and no other field here is optional.
+    # Same name as the base check on purpose: the override replaces it, because `visual` and
+    # `animation` accept null (Zod `z.unknown()`) and no other field here is optional.
     @model_validator(mode="before")
     @classmethod
     def _reject_null_optional(cls, data: Any) -> Any:

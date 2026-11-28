@@ -184,7 +184,7 @@ function DemoLink({ phone }: { phone: boolean }) {
     <Link
       href="/game"
       data-testid="home-demo-link"
-      className={`flex items-center gap-2.5 border-2 border-smoke font-mono text-[13px] text-cream no-underline hover:text-ember ${
+      className={`flex items-center gap-2.5 border-2 border-smoke bg-ink font-mono text-[13px] text-cream no-underline hover:text-ember ${
         phone ? "absolute inset-x-4 bottom-7 h-[52px] justify-center" : "h-11 px-4"
       }`}
     >
@@ -258,12 +258,12 @@ function HeroBoard({ layout }: { layout: StageLayout }) {
       </div>
 
       {phone ? (
-        <p className="absolute inset-x-0 m-0 text-center font-mono text-[11px] text-muted" style={{ top: 726 }}>
-          {formats}
+        <p className="absolute inset-x-4 m-0 text-center font-mono text-[11px] text-muted" style={{ top: 722 }}>
+          <span className="inline-block bg-ink px-2.5 py-1">{formats}</span>
         </p>
       ) : (
         <div className="absolute flex items-center justify-between" style={{ left: 450, width: 780, top: 790 }}>
-          <span className="font-mono text-xs text-muted">{formats}</span>
+          <span className="bg-ink px-2 py-0.5 font-mono text-xs text-muted">{formats}</span>
           <DemoLink phone={false} />
         </div>
       )}

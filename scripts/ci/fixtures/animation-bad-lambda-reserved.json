@@ -1,0 +1,35 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_lambda_function.animation_verifier[0]",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "animation_verifier",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "architectures": ["x86_64"],
+          "function_name": "lore-prod-animation-verifier",
+          "memory_size": 1536,
+          "package_type": "Image",
+          "reserved_concurrent_executions": 1,
+          "timeout": 60,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-verifier"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "image_uri": true, "role": true}
+      }
+    }
+  ]
+}

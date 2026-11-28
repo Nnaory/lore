@@ -669,10 +669,19 @@ Ringkasan penyimpangan untuk task 18 (Penutup, hapus gaya lama, dan perbarui ste
 1. `.lore-ascii-field` dan `body { background-color: transparent; }` tetap dipertahankan di `frontend/src/app/globals.css` di bawah `@import "tailwindcss";` dan `@import "./lore-tokens.css";` sesuai instruksi 18.2 dan keputusan user agar `PumpkinBackdrop` beranimasi tetap tampil di semua layar.
 2. Sub-task 18.10 (`product.md`, `ai-pipeline.md`, `game-engine.md`) dilewati sesuai keputusan user pada gerbang 18.1 (OQ-11 ditolak).
 
+## Perbaikan Stage: latar, teks, puzzle (25–27 Nov 2026, atas permintaan user)
 
+Setelah melihat demo `/game` dan hasil audit review UI. Ini memperbarui `reference/canvas/{Main,StageMobile}.dc.html` dan `docs/DESIGN-SYSTEM.md` §0, §4.1–§4.4, §8.2–§8.3. Golden ASCII tidak berubah (40/40).
 
-
-
-
+1. **Gameplay Stage penuh layar tanpa latar labu (`/game` & `/play/[projectId]`).**
+   - Sesuai permintaan user (27 Nov 2026), gameplay Stage (`StoryViewer`) memakai latar solid `.lore-grid-bg` (`#0F0F12` + grid 24px) tanpa `PumpkinBackdrop`; `Home`, `Lobby`, `Summary`, `/create`, dan halaman fallback tetap mempertahankan `PumpkinBackdrop`.
+   - `ScaledBoard` menambahkan slot `fullBleed` sehingga `StageHud` (solid `bg-ink`, tanpa inline `background: "transparent"`) dan `StageScene` (`city_gate`, cover-scaled) membentang 100% lebar & tinggi viewport tanpa kotak bingkai `1200×675` ataupun *letterboxing* pada HUD/scene. Konstanta mati `PUMPKINS_STAGE_*` di `PumpkinField.tsx` dihapus; `ScaledBoard inFlow` di `/` mengukur lebar klien agar scrollbar vertikal tidak memotong tepi papan.
+2. **Teks tidak menembus kotak dialog.**
+   - Kotak desktop memuat 3 baris × 68 karakter. Judul lesson keluar dari teks (tampil di judul kanvas dan di samping tag `LESSON`), jadi tiga baris itu untuk isi.
+   - Backend: `MAX_CHUNK_CHARS = 180` di system prompt dan prompt; `puzzle.narrative_context` dibatasi `140` karakter di prompt (dan `chunk_story_content` memecah `narrative_context > limit - 33` ke narasi scene sebelumnya), sementara `explanation`, `correct_feedback`, dan `incorrect_feedback` juga diberi batas karakter. Frontend: `paginateText` memaginasi teks legacy/demo, dan `StageDialogue` memakai kunci `entryKey`.
+   - Chunk satu langkah lesson dihitung sebagai satu langkah ("Lesson · n / m") dan kanvas bergambar tidak diulang per chunk (`lesson-steps.ts`).
+3. **Label vektor dan titik bebas tabrakan.** Semua panah digambar dulu, label sesudahnya; `VectorsView` mengirim `area` (bukan kanvas penuh `1280×720`) ke `placeVectorLabels`, menghindari garis sumbu dan tick sumbu, serta menempatkan label `visual.points` bebas tabrakan (`placePointLabels`).
+4. **Puzzle.** `Puzzle.visual` opsional (kontrak Pydantic dan Zod; project lama tetap valid) memakai ulang lima primitif lesson. Di desktop, kontrol jawaban & `PuzzleFeedback` ditempatkan di bawah `CanvasFrame` (`736×414`) agar kanvas Remotion tidak menyusut, dan duplikasi awalan `"Correct. Correct."` dihilangkan. Di mobile, kotak dialog puzzle membesar ke atas (`428px`) dengan `PuzzleFeedback` tersemat di atas pilihan vertikal (`flex-col`, lebar penuh tanpa pemotongan). Chip jawaban desktop dapat tumbuh hingga **4 baris** (`md:line-clamp-4`).
+5. **Penyimpangan dari teks spec awal.** `contracts` berubah (field opsional `Puzzle.visual`), padahal catatan ui-redesign sebelumnya menyebut 0 baris diff. Prompt story dan snapshot `story-parity` backend diregenerasi dari Python (`narrative_context` 140 char, feedback/explanation limits, `VISUAL_DROPPED` wording, `puzzle.visual`).
 
 

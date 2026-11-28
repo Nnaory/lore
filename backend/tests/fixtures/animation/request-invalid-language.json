@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "Unsupported language",
+  "text": "Only en and id are supported.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "fr"
+}

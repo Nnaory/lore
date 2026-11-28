@@ -1,0 +1,11 @@
+{
+  "animation_id": "7a1b9c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+  "source_sha256": "a2424ddddf09351eaf051b32239380d1e9d8a321dc15c24fc60cbb814829cfad",
+  "bundle_sha256": "f29a30080396e64c28e6ca7a8f0b534e9531b2081cf2faa1baeab82083d72197",
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "duration_in_frames": 210,
+  "pause_at_frame": 0,
+  "contract_version": 1
+}

@@ -88,7 +88,7 @@ describe("HomeHero layouts", () => {
 });
 
 describe("ScaledBoard inFlow", () => {
-  it("flows at the scaled height and has no ink fill, unlike the default root", () => {
+  it("flows at the scaled height, unlike the default root; neither root paints an ink fill", () => {
     stubViewport(720, 450);
     const { unmount } = render(<ScaledBoard inFlow rootClassName="extra">{null}</ScaledBoard>);
     let root = screen.getByTestId("scaled-board-root");
@@ -101,7 +101,8 @@ describe("ScaledBoard inFlow", () => {
     render(<ScaledBoard>{null}</ScaledBoard>);
     root = screen.getByTestId("scaled-board-root");
     expect(root.style.position).toBe("fixed");
-    expect(root.className).toContain("bg-ink");
+    // The shared animated backdrop must show through the Stage root as well.
+    expect(root.className).not.toContain("bg-ink");
   });
 });
 

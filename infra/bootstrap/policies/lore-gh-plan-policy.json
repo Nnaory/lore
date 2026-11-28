@@ -23,13 +23,32 @@
       "Resource": "arn:aws:s3:::lore-tfstate-<ACCOUNT_ID>/lore/prod/*.tflock"
     },
     {
-      "Sid": "DenySecretsRead",
+      "Sid": "DenySecretsManagerRead",
       "Effect": "Deny",
-      "Action": [
-        "secretsmanager:GetSecretValue",
-        "kms:Decrypt"
-      ],
+      "Action": "secretsmanager:GetSecretValue",
       "Resource": "*"
+    },
+    {
+      "Sid": "DenyKmsDecryptOutsideSsm",
+      "Effect": "Deny",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringNotEquals": {
+          "kms:ViaService": "ssm.<AWS_REGION>.amazonaws.com"
+        }
+      }
+    },
+    {
+      "Sid": "AllowKmsDecryptViaSsm",
+      "Effect": "Allow",
+      "Action": "kms:Decrypt",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "kms:ViaService": "ssm.<AWS_REGION>.amazonaws.com"
+        }
+      }
     }
   ]
 }

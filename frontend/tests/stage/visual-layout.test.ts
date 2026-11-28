@@ -5,6 +5,10 @@ import {
   niceStep,
   plotProjection,
   ticks,
+  labelBox,
+  placePointLabels,
+  placeVectorLabels,
+  segmentIntersectsBox,
   toneAt,
   vectorLabelPosition,
   vectorsProjection,
@@ -153,5 +157,163 @@ describe("timing and tones", () => {
   it("cycles default tones and respects explicit ones", () => {
     expect([0, 1, 2, 3, 4].map((i) => toneAt(i))).toEqual(["primary", "secondary", "result", "muted", "primary"]);
     expect(toneAt(0, "muted")).toBe("muted");
+  });
+});
+
+describe("segmentIntersectsBox", () => {
+  const box: Area = { x: 10, y: 10, w: 20, h: 10 };
+
+  it("detects a segment that crosses, ends inside, or lies inside the box", () => {
+    expect(segmentIntersectsBox({ x: 0, y: 15 }, { x: 40, y: 15 }, box)).toBe(true);
+    expect(segmentIntersectsBox({ x: 0, y: 0 }, { x: 15, y: 15 }, box)).toBe(true);
+    expect(segmentIntersectsBox({ x: 12, y: 12 }, { x: 14, y: 14 }, box)).toBe(true);
+  });
+
+  it("is false for a segment that passes beside or stops short", () => {
+    expect(segmentIntersectsBox({ x: 0, y: 0 }, { x: 40, y: 0 }, box)).toBe(false);
+    expect(segmentIntersectsBox({ x: 0, y: 15 }, { x: 8, y: 15 }, box)).toBe(false);
+    expect(segmentIntersectsBox({ x: 0, y: 60 }, { x: 60, y: 0 }, box)).toBe(false);
+  });
+});
+
+describe("placeVectorLabels", () => {
+  const FONT = 22;
+  const BOUNDS: Area = { x: 0, y: 0, w: 1280, h: 720 };
+
+  /** The lesson from the demo: 2×A, then 1×B tip to tail, and their sum from the origin. */
+  const visual: VectorsVisual = {
+    kind: "vectors",
+    vectors: [
+      { from: [0, 0], to: [4, 2], label: "2 × A = (2, 1)" },
+      { from: [4, 2], to: [5, 4], label: "1 × B" },
+      { from: [0, 0], to: [5, 4], label: "(5, 4)", tone: "result" },
+    ],
+  };
+  const { toPx } = vectorsProjection(visual, { x: 90, y: 150, w: 1100, h: 470 });
+  const specs = visual.vectors.map((v) => ({ from: toPx(v.from), to: toPx(v.to), label: v.label }));
+
+  it("keeps every label clear of every arrow, including the sum that used to cross one", () => {
+    const at = placeVectorLabels(specs, { fontSize: FONT, bounds: BOUNDS });
+    specs.forEach((spec, i) => {
+      const where = at[i];
+      expect(where).not.toBeNull();
+      const box = labelBox(spec.label!, where!, FONT);
+      for (const s of specs) expect(segmentIntersectsBox(s.from, s.to, box)).toBe(false);
+    });
+  });
+
+  it("keeps the labels apart from each other and inside the canvas", () => {
+    const at = placeVectorLabels(specs, { fontSize: FONT, bounds: BOUNDS });
+    const boxes = specs.map((s, i) => labelBox(s.label!, at[i]!, FONT));
+    for (let i = 0; i < boxes.length; i++) {
+      expect(boxes[i].x).toBeGreaterThanOrEqual(0);
+      expect(boxes[i].x + boxes[i].w).toBeLessThanOrEqual(BOUNDS.w);
+      for (let j = i + 1; j < boxes.length; j++) expect(overlaps(boxes[i], boxes[j])).toBe(false);
+    }
+  });
+
+  it("returns null for a vector without a label and is deterministic", () => {
+    const unlabeled = [{ from: { x: 0, y: 0 }, to: { x: 100, y: 0 } }, ...specs];
+    const first = placeVectorLabels(unlabeled, { fontSize: FONT });
+    expect(first[0]).toBeNull();
+    expect(placeVectorLabels(unlabeled, { fontSize: FONT })).toEqual(first);
+  });
+
+  it("puts a label beside a horizontal arrow, near its midpoint, on its left (above)", () => {
+    const [at] = placeVectorLabels([{ from: { x: 0, y: 200 }, to: { x: 400, y: 200 }, label: "v" }], {
+      fontSize: FONT,
+    });
+    expect(at!.x).toBeCloseTo(200, 5);
+    expect(at!.y).toBeLessThan(200);
+  });
+
+  it("moves a long label off a vertical arrow instead of centring it on the line", () => {
+    const from = { x: 300, y: 500 };
+    const to = { x: 300, y: 100 };
+    const [at] = placeVectorLabels([{ from, to, label: "a rather long label" }], { fontSize: FONT });
+    const box = labelBox("a rather long label", at!, FONT);
+    expect(segmentIntersectsBox(from, to, box)).toBe(false);
+  });
+
+  it("still answers when no spot is free (the least bad one), without throwing", () => {
+    const crowded = Array.from({ length: 12 }, (_, i) => ({
+      from: { x: 0, y: i * 6 },
+      to: { x: 300, y: i * 6 },
+      label: i === 0 ? "squeezed" : undefined,
+    }));
+    const [at] = placeVectorLabels(crowded, { fontSize: FONT, bounds: { x: 0, y: 0, w: 300, h: 70 } });
+    expect(at).not.toBeNull();
+    expect(Number.isFinite(at!.x) && Number.isFinite(at!.y)).toBe(true);
+  });
+
+  it("avoids axis tick obstacles inside the given area", () => {
+    const vector = [{ from: { x: 200, y: 300 }, to: { x: 500, y: 300 }, label: "Crystal A (2, 1)" }];
+    const preferredBox = labelBox(vector[0].label, { x: 350, y: 277 }, FONT);
+    const tickObstacle: Area = { x: preferredBox.x + 10, y: preferredBox.y, w: 30, h: 24 };
+    const [at] = placeVectorLabels(vector, { fontSize: FONT, bounds: AREA, obstacles: [tickObstacle] });
+    const placedBox = labelBox(vector[0].label, at!, FONT);
+    expect(overlaps(placedBox, tickObstacle)).toBe(false);
+    expect(inside({ x: placedBox.x, y: placedBox.y }, AREA)).toBe(true);
+  });
+
+  it("keeps fanning vector labels on their own arrow's side rather than jumping across neighbors", () => {
+    const fan: VectorsVisual = {
+      kind: "vectors",
+      vectors: [
+        { from: [0, 0], to: [2, 1], label: "Crystal A (2, 1)" },
+        { from: [0, 0], to: [1, 2], label: "Crystal B (1, 2)" },
+        { from: [0, 0], to: [5, 4], label: "target (5, 4)" },
+      ],
+    };
+    const area: Area = { x: 90, y: 90, w: 1100, h: 400 };
+    const { toPx } = vectorsProjection(fan, area);
+    const fanSpecs = fan.vectors.map((v) => ({ from: toPx(v.from), to: toPx(v.to), label: v.label }));
+    const labels = placeVectorLabels(fanSpecs, { fontSize: FONT, bounds: area });
+    // Crystal B (to=[1,2]) has smaller x than Crystal A (to=[2,1]), so its label must stay left of Crystal A.
+    expect(labels[1]!.x).toBeLessThan(labels[0]!.x);
+  });
+});
+
+describe("placePointLabels", () => {
+  const FONT = 20;
+  const AREA_PUZZLE: Area = { x: 90, y: 90, w: 1100, h: 400 };
+  const visual: VectorsVisual = {
+    kind: "vectors",
+    vectors: [
+      { from: [0, 0], to: [4, 2], label: "2 × A" },
+      { from: [4, 2], to: [5, 4], label: "1 × B" },
+    ],
+    points: [
+      { at: [2, 1], label: "A = (2, 1)" },
+      { at: [4, 2], label: "(4, 2)" },
+      { at: [5, 4], label: "(5, 4)" },
+    ],
+  };
+
+  it("keeps point labels clear of arrows, vector labels, ticks and area bounds", () => {
+    const { toPx } = vectorsProjection(visual, AREA_PUZZLE);
+    const vecSpecs = visual.vectors.map((v) => ({ from: toPx(v.from), to: toPx(v.to), label: v.label }));
+    const vecAt = placeVectorLabels(vecSpecs, { fontSize: 22, bounds: AREA_PUZZLE });
+    const vecBoxes = vecSpecs.flatMap((s, i) => (s.label && vecAt[i] ? [labelBox(s.label, vecAt[i]!, 22)] : []));
+    const ptSpecs = visual.points!.map((p) => ({ at: toPx(p.at), label: p.label }));
+    const ptAt = placePointLabels(ptSpecs, {
+      fontSize: FONT,
+      bounds: AREA_PUZZLE,
+      obstacles: vecBoxes,
+      segments: vecSpecs,
+    });
+
+    const placedBoxes = ptSpecs.map((pt, i) => {
+      expect(ptAt[i]).not.toBeNull();
+      return labelBox(pt.label!, ptAt[i]!, FONT);
+    });
+    for (let i = 0; i < placedBoxes.length; i++) {
+      const box = placedBoxes[i];
+      expect(inside({ x: box.x, y: box.y }, AREA_PUZZLE)).toBe(true);
+      expect(inside({ x: box.x + box.w, y: box.y + box.h }, AREA_PUZZLE)).toBe(true);
+      for (const s of vecSpecs) expect(segmentIntersectsBox(s.from, s.to, box)).toBe(false);
+      for (const vb of vecBoxes) expect(overlaps(box, vb)).toBe(false);
+      for (let j = i + 1; j < placedBoxes.length; j++) expect(overlaps(box, placedBoxes[j])).toBe(false);
+    }
   });
 });

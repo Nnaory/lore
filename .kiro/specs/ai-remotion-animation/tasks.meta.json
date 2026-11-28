@@ -1,0 +1,1221 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 Kerangka paket `animation-verifier/`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870350
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795785329875
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795786984427
+      }
+    ],
+    "1.2 Sumber kontrak `animation-contract.json` dan pembaca verifier": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870530
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795787003656
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788549027
+      }
+    ],
+    "1.3 `sync-animation-contract.py` dan salinan kontrak": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870662
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788587302
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789802009
+      }
+    ],
+    "1.4 `check-animation-versions.py` dan pin paritas versi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870782
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790048774
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574066
+      }
+    ],
+    "2. Checkpoint - fase 0": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870860
+      }
+    ],
+    "3.1 Normalisasi token dan fixture bersama **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784870946
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788587556
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789802839
+      }
+    ],
+    "3.2 Builder Diagnostic, urutan, dan pemotongan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871041
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788587704
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789803626
+      }
+    ],
+    "3.3 Orkestrasi `verify`, handler Lambda, dan `safeVerify`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871122
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790048958
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574477
+      }
+    ],
+    "3.4 Korpus fixture `good/` beserta pendamping": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871196
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795787003892
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788549600
+      }
+    ],
+    "4.1 Langkah 1: ukuran dan encoding": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871305
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791617628
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792444503
+      }
+    ],
+    "4.2 Langkah 2 bagian 1: parser, simbol, impor, identifier, anggota, properti": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871392
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795796027106
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798382258
+      }
+    ],
+    "4.3 Langkah 2 bagian 2: elemen, atribut, URL, warna, meta, ekspor, pause": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871531
+      }
+    ],
+    "5.1 Plugin ESLint lokal `eslint-plugin-lore`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871627
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788587862
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789803890
+      }
+    ],
+    "5.2 Langkah 3: ESLint dan pemindai direktif": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784871977
+      }
+    ],
+    "5.3 Langkah 4: typecheck": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872303
+      }
+    ],
+    "5.4 Langkah 5: bundle esbuild": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872375
+      }
+    ],
+    "6.1 Shim `require` dan Worker render": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872443
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788587992
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789804104
+      }
+    ],
+    "6.2 Sisi induk langkah 6: Worker, watchdog, RSS, sampel frame": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872518
+      }
+    ],
+    "6.3 Tes render nyata dan isolasi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872613
+      }
+    ],
+    "7.1 Langkah 7: gerbang kesetiaan data dan ekstraksi teks frame": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872688
+      }
+    ],
+    "7.2 Pipeline lengkap: aturan alir, urutan, ringkasan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872768
+      }
+    ],
+    "8.1 Korpus `bad/` dan `expected.json`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872856
+      }
+    ],
+    "8.2 Tes korpus dan `.corpus-results.json`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784872934
+      }
+    ],
+    "9.1 Dockerfile verifier": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873011
+      }
+    ],
+    "9.2 Skrip `verifier-rie-check.sh` dan uji RIE lokal": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873110
+      }
+    ],
+    "10. Checkpoint - fase 1": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873200
+      }
+    ],
+    "11.1 Dependensi dan pembaca kontrak backend": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873303
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790050590
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574809
+      }
+    ],
+    "11.2 Model Pydantic dan fixture bersama lintas bahasa": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873381
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792463714
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794617487
+      }
+    ],
+    "11.3 Required_Tokens dan Forbidden_Tokens efektif **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873459
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795796028454
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798382701
+      }
+    ],
+    "11.4 `canonical_hash` dan fixture Request_Hash **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873535
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798402832
+      }
+    ],
+    "12.1 Mode teks pada `gemini_client.py` **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873617
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791618667
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792445021
+      }
+    ],
+    "12.2 Konfigurasi dan limiter animasi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873712
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792464364
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794617691
+      }
+    ],
+    "12.3 Kode galat baru di `envelope.py`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873794
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792464731
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794618569
+      }
+    ],
+    "13.1 Prompt generate dan repair": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873870
+      }
+    ],
+    "13.2 `extract_main_ts` dan `normalize_source` **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784873970
+      }
+    ],
+    "14.1 Ekstrak `entry_guard` dari `pipeline.py` tanpa mengubah perilaku **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874042
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798403519
+      }
+    ],
+    "14.2 Field `animation` pada kontrak cerita Pydantic": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874119
+      }
+    ],
+    "14.3 `PROTECTED_PREFIXES` untuk `/api/v1/animations`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874186
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792465461
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794618866
+      }
+    ],
+    "15.1 Migrasi Alembic `animations` `[PG]`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874303
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794636014
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795795969262
+      }
+    ],
+    "15.2 `registry.py` `[PG]`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874480
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798404952
+      }
+    ],
+    "16.1 `S3AnimationStore`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874652
+      }
+    ],
+    "16.3 `LambdaVerifierClient`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874753
+      }
+    ],
+    "16.4 Logging terstruktur dan penjaga logger botocore": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874865
+      }
+    ],
+    "17.1 Agent: state, routing murni, node, graf": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784874957
+      }
+    ],
+    "17.2 Tes agent dengan Gemini dan Verifier palsu": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875039
+      }
+    ],
+    "18.1 Modul `sse.py` dan fixture aliran bersama": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875126
+      }
+    ],
+    "18.3 Endpoint `POST /api/v1/ai/animations` dan wiring": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875192
+      }
+    ],
+    "18.4 Reader dan `/health/ai`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875280
+      }
+    ],
+    "18.5 Tes memori impor malas dan tes reuse": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875365
+      }
+    ],
+    "18.6 Middleware ASGI murni (bersyarat pada tes disconnect)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875446
+      }
+    ],
+    "19. Checkpoint - fase 2": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875513
+      }
+    ],
+    "20.1 Pembaca kontrak frontend": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875590
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790051455
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574997
+      }
+    ],
+    "20.3 Tipe dan skema `AnimationReference` pada cerita": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875669
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795796029196
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798382911
+      }
+    ],
+    "20.4 Skema request dan event SSE": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875791
+      }
+    ],
+    "20.5 Flag build, `AiStep`, dan pesan galat": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875886
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791619113
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792445786
+      }
+    ],
+    "21.1 `targets.ts` **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784875983
+      }
+    ],
+    "22.1 Parser SSE inkremental **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876055
+      }
+    ],
+    "22.3 `createAnimation`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876140
+      }
+    ],
+    "23.1 `sha256Hex` dua implementasi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876212
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794636418
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795795969869
+      }
+    ],
+    "23.3 `LruCache` dan `loadAnimation`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876296
+      }
+    ],
+    "24.1 Reducer `animating` dan penjadwal jendela 60 detik": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876400
+      }
+    ],
+    "24.2 Orkestrasi `animateLoop` di `useGeneration`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876526
+      }
+    ],
+    "24.3 UI progres animasi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876643
+      }
+    ],
+    "25.1 Protokol pesan dan `session` **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784876874
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791619354
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795792446483
+      }
+    ],
+    "25.3 `SandboxController`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877061
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795796029367
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798383126
+      }
+    ],
+    "25.4 `PlayerLike` dan `SandboxPlayerRef`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877175
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798403676
+      }
+    ],
+    "26.1 `RuntimeController` dan `page.ts` **tests-first**": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877275
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798403967
+      }
+    ],
+    "26.3 Shim `require` dan titik masuk runtime": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877376
+      }
+    ],
+    "26.4 Sandbox_Builder, konfigurasi CSP tunggal, dan dependensi build": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877495
+      }
+    ],
+    "26.5 Header CSP di `next.config.ts`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877579
+      }
+    ],
+    "27.1 `scene-status.ts`, `SandboxFrame`, dan `AnimationScene`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877665
+      }
+    ],
+    "27.2 `StageCanvas` dan `CanvasPane`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877754
+      }
+    ],
+    "27.3 Integrasi `StoryViewer`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784877851
+      }
+    ],
+    "27.5 `Dockerfile`, `.env.example`, dan penjaga reuse": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878011
+      }
+    ],
+    "28. Checkpoint - fase 3": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878104
+      }
+    ],
+    "29.1 Variabel `animation_*` dengan validasi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878199
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795787004475
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788550068
+      }
+    ],
+    "29.2 `infra/animation.tf` bagian 1: locals dan bucket S3": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878286
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795789834621
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790014918
+      }
+    ],
+    "29.3 `infra/animation.tf` bagian 2 dan `compute.tf`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878389
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795790051758
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791575451
+      }
+    ],
+    "29.4 Validasi Terraform lokal dan ekspektasi plan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878500
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794636675
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795795970962
+      }
+    ],
+    "30.1 Policy bootstrap dan README (tidak dijalankan)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878602
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795787004828
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788550387
+      }
+    ],
+    "31.1 `policy_rules.py`, `check-cost`, `check-cost-static`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878729
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791619965
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795795968767
+      }
+    ],
+    "31.2 Fixture plan dan `AnimationCheckersTest`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878813
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795796029518
+      },
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795798383280
+      }
+    ],
+    "31.3 Tes statis policy, variabel, dan `render-env.sh`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878896
+      }
+    ],
+    "32. Checkpoint - fase 4": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784878982
+      }
+    ],
+    "33.1 `verifier-release.sh` dan tesnya": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879083
+      }
+    ],
+    "33.2 Workflow `release-verifier.yml`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879193
+      }
+    ],
+    "33.3 Job `verifier` dan `contracts` di `ci.yml`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879310
+      }
+    ],
+    "33.4 `release-web.yml`: argumen build dan filter path": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879406
+      }
+    ],
+    "34. Checkpoint - fase 5": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879519
+      }
+    ],
+    "35.1 `docs/infra/12-remotion-animation.md`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784879648
+      }
+    ],
+    "35.2 Pembaruan `docs/infra/*`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784883339
+      }
+    ],
+    "35.3 Steering": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784883835
+      }
+    ],
+    "35.4 `test_animation_docs.py`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784883974
+      }
+    ],
+    "35.5 Tes baris biaya": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784885092
+      }
+    ],
+    "36. Checkpoint - fase 6": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784885334
+      }
+    ],
+    "37.1 `scripts/verify/animation-smoke.py` dan tesnya": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784885438
+      }
+    ],
+    "38. Checkpoint akhir - regresi seluruh gerbang": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784885551
+      }
+    ],
+    "1.5 Tes properti verifier: validasi kontrak total": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784962703
+      }
+    ],
+    "4.4 Tes properti verifier: soundness pemindaian kebijakan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784965207
+      }
+    ],
+    "5.5 Tes properti verifier: bundle reproducible": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784969057
+      }
+    ],
+    "7.3 Tes properti verifier: determinisme": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784970196
+      }
+    ],
+    "7.4 Tes paritas normalisasi token (sisi TypeScript)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784970652
+      }
+    ],
+    "8.3 Tes batas, sentinel, dan handler tambahan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784971563
+      }
+    ],
+    "11.5 Tes properti backend: validasi kontrak total": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784971707
+      }
+    ],
+    "11.6 Tes paritas normalisasi token (sisi Python)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784971861
+      }
+    ],
+    "11.7 Tes properti backend: cakupan Required_Tokens dan Skipped_Tokens": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972022
+      }
+    ],
+    "11.8 Tes properti backend: stabilitas dan sensitivitas Request_Hash": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972210
+      }
+    ],
+    "13.3 Tes properti backend: idempotensi normalisasi dan round-trip ekstraksi": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972338
+      }
+    ],
+    "16.2 Tes properti backend: round-trip penyimpanan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972474
+      }
+    ],
+    "17.3 Tes properti backend: terminasi dan totalitas routing agent": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972601
+      }
+    ],
+    "18.2 Tes properti backend: parser SSE tahan pemotongan chunk": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972732
+      }
+    ],
+    "20.2 Tes properti frontend: validasi kontrak total": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784972855
+      }
+    ],
+    "21.2 Tes properti frontend: stabilitas pemilihan target dan preservasi pelekatan": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784973165
+      }
+    ],
+    "22.2 Tes properti frontend: parser SSE tahan pemotongan chunk": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784973335
+      }
+    ],
+    "23.2 Tes properti frontend: ekuivalensi dua implementasi `sha256Hex`": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784973487
+      }
+    ],
+    "25.2 Tes properti frontend: round-trip dan ketahanan protokol": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784973708
+      }
+    ],
+    "26.2 Tes properti frontend: totalitas dan batas frame Sandbox_Runtime": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784973904
+      }
+    ],
+    "27.4 Tes properti frontend: totalitas fallback dan non-interferensi dengan game": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795784974069
+      }
+    ],
+    "30. Berkas bootstrap manual": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795788550451
+      }
+    ],
+    "1. Kerangka paket verifier dan kontrak (fase 0)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574308
+      }
+    ],
+    "3. Fondasi verifier: token, diagnostic, orkestrasi (fase 1)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795791574649
+      }
+    ],
+    "12. Klien Gemini mode teks, limiter, dan envelope": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795794618697
+      }
+    ],
+    "29. Terraform animasi (fase 4)": [
+      {
+        "executionId": "4c8d5c41-c7f9-4e93-9572-1bfe0e1faf35",
+        "chatSessionId": "sess_f795c5d0-09ac-49c8-8d04-4ff459a438cd",
+        "timestamp": 1795795971059
+      }
+    ]
+  }
+}

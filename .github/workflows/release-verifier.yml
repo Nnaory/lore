@@ -1,0 +1,43 @@
+name: release-verifier
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "animation-verifier/**"
+      - "scripts/ci/verifier-release.sh"
+      - ".github/workflows/release-verifier.yml"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag sha-xxxxxxx untuk rollback (melewati build)"
+        required: false
+        default: ""
+
+permissions: {}
+
+concurrency:
+  group: lore-prod-deploy-verifier
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production-release
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_DEPLOY_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      # The tag input reaches the script through the environment, never through the shell text,
+      # and the script rejects anything that is not sha-<7 hex> before its first aws call.
+      - name: Build and release the verifier image
+        run: scripts/ci/verifier-release.sh build-and-release "$TAG_INPUT"
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          TAG_INPUT: ${{ inputs.tag }}

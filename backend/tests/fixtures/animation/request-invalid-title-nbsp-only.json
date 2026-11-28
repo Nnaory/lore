@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "\u00a0",
+  "text": "A title of one no-break space is empty after trim.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}
