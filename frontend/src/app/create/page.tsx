@@ -148,6 +148,9 @@ export default function CreatePage() {
     setGenerating(false);
   }
 
+  const worldLabel = GENRE_CHOICES.find((c) => c.genre === state.genre)?.label ?? "";
+  const chapters = state.length === "medium" ? 5 : 3;
+
   if (built) {
     return (
       <>
@@ -168,6 +171,7 @@ export default function CreatePage() {
       <GenerationScreen
         state={generation.state}
         sourceLabel={sourceLabel(readyDocument)}
+        details={`${worldLabel} · ${chapters} chapters`}
         onToggleConcept={generation.toggleConcept}
         onConfirmConcepts={generation.confirmConcepts}
         onRetry={generation.retry}
@@ -178,8 +182,6 @@ export default function CreatePage() {
     );
   }
 
-  const worldLabel = GENRE_CHOICES.find((c) => c.genre === state.genre)?.label ?? "";
-  const chapters = state.length === "medium" ? 5 : 3;
   const status = blocker ? BLOCKER_HINT[blocker] : `Ready · ${chapters} chapters · ${worldLabel}`;
 
   return (
