@@ -286,7 +286,13 @@ export function StoryViewer({
 
   // ── This run's judged answers and start time, for the completion screen ───
   const [answers, setAnswers] = useState<RunAnswer[]>([]);
-  const [runStartedAt, setRunStartedAt] = useState(() => Date.now());
+  // `Date.now()` is not allowed while the page is prerendered (cacheComponents), so the start time
+  // is taken once after mount, in the browser.
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRunStartedAt(Date.now());
+  }, []);
 
   // ── Puzzle answer handler ─────────────────────────────────────────────────
   const handlePuzzleAnswerSubmitted = useCallback(
@@ -800,7 +806,7 @@ export function StoryViewer({
                         report={completionReport}
                         hp={hp}
                         maxHp={MAX_HP}
-                        startedAt={runStartedAt}
+                        startedAt={runStartedAt ?? undefined}
                         onContinue={handleContinueCampaign}
                         onExit={onExit ?? (() => {})}
                         isCampaignComplete={isCampaignComplete}

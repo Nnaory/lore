@@ -15,7 +15,7 @@
 
 "use client";
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { AsciiArt } from "@/components/ascii/AsciiArt";
 import { useBoardPixelRatio } from "@/components/stage/ScaledBoard";
 import { Button } from "@/components/ui/Button";
@@ -126,8 +126,14 @@ export function StoryComplete({
 }: StoryCompleteProps) {
   const phone = layout === "phone";
   const [endingOpen, setEndingOpen] = useState(false);
-  // Read once when the screen appears, so the time does not keep growing while it is open.
-  const [shownAt] = useState(() => Date.now());
+  // Read once when the screen appears, so the time does not keep growing while it is open. Taken
+  // in an effect because `Date.now()` is not allowed while the page is prerendered.
+  const [elapsedMs, setElapsedMs] = useState<number | null>(null);
+  useEffect(() => {
+    if (startedAt === undefined) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setElapsedMs(Date.now() - startedAt);
+  }, [startedAt]);
 
   const members = cast ?? [];
   const castFontPx =
@@ -167,9 +173,9 @@ export function StoryComplete({
           </Stat>
         </>
       )}
-      {startedAt !== undefined && (
+      {elapsedMs !== null && (
         <Stat label="Time" testId="complete-stat-time">
-          <span className="font-mono text-[18px] font-bold text-cream">{formatElapsed(shownAt - startedAt)}</span>
+          <span className="font-mono text-[18px] font-bold text-cream">{formatElapsed(elapsedMs)}</span>
         </Stat>
       )}
     </div>
