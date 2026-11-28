@@ -1,0 +1,6 @@
+{
+  "csp": "default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'unsafe-inline'; img-src data:; font-src data:; connect-src 'none'; frame-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'",
+  "frame_ancestors": "'self'",
+  "sandbox_attribute": "allow-scripts",
+  "src": "/sandbox/runtime.html"
+}

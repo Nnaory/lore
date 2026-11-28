@@ -17,6 +17,17 @@
  * Story logic is unchanged: useStoryPlayer drives navigation/HP/bad branches,
  * right and wrong come only from usePuzzleInteraction, and knowledge evidence
  * is reported through onKnowledgeUpdate.
+ *
+ * AI animations (design 7.6, K-6, Requirements 30.11 to 30.13, 30.17, 31.2, 36.7). Only when the
+ * build flag is on (`readAnimationsFlag`) and the puzzle has an `animation`, or the lesson has a
+ * visual and `animationForStep` finds a reference for its step, the scene the Stage would draw
+ * becomes the `fallback` of an `{ kind: "animation" }` scene. Nothing else about `framed` changes:
+ * the key is the one the Stage already used (`puzzle:<id>`, or the step key of a drawn lesson), so
+ * one iframe keeps playing across the chunks of one lesson step. With the flag off, or without a
+ * reference, `withAnimation` returns the old scene object untouched, so the Stage is exactly what
+ * it was before the feature and nothing asks the animation API for anything. The animation gets
+ * the answer only through `CanvasPane` (`interaction.isCorrect`); no message from the iframe
+ * reaches `useStoryPlayer`, `usePuzzleInteraction` or `validateMultipleChoice`.
  */
 
 "use client";
@@ -26,6 +37,9 @@ import type { StoryBlueprint } from "@/lib/types/story";
 import type { Character, Genre } from "@/lib/types/campaign";
 import type { PlayerKnowledge } from "@/lib/types/game";
 import type { Scene, SceneContent } from "@/lib/types/scene";
+import type { AnimationReference } from "@/lib/types/animation";
+import { readAnimationsFlag } from "@/lib/animation/flags";
+import { animationForStep } from "@/lib/animation/targets";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { lessonStepInfo } from "@/lib/story/lesson-steps";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
@@ -58,6 +72,7 @@ import {
   PuzzleFeedback,
   type FramedScene,
 } from "@/components/stage/CanvasPane";
+import type { AnimationSceneProps } from "@/components/stage/StageCanvas";
 import type { ChatEntry } from "@/components/stage/chat-entry";
 import { ChatLog } from "@/components/stage/ChatLog";
 import { emotionFor, type Emotion } from "@/components/stage/emotion";
@@ -128,6 +143,15 @@ function speakerFor(scene: Scene | null, blockIndex: number, characters: Charact
   }
   const present = scene?.characters_present.find((id) => byId.has(id));
   return { character: (present && byId.get(present)) || characters[0] };
+}
+
+/**
+ * The scene to hand to `CanvasPane`: `fallback` itself (the same object) without a reference, or
+ * an `animation` scene that carries `fallback` as its Fallback_Scene. The caller passes no
+ * reference when the build flag is off, so this is the only place that wraps.
+ */
+function withAnimation(fallback: AnimationSceneProps["fallback"], reference: AnimationReference | undefined): FramedScene {
+  return reference ? { kind: "animation", props: { animation: reference, fallback } } : fallback;
 }
 
 /** Region above the dialogue box that endings, completion, failure and errors cover. */
@@ -358,14 +382,20 @@ export function StoryViewer({
 
   let framed: { scene: FramedScene; key: string; label: string } | null = null;
   let puzzleMissing = false;
+  // Read once per render. Off (or unset) means the animation code below is never reached.
+  const animationsOn = readAnimationsFlag();
   if (!navigationError && !isFailed) {
     if (currentScene?.type === "puzzle") {
       if (puzzle) {
         framed = {
-          // The AI's picture of the problem when it made one; the question alone otherwise.
-          scene: puzzle.visual
-            ? { kind: "puzzle", props: { question: puzzle.question, visual: puzzle.visual, seed } }
-            : { kind: "decision", props: { label: puzzle.question, seed } },
+          // The AI's picture of the problem when it made one; the question alone otherwise. With
+          // the flag on and an animation on the puzzle, that scene is the animation's fallback.
+          scene: withAnimation(
+            puzzle.visual
+              ? { kind: "puzzle", props: { question: puzzle.question, visual: puzzle.visual, seed } }
+              : { kind: "decision", props: { label: puzzle.question, seed } },
+            animationsOn ? puzzle.animation : undefined
+          ),
           key: `puzzle:${puzzle.puzzle_id}`,
           label: canvasLocation,
         };
@@ -379,7 +409,11 @@ export function StoryViewer({
       const step = info ? { index: info.index, total: info.total } : undefined;
       framed = {
         scene: currentBlock.visual
-          ? { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } }
+          ? withAnimation(
+              { kind: "visual", props: { title: currentBlock.title, visual: currentBlock.visual, seed, step } },
+              // The reference sits on the first block of the step, so every chunk finds the same one.
+              animationsOn ? animationForStep(blocks ?? [], blockIndex) : undefined
+            )
           : { kind: "lesson", props: { title: currentBlock.title, body: currentBlock.body, seed, step } },
         // A drawn visual keeps playing across the chunks of one step; a text lesson shows its chunk.
         key:

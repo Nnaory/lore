@@ -5,6 +5,7 @@
  * The game engine is responsible for evaluating answers — not the AI.
  */
 
+import type { AnimationReference } from "./animation";
 import type { LessonVisual } from "./visual";
 
 /** One selectable option within a puzzle. */
@@ -43,4 +44,6 @@ export type Puzzle = {
    * fills in the data; it must not show the answer. Without it the canvas shows the question only.
    */
   visual?: LessonVisual;
+  /** AI-written animation of the problem; always has `pause_at_frame`. Without it the `visual` (or the question) is shown. */
+  animation?: AnimationReference;
 };

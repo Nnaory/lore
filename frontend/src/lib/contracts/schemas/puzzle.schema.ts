@@ -8,6 +8,7 @@
 
 import { z } from "zod";
 import type { LessonVisual } from "@/lib/types/visual";
+import { PuzzleAnimationSchema } from "./animation.schema";
 import { LessonVisualSchema } from "./visual.schema";
 
 export const PuzzleChoiceSchema = z.object({
@@ -45,6 +46,12 @@ export const PuzzleSchema = z
         return parsed.success ? parsed.data : undefined;
       })
       .optional(),
+    /**
+     * Optional AI-written animation of the problem. It must carry `pause_at_frame` (where playback
+     * stops while the player answers); anything else is dropped, not an error, and a puzzle
+     * without the key does not gain one.
+     */
+    animation: PuzzleAnimationSchema,
   })
   .refine(
     (data) =>

@@ -6,6 +6,18 @@
  * the `PlayerBar` inside it, at 736x414 (desktop) or 366x246 (phone) with a
  * 40 px footer and no overflow. Everything is Kit tokens and Kit components.
  *
+ * The player the bar drives is typed `PlayerLike` (the four events and three methods the bar
+ * uses), so the Remotion player and the sandbox player of an `animation` scene fit the same
+ * `useCanvasPlayback`, `PlayerBar` and `onPlay` (design 7.6, Requirement 30.3).
+ *
+ * Animation scene (Requirements 30.8, 31.14): the pane keeps the status the scene reports, as
+ * `{key, value}` like `StageCanvas` does. While the iframe is shown (`playing` or `paused`) the bar
+ * has the animation's length and one pause marker at `pause_at_frame / duration * 100` (none for a
+ * lesson). In every other status (`loading`, `failed:<phase>`) the bar has the Fallback_Scene's
+ * length and markers, so it does not jump. For any other scene nothing changes. The puzzle's
+ * `isCorrect` goes to the canvas as `answerCorrect`, so the animation can continue past its question;
+ * the pane still never decides what is right.
+ *
  * Puzzle mode (desktop): the canvas draws the AI's picture of the problem and the
  * question itself (`kind: "puzzle"`, or `"decision"` when there is no picture), so
  * under it sit only the feedback (`ErrorLine` for a wrong or empty answer) and one
@@ -22,13 +34,21 @@
 
 "use client";
 
-import type { PlayerRef } from "@remotion/player";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { ChoiceButton } from "@/components/story/DialogueBox";
 import { CanvasFrame, PlayerBar } from "@/components/story/CanvasFrame";
 import type { usePuzzleInteraction } from "@/components/story/use-puzzle-interaction";
 import { Button } from "@/components/ui/Button";
 import { ErrorLine } from "@/components/ui/ErrorLine";
+import type { AnimationStatus } from "@/lib/animation/scene-status";
+import {
+  iframeShown,
+  pauseKeyframes,
+  sceneKeyframes,
+  statusForScene,
+  type CanvasAnimationStatus,
+} from "@/lib/stage/canvas-timeline";
+import type { PlayerLike } from "@/lib/stage/player-like";
 import type { Pacing } from "@/lib/story/pacing";
 import { canvasLabel } from "@/lib/stage/playback";
 import { useCanvasPlayback } from "@/lib/stage/use-canvas-playback";
@@ -74,10 +94,20 @@ export function CanvasPane({
   puzzle?: CanvasPuzzle;
   className?: string;
 }) {
-  const total = sceneDurationFrames(scene);
+  const animation = scene.kind === "animation" ? scene.props : null;
+  /** Last status the animation scene reported, with the key of the scene that reported it. */
+  const [reported, setReported] = useState<{ key: string; value: AnimationStatus } | null>(null);
+  const animationStatus: CanvasAnimationStatus =
+    animation === null ? "off" : statusForScene(reported, sceneKey);
+  /** The animation, while its iframe is on screen; otherwise `null` and the bar follows a Remotion scene. */
+  const shownAnimation = animation !== null && iframeShown(animationStatus) ? animation.animation : null;
+  /** The scene the bar follows: the Fallback_Scene of an animation that is not shown, else the scene. */
+  const barScene: CanvasScene = animation !== null && shownAnimation === null ? animation.fallback : scene;
+
+  const total = sceneDurationFrames(barScene);
   const playback = useCanvasPlayback(total, CANVAS_FPS);
-  const instance = useRef<PlayerRef | null>(null);
-  const setPlayer = (p: PlayerRef | null) => {
+  const instance = useRef<PlayerLike | null>(null);
+  const setPlayer = (p: PlayerLike | null) => {
     instance.current = p;
     playback.playerRef(p);
   };
@@ -91,7 +121,10 @@ export function CanvasPane({
   const named = canvasLabel(label);
   const status = puzzle ? (puzzle.interaction.isCorrect ? "resumed" : "paused") : "playing";
   const showControls = puzzle !== undefined && layout === "desktop";
-  const keyframes = scene.kind === "puzzle" || scene.kind === "decision" ? [100] : [];
+  const keyframes =
+    shownAnimation !== null
+      ? pauseKeyframes(shownAnimation.duration_in_frames, shownAnimation.pause_at_frame)
+      : sceneKeyframes(barScene.kind);
 
   return (
     <div className={showControls ? "flex w-[736px] flex-col items-center gap-2.5" : undefined}>
@@ -103,7 +136,15 @@ export function CanvasPane({
       >
         <div className="absolute inset-0 flex min-h-0 flex-col">
           <div className="min-h-0 flex-1 px-1 py-1" style={{ containerType: "size" }}>
-            <StageCanvas scene={scene} sceneKey={sceneKey} pacing={pacing} playerRef={setPlayer} bare />
+            <StageCanvas
+              scene={scene}
+              sceneKey={sceneKey}
+              pacing={pacing}
+              playerRef={setPlayer}
+              answerCorrect={puzzle?.interaction.isCorrect}
+              onAnimationStatus={(value) => setReported({ key: sceneKey, value })}
+              bare
+            />
           </div>
         </div>
       </CanvasFrame>

@@ -28,7 +28,11 @@ function isLearning(block: SceneContent | undefined): block is Learning {
   return block !== undefined && block.type === "learning_info";
 }
 
-function sameStep(a: Learning, b: Learning): boolean {
+/**
+ * True when two lesson blocks belong to the same step: same title and same visual. Exported so
+ * `lib/animation/targets.ts` groups blocks the same way (design K-6).
+ */
+export function sameStep(a: Learning, b: Learning): boolean {
   return a.title === b.title && JSON.stringify(a.visual ?? null) === JSON.stringify(b.visual ?? null);
 }
 
