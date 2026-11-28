@@ -2681,10 +2681,15 @@ class WebReleaseWorkflowTest(unittest.TestCase):
     WORKFLOW = REPO_ROOT / ".github" / "workflows" / "release-web.yml"
     DOCKERFILE = REPO_ROOT / "frontend" / "Dockerfile"
     FLAG = "NEXT_PUBLIC_ANIMATIONS"
-    # The one build argument, byte for byte (Requirement 36.2): an unset or empty repository
-    # variable builds with the flag off, and no github.event value reaches a shell.
-    BUILD_ARGS = "build-args: NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}"
+    # Build arguments, byte for byte: Requirement 36.2 (`NEXT_PUBLIC_ANIMATIONS`, off when unset or
+    # empty, no github.event value reaches a shell) and r13 D5 (`NEXT_PUBLIC_PROJECT_STORE=http`).
+    BUILD_ARGS_HEADER = "build-args: |"
+    BUILD_ARG_VALUES = (
+        "NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}",
+        "NEXT_PUBLIC_PROJECT_STORE=http",
+    )
     BUILD_ARGS_INDENT = " " * 10  # a key of `with:` of a step of a job
+    BUILD_ARG_VALUE_INDENT = " " * 12  # block scalar lines under `build-args: |`
     NEW_PATHS = ("frontend/sandbox-runtime/**", "frontend/scripts/**")
     OLD_PATHS = (
         "frontend/src/**",
@@ -2765,6 +2770,23 @@ class WebReleaseWorkflowTest(unittest.TestCase):
     # ---- the checks ----
 
     @classmethod
+    def extract_build_args(cls, lines: list[str]) -> tuple[list[str], list[str]]:
+        """Return `(header_lines, arg_value_lines)` for the `build-args` key of a step."""
+        header_indexes = [i for i, ln in enumerate(lines) if ln.strip().startswith("build-args:")]
+        headers = [lines[i] for i in header_indexes]
+        if len(header_indexes) != 1 or headers[0] != cls.BUILD_ARGS_INDENT + cls.BUILD_ARGS_HEADER:
+            return headers, []
+        values: list[str] = []
+        for ln in lines[header_indexes[0] + 1 :]:
+            stripped = ln.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            if not ln.startswith(cls.BUILD_ARG_VALUE_INDENT):
+                break
+            values.append(ln[len(cls.BUILD_ARG_VALUE_INDENT) :])
+        return headers, values
+
+    @classmethod
     def check_workflow(cls, text: str) -> list[str]:
         """Problems with `release-web.yml`; empty when it is right."""
         problems: list[str] = []
@@ -2780,11 +2802,15 @@ class WebReleaseWorkflowTest(unittest.TestCase):
             job, lines = builds[0]
             if job != "build":
                 problems.append(f'the docker/build-push-action step is in job "{job}", not "build"')
-            found = [ln for ln in lines if ln.strip().startswith("build-args:")]
-            if found != [cls.BUILD_ARGS_INDENT + cls.BUILD_ARGS]:
+            headers, values = cls.extract_build_args(lines)
+            expected_block = [
+                cls.BUILD_ARGS_INDENT + cls.BUILD_ARGS_HEADER,
+                *[cls.BUILD_ARG_VALUE_INDENT + value for value in cls.BUILD_ARG_VALUES],
+            ]
+            actual_block = [*headers, *[cls.BUILD_ARG_VALUE_INDENT + value for value in values]]
+            if actual_block != expected_block:
                 problems.append(
-                    f"build-args must be the one line {cls.BUILD_ARGS!r} under with:, "
-                    f"found {found!r}"
+                    f"build-args must be {expected_block!r} under with:, found {actual_block!r}"
                 )
 
         paths = cls.push_paths(text)
@@ -2865,14 +2891,18 @@ class WebReleaseWorkflowTest(unittest.TestCase):
 
     def test_the_build_step_passes_exactly_the_flag_build_argument(self) -> None:
         text = self.workflow_text()
-        self.assertEqual(text.count(self.BUILD_ARGS), 1)
+        self.assertEqual(text.count(self.BUILD_ARGS_HEADER), 1)
+        for arg in self.BUILD_ARG_VALUES:
+            self.assertEqual(text.count(arg), 1)
         builds = [
             (job, lines)
             for job, lines in self.steps(text)
             if any("docker/build-push-action@" in ln for ln in lines)
         ]
         self.assertEqual([job for job, _ in builds], ["build"])
-        self.assertIn(self.BUILD_ARGS_INDENT + self.BUILD_ARGS, builds[0][1])
+        headers, values = self.extract_build_args(builds[0][1])
+        self.assertEqual(headers, [self.BUILD_ARGS_INDENT + self.BUILD_ARGS_HEADER])
+        self.assertEqual(values, list(self.BUILD_ARG_VALUES))
         # The context is still `frontend`, where the Dockerfile with the ARG lives.
         self.assertIn("          context: frontend", builds[0][1])
 
@@ -2891,15 +2921,28 @@ class WebReleaseWorkflowTest(unittest.TestCase):
 
     def test_a_broken_workflow_is_caught(self) -> None:
         real = self.workflow_text()
-        line = self.BUILD_ARGS_INDENT + self.BUILD_ARGS
+        block = "\n".join([
+            self.BUILD_ARGS_INDENT + self.BUILD_ARGS_HEADER,
+            *[self.BUILD_ARG_VALUE_INDENT + value for value in self.BUILD_ARG_VALUES],
+        ])
         shell = 'echo "tag=sha-${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"'
         cases = {
-            "build-args removed": (line + "\n", "", "build-args"),
+            "build-args removed": (block + "\n", "", "build-args"),
             "the default turned on": ("|| 'off' }}", "|| 'on' }}", "build-args"),
             "another variable": ("vars.NEXT_PUBLIC_ANIMATIONS", "vars.ANIMATIONS", "build-args"),
-            "a second build argument": (
-                line + "\n",
-                line + "\n" + self.BUILD_ARGS_INDENT + "build-args: X=1\n",
+            "project store turned to idb": (
+                "NEXT_PUBLIC_PROJECT_STORE=http",
+                "NEXT_PUBLIC_PROJECT_STORE=idb",
+                "build-args",
+            ),
+            "project store removed": (
+                self.BUILD_ARG_VALUE_INDENT + "NEXT_PUBLIC_PROJECT_STORE=http\n",
+                "",
+                "build-args",
+            ),
+            "a third build argument": (
+                block + "\n",
+                block + "\n" + self.BUILD_ARG_VALUE_INDENT + "X=1\n",
                 "build-args",
             ),
             "sandbox-runtime path removed": (
@@ -2994,7 +3037,7 @@ class WebReleaseWorkflowTest(unittest.TestCase):
         self.assertEqual(len(build), 1)
         self.assertEqual(
             build[0]["with"]["build-args"],
-            "NEXT_PUBLIC_ANIMATIONS=${{ vars.NEXT_PUBLIC_ANIMATIONS || 'off' }}",
+            "\n".join(self.BUILD_ARG_VALUES) + "\n",
         )
         self.assertFalse(
             [s for s in doc["jobs"]["deploy"]["steps"] if "build-args" in (s.get("with") or {})]
