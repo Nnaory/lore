@@ -1,0 +1,5 @@
+{
+  "kind": "puzzle",
+  "required_tokens": ["Which number completes the sequence?"],
+  "forbidden_tokens": ["forty-two"]
+}

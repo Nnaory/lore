@@ -1,0 +1,26 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "formula",
+    "expression": "F = m * a",
+    "terms": [
+      { "symbol": "F", "meaning": "net force in newtons" },
+      { "symbol": "m", "meaning": "mass in kilograms" },
+      { "symbol": "a", "meaning": "acceleration in m/s^2" }
+    ],
+    "example": "2 kg * 3 m/s^2 = 6 N",
+    "caption": "Force grows with mass and with acceleration."
+  },
+  "required_tokens": [
+    "Force grows with mass and with acceleration.",
+    "F = m * a",
+    "F",
+    "net force in newtons",
+    "m",
+    "mass in kilograms",
+    "a",
+    "acceleration in m/s^2",
+    "2 kg * 3 m/s^2 = 6 N"
+  ],
+  "forbidden_tokens": []
+}

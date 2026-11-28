@@ -1,0 +1,24 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "table",
+    "headers": ["A", "B", "A AND B"],
+    "rows": [
+      ["0", "0", "0"],
+      ["0", "1", "0"],
+      ["1", "0", "0"],
+      ["1", "1", "1"]
+    ],
+    "highlight_rows": [3],
+    "caption": "The output is 1 only when both inputs are 1."
+  },
+  "required_tokens": [
+    "The output is 1 only when both inputs are 1.",
+    "A",
+    "B",
+    "A AND B",
+    "0",
+    "1"
+  ],
+  "forbidden_tokens": []
+}

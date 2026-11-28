@@ -1,0 +1,23 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "plot",
+    "x_label": "day",
+    "y_label": "height (cm)",
+    "series": [
+      {
+        "label": "seedling",
+        "points": [[0, 2], [2, 3], [4, 6], [6, 12], [8, 22], [10, 30]],
+        "tone": "primary"
+      }
+    ],
+    "caption": "Growth starts slowly, then speeds up."
+  },
+  "required_tokens": [
+    "Growth starts slowly, then speeds up.",
+    "day",
+    "height (cm)",
+    "seedling"
+  ],
+  "forbidden_tokens": []
+}

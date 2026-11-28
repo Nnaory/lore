@@ -1,0 +1,19 @@
+// Konfigurasi build paket verifier: ESM Node 22, strict, keluaran ke dist/.
+// Hanya src/ yang dikompilasi ke image Lambda; tes dan fixture diperiksa tipenya lewat
+// tsconfig.typecheck.json agar tidak ikut terbawa ke dist/.
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "strict": true,
+    "isolatedModules": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmitOnError": true,
+    "outDir": "dist"
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,23 @@
+{
+  "kind": "lesson",
+  "visual": {
+    "kind": "vectors",
+    "x_range": [0, 6],
+    "y_range": [0, 5],
+    "vectors": [
+      { "from": [0, 0], "to": [3, 1], "label": "A", "tone": "primary" },
+      { "from": [3, 1], "to": [5, 4], "label": "B", "tone": "secondary" },
+      { "from": [0, 0], "to": [5, 4], "label": "A + B", "tone": "result" }
+    ],
+    "points": [{ "at": [5, 4], "label": "target" }],
+    "caption": "Place B at the tip of A. The sum runs from the first tail to the last tip."
+  },
+  "required_tokens": [
+    "Place B at the tip of A. The sum runs from the first tail to the last tip.",
+    "A",
+    "B",
+    "A + B",
+    "target"
+  ],
+  "forbidden_tokens": []
+}

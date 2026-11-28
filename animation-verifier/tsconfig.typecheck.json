@@ -1,0 +1,10 @@
+// Pemeriksaan tipe seluruh paket (src, tes, konfigurasi vitest) tanpa menghasilkan keluaran.
+// Dipisah dari tsconfig.json agar `npm run build` hanya mengompilasi src/ ke dist/.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "include": ["src", "tests", "vitest.config.ts"]
+}
