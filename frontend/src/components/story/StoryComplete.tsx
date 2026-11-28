@@ -20,6 +20,8 @@ type StoryCompleteProps = {
   isCampaignComplete: boolean;
   /** Opens the epilogue and learning evaluation (shown once the campaign is complete). */
   onViewResults?: () => void;
+  /** Restarts this story from Scene 1 with full HP (shown on completed campaign replays). */
+  onReplay?: () => void;
 };
 
 export function StoryComplete({
@@ -28,6 +30,7 @@ export function StoryComplete({
   onExit,
   isCampaignComplete,
   onViewResults,
+  onReplay,
 }: StoryCompleteProps) {
   return (
     <div
@@ -81,6 +84,16 @@ export function StoryComplete({
             className="w-full md:w-[320px]"
           >
             Continue Campaign →
+          </Button>
+        )}
+        {isCampaignComplete && onReplay && (
+          <Button
+            variant="outline"
+            data-testid="replay-story-button"
+            onClick={onReplay}
+            className="w-full md:w-[320px]"
+          >
+            Replay Story
           </Button>
         )}
         <Button

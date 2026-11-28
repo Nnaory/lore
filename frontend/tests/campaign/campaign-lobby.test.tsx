@@ -79,4 +79,21 @@ describe("CampaignLobby structure", () => {
     );
     expect(screen.getByTestId("lobby-home-link").getAttribute("href")).toBe("/stories");
   });
+
+  it("renders a 44px Replay Story button on completed stories and calls onStartStory", () => {
+    const onStartStory = vi.fn();
+    renderLobby({
+      campaignState: {
+        ...dummyCampaignState,
+        completed_stories: ["story_01"],
+        current_story_id: "story_02",
+      },
+      onStartStory,
+    });
+    const replayBtn = screen.getByTestId("replay-story-story_01");
+    expect(replayBtn.textContent).toBe("Replay Story");
+    expect(replayBtn.className).toContain("min-h-[44px]");
+    fireEvent.click(replayBtn);
+    expect(onStartStory).toHaveBeenCalledWith("story_01");
+  });
 });

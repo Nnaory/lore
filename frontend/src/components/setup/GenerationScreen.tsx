@@ -153,7 +153,7 @@ export function GenerationScreen({
                 These are the concepts your story will teach
               </h2>
               <p className="m-0 mt-2 text-[15px] leading-normal text-muted">
-                Untick anything that is wrong or not worth learning. Each concept becomes one chapter.
+                Untick anything that is wrong or not worth learning. Each concept becomes one chapter, followed by a final boss chapter.
               </p>
             </div>
             <ul className="m-0 flex list-none flex-col p-0">

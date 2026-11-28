@@ -140,5 +140,41 @@ describe("CampaignPlayer — branch selection (task 10.3)", () => {
     expect(summary.parentElement?.className).toContain("min-h-dvh");
     expect(summary.parentElement?.className).toContain("lore-grid-lines");
   });
+
+  it("replays from CampaignSummary and CampaignLobby from scene 1 with 5/5 HP while keeping completed state", () => {
+    const view = render(<CampaignPlayer campaign={dummyCampaign} stories={STORIES} />);
+    playToStoryComplete(view);
+    continueCampaign(view);
+    playToStoryComplete(view, { wrongFirst: true });
+    continueCampaign(view);
+
+    // 1. Replay from CampaignSummary restarts story_01 at scene 1 with 5/5 HP.
+    act(() => {
+      fireEvent.click(view.getByTestId("view-results-button"));
+    });
+    expect(view.getByTestId("campaign-summary")).toBeTruthy();
+    act(() => {
+      fireEvent.click(view.getByTestId("summary-replay-button"));
+    });
+    expect(view.getByTestId("story-viewer")).toBeTruthy();
+    expect(view.getByTestId("sidebar-story-title").textContent).toContain(linearStory.title);
+    expect(view.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
+
+    // 2. Exit to lobby: completed stories remain Completed, with Replay Story buttons & results access.
+    act(() => {
+      fireEvent.click(view.getByTestId("sidebar-exit-button"));
+    });
+    act(() => {
+      fireEvent.click(view.getByTestId("exit-confirm-accept"));
+    });
+    expect(view.getByTestId("campaign-lobby")).toBeTruthy();
+    expect(view.getByTestId("lobby-view-results")).toBeTruthy();
+    expect(view.getByTestId("replay-story-story_02")).toBeTruthy();
+    act(() => {
+      fireEvent.click(view.getByTestId("replay-story-story_02"));
+    });
+    expect(view.getByTestId("sidebar-story-title").textContent).toContain(linearStory2.title);
+    expect(view.getByTestId("hp-value").textContent).toMatch(/5\s*\/\s*5/);
+  });
 });
 

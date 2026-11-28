@@ -223,6 +223,16 @@ The generation screen (`GenerationScreen`, "Pola K") has no canvas frame: a 680p
 | `StepMarker` (`components/setup`) | `status` (`done` \| `active` \| `failed` \| `pending` \| `skipped`) | 12px square, decorative (`aria-hidden`). `done` = gold fill, `active` = ember fill, `pending` = smoke fill, `failed` = ember outline with `!`, `skipped` = muted outline with `-`. Shared by the pipeline steps and the animation rows. |
 | `AnimationProgress` (`components/animation`) | `state` (`stage`, `status`, `animation`), `onRetry?`, `onSkip?` | Section `03 ANIMATIONS` of the generation screen, drawn only when a run has an animating stage (`state.animation !== null`; with `NEXT_PUBLIC_ANIMATIONS` off nothing changes). `k / n` count (`animation-count`), one row per job (`animation-job-<id>`, `data-status`; second line `animation-job-detail-<id>`: stage and attempt, `Ready`, `Skipped`, or the failure message), then the controls: `animation-skip` (outline) while jobs run or wait, `animation-retry` (primary) only while the flow waits for the player. That held state (`data-mode="waiting"`) shows `animation-notice` ("Waiting for your choice. N of M animations are not ready. ..."), because the flow holds `onDone` until the player picks. Buttons are ≥ 44px, full width on phone. What each mode shows comes from `lib/generation/animation-progress.ts`. `GenerationScreen` adds the step `step-animating` ("Animating the lessons") after the story step when the flag is on or the run has an animating phase, and shows `AnimationProgress`'s own hint instead of "This usually takes a few seconds per step." while animating. |
 
+### 8.6 Campaign & story replay controls (`components/campaign`, `components/story`)
+
+Completed campaigns keep their `Completed` badge and learning evaluation while allowing immediate replay from Scene 1 with `5/5` HP via existing Kit `Button`s (`outline`, ≥ 44px touch targets):
+
+| Component | Props / Hook | Notes |
+|---|---|---|
+| `CampaignLobby` (`components/campaign`) | `replay-story-<id>` | Completed story rows show an `outline` `Replay Story` button that starts that story at Scene 1 with full HP. |
+| `CampaignSummary` (`components/campaign`) | `onReplayCampaign?`, `summary-replay-button` | Optional `outline` `Replay Campaign` button alongside `Back to your stories`, `Create a new story`, and `Campaign lobby`. |
+| `StoryComplete` (`components/story`) | `onReplay?`, `replay-story-button` | Optional `outline` `Replay Story` button shown when `isCampaignComplete` and `onReplay` are provided (`StoryViewer` forwards `onReplay` from `CampaignPlayer`). |
+
 ## 9. Don'ts
 
 Glass/blur/radius/shadows · new colours · emoji · cards · changing generator numbers without updating the golden fixture and this file · hand-drawn character art (always use the generator) · letting the AI send pixels or images.

@@ -32,7 +32,8 @@ _TWO_CHUNKS = 2 * MAX_CHUNK_CHARS
 SYSTEM_PROMPT = (
     "You write accurate, engaging educational visual-novel content. Respond with JSON only. "
     f"Every text you write is shown in a small dialogue box that holds about {MAX_CHUNK_CHARS} characters, "
-    f"so write short sentences (under about {_SENTENCE_CHARS} characters each) and keep each field within its length limit."
+    f"so write short sentences (under about {_SENTENCE_CHARS} characters each) and keep each field within its length limit. "
+    "Every puzzle question must be distinct—never write a question that is identical or a near-copy of an earlier chapter puzzle or worked example."
 )
 
 # How to write a lesson visual: one primitive, exact data, short labels.
@@ -140,12 +141,33 @@ def build_story_prompt(request: GenerateStoryRequest, skeleton: dict[str, Any]) 
     options = request.options
     guide = campaign.characters[0] if len(campaign.characters) > 0 else None
     companion = campaign.characters[1] if len(campaign.characters) > 1 else None
+    include_boss = bool(options is not None and options.include_boss_chapter)
+    boss = (
+        next((c for c in campaign.characters if c.character_id == "nyx"), None)
+        or (campaign.characters[2] if len(campaign.characters) > 2 else None)
+    ) if include_boss else None
     out_of_scope = [s for s in material.scope_limitations if js_trim(s) != ""]
     summaries = request.previous_summaries or []
     previous = summaries[-1] if summaries else None
     language = "Indonesian" if options is not None and options.language == "id" else "English"
     steps = _STEP_NAMES[language]
     custom = options.custom_instructions if options is not None else None
+    boss_shape = (
+        f' "boss": {{"chapter_title": string (short dramatic title in {language}, max 60 chars), '
+        f'"intro_narration": string (2-3 short sentences introducing the Last Boss showdown, at most {_TWO_CHUNKS} characters), '
+        f'"boss_taunt": string (what the boss says before the battle, at most {MAX_CHUNK_CHARS} characters, at most two short sentences), '
+        '"challenges": [{"concept_id": string (one entry per concept above, in the same order), '
+        '"puzzle": PUZZLE (same puzzle shape as above, framed as countering the boss attack; MUST test a NEW scenario/angle — NEVER repeat or closely copy the chapter puzzle question or choices for this concept), '
+        f'"hit_narration": string (1-2 short sentences describing how answering right damages the boss, at most {MAX_CHUNK_CHARS} characters), '
+        f'"boss_reaction": string (what the boss says in response, at most {MAX_CHUNK_CHARS} characters, at most two short sentences)}}]}},'
+        if include_boss
+        else ""
+    )
+    shape_lines = list(_SHAPE)
+    if boss_shape:
+        # Insert `"boss": ...` cleanly inside the returned JSON shape right before `"ending"`.
+        ending_idx = next((i for i, ln in enumerate(shape_lines) if '"ending"' in ln), len(shape_lines) - 1)
+        shape_lines.insert(ending_idx, boss_shape)
 
     lines = [
         f"Write the text for one story of an interactive learning visual novel. Write everything in {language}.",
@@ -165,6 +187,11 @@ def build_story_prompt(request: GenerateStoryRequest, skeleton: dict[str, Any]) 
             if companion is not None
             else ""
         ),
+        (
+            f"Last Boss antagonist (final chapter): {boss.name} ({boss.role}) — {boss.description}"
+            if boss is not None
+            else ""
+        ),
         f"Player's wishes (follow them unless unsafe): {custom}" if custom else "",
         "",
         "The player learns these concepts, in this order (one chapter each):",
@@ -177,14 +204,24 @@ def build_story_prompt(request: GenerateStoryRequest, skeleton: dict[str, Any]) 
         ),
         "",
         *_FLOW,
+        (
+            "After all lesson chapters comes one Final Boss chapter where the player faces the Last Boss across one challenge puzzle per concept (same order), before the ending."
+            if include_boss
+            else ""
+        ),
         f"Lesson steps, in this order (2-4 steps; skip step 2 or 4 only when it truly does not apply). The step names below are for you — write your own step titles in {language}:",
         f"  1. {steps[0]} — the definition, plus intuition or an everyday analogy.",
         f"  2. {steps[1]} — the method or rule, step by step.",
         f"  3. {steps[2]} — a NEW example solved step by step, showing every intermediate value. It must differ from the puzzle.",
         f"  4. {steps[3]} — a common mistake (from the misconceptions) and how to avoid it.",
-        *_SHAPE,
+        *shape_lines,
         *VISUAL_GUIDE,
         *_PUZZLE_VISUAL,
         *_RULES,
+        (
+            "- Boss challenges: each challenge in \"boss.challenges\" MUST be a genuinely different question and scenario from that concept's earlier chapter puzzle (never identical or a near-copy)."
+            if include_boss
+            else ""
+        ),
     ]
     return "\n".join(line for line in lines if line != "")

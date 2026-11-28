@@ -76,7 +76,21 @@ export function CampaignPlayer({
   }, [campaignState]);
 
   const [showResults, setShowResults] = useState(false);
+  const [playRunKey, setPlayRunKey] = useState(0);
   const viewResults = isCampaignComplete ? () => setShowResults(true) : undefined;
+
+  function handleStartStory(storyId: string) {
+    setPlayRunKey((k) => k + 1);
+    onStartStory(storyId);
+  }
+
+  function handleReplayCampaign() {
+    const firstStory = campaign.story_sequence[0];
+    if (!firstStory) return;
+    setPlayRunKey((k) => k + 1);
+    setShowResults(false);
+    onStartStory(firstStory.story_id);
+  }
 
   if (showResults && isCampaignComplete) {
     return (
@@ -88,6 +102,7 @@ export function CampaignPlayer({
             setShowResults(false);
             onExitStory();
           }}
+          onReplayCampaign={handleReplayCampaign}
         />
       </div>
     );
@@ -99,7 +114,7 @@ export function CampaignPlayer({
         <CampaignLobby
           campaign={campaign}
           campaignState={campaignState}
-          onStartStory={onStartStory}
+          onStartStory={handleStartStory}
           homeHref={homeHref}
           onViewResults={viewResults}
         />
@@ -109,10 +124,10 @@ export function CampaignPlayer({
 
   return (
     <StoryViewer
-      // A new story must start from its own first scene with full HP.
+      // A new story or replay must start from its own first scene with full HP.
       // StoryViewer keeps that per-story state internally, so remount it
-      // whenever the active story changes.
-      key={activeStory.story_id}
+      // whenever the active story or replay run changes.
+      key={`${activeStory.story_id}:${playRunKey}`}
       story={activeStory}
       characters={campaign.characters}
       genre={campaign.genre}
@@ -120,6 +135,7 @@ export function CampaignPlayer({
       onExit={onExitStory}
       isCampaignComplete={isCampaignComplete}
       onViewResults={viewResults}
+      onReplay={() => handleStartStory(activeStory.story_id)}
       onKnowledgeUpdate={onKnowledgeUpdate}
       playerKnowledge={campaignState.player_knowledge}
     />

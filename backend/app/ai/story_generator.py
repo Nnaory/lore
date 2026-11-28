@@ -62,6 +62,7 @@ from app.ai.zod_compat import ZodModel, js_trim, zod_flatten
 PROVIDER_ID = "google"
 MAX_LESSON_STEPS = 4
 _MAX_OUTPUT_TOKENS = 20_000
+_BOSS_MAX_OUTPUT_TOKENS = 24_000
 _TEMPERATURE = 0.8
 # Several lesson steps per concept make this the longest answer of the pipeline, so it gets more
 # time than the default per-request limit and total budget.
@@ -166,9 +167,24 @@ class EndingContent(_ContentModel):
     narration: Paragraph | None = None
 
 
+class BossChallengeContent(_ContentModel):
+    concept_id: Annotated[str, Strict()]
+    puzzle: Any = _UNSET
+    hit_narration: Paragraph | None = None
+    boss_reaction: Line | None = None
+
+
+class BossContent(_ContentModel):
+    chapter_title: Title | None = None
+    intro_narration: Paragraph | None = None
+    boss_taunt: Line | None = None
+    challenges: list[Any] | None = None
+
+
 class StoryContent(_ContentModel):
     intro: IntroContent | None = None
     concepts: list[Any] | None = None
+    boss: BossContent | None = None
     ending: EndingContent | None = None
 
 
@@ -379,6 +395,77 @@ def merge_story_content(skeleton: dict[str, Any], content: StoryContent) -> Merg
             _set_first_narration(result, c.result_narration)
             _set_dialogue(result, c.guide_line)
 
+    boss_chapter = next(
+        (ch for ch in story["chapters"] if ch["chapter_id"].endswith("_boss")), None
+    )
+    if boss_chapter is not None:
+        boss_puzzle_ids = {
+            s["puzzle_id"]
+            for s in boss_chapter["scenes"]
+            if s.get("type") == "puzzle" and isinstance(s.get("puzzle_id"), str)
+        }
+        seen_questions = {
+            _norm(p["question"])
+            for p in story["puzzles"]
+            if p["puzzle_id"] not in boss_puzzle_ids
+        }
+        boss_content = content.boss
+        if boss_content is not None and boss_content.chapter_title:
+            boss_chapter["title"] = boss_content.chapter_title
+        else:
+            templated.append("boss.chapter_title")
+
+        boss_intro = next(
+            (s for s in boss_chapter["scenes"] if s["scene_id"].endswith("_boss_intro")), None
+        )
+        if boss_intro is not None and "content" in boss_intro:
+            if boss_content is not None and boss_content.intro_narration:
+                _set_first_narration(boss_intro, boss_content.intro_narration)
+            else:
+                templated.append("boss.intro_narration")
+            if boss_content is not None and boss_content.boss_taunt:
+                _set_dialogue(boss_intro, boss_content.boss_taunt)
+
+        challenges_by_concept: dict[str, BossChallengeContent] = {}
+        if boss_content is not None:
+            for raw in boss_content.challenges or []:
+                try:
+                    parsed_challenge = BossChallengeContent.model_validate(raw)
+                except ValidationError:
+                    continue
+                challenges_by_concept[parsed_challenge.concept_id] = parsed_challenge
+
+        for scene in boss_chapter["scenes"]:
+            if scene.get("type") != "puzzle":
+                continue
+            pid = scene["puzzle_id"]
+            puzzle_index = next(
+                (i for i, p in enumerate(story["puzzles"]) if p["puzzle_id"] == pid), -1
+            )
+            if puzzle_index < 0:
+                continue
+            base_puzzle = story["puzzles"][puzzle_index]
+            concept_id = base_puzzle["concept_ids"][0]
+            challenge = challenges_by_concept.get(concept_id)
+            replaced = (
+                _written_puzzle(base_puzzle, challenge.puzzle, concept_id, dropped)
+                if challenge is not None
+                else None
+            )
+            if replaced is not None and _norm(replaced["question"]) in seen_questions:
+                # Reject identical questions so boss challenges never copy an earlier chapter question.
+                replaced = None
+            if replaced is not None:
+                story["puzzles"][puzzle_index] = replaced
+                seen_questions.add(_norm(replaced["question"]))
+            else:
+                templated.append(f"boss_puzzle:{pid}")
+
+            result_scene = scenes.get(scene.get("next_scene_id") or "")
+            if result_scene is not None and "content" in result_scene and challenge is not None:
+                _set_first_narration(result_scene, challenge.hit_narration)
+                _set_dialogue(result_scene, challenge.boss_reaction)
+
     ending = story["endings"][0] if story["endings"] else None
     if ending is not None:
         if content.ending is not None and content.ending.title:
@@ -446,11 +533,12 @@ async def generate_candidate(
         ),
         ctx.runtime,
     )
+    include_boss = bool(request.options and request.options.include_boss_chapter)
     result = await gemini_ctx.generate_json(
         GeminiRequest(
             system=SYSTEM_PROMPT,
             prompt=build_story_prompt(request, engine.blueprint),
-            max_output_tokens=_MAX_OUTPUT_TOKENS,
+            max_output_tokens=_BOSS_MAX_OUTPUT_TOKENS if include_boss else _MAX_OUTPUT_TOKENS,
             temperature=_TEMPERATURE,
         )
     )
