@@ -106,3 +106,12 @@ export function useBoardMetrics(): BoardMetrics {
 
   return { layout, scale, viewport };
 }
+
+/**
+ * Only the layout (desktop at 768px and up, phone below), for screens that are fluid but draw
+ * ASCII art at a fixed cell size per layout (the "Building your world" scene). Desktop on the
+ * server and where `matchMedia` is missing.
+ */
+export function useStageLayout(): StageLayout {
+  return useSyncExternalStore(subscribeLayout, getLayoutSnapshot, getLayoutServerSnapshot);
+}

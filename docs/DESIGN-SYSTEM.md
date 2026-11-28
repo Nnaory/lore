@@ -216,7 +216,7 @@ Compositions (`stage/compositions.tsx`, `stage/visual-compositions.tsx`) take co
 
 ### 8.5 Generation screen (`components/setup`, `components/animation`)
 
-The generation screen (`GenerationScreen`, "Pola K") has no canvas frame: a 680px desktop column, 20px phone padding, transparent so the animated backdrop shows. It is built from Kit parts only.
+The generation screen (`GenerationScreen`, "Building your world") is a fluid screen on the opaque Kit grid (`lore-grid-bg`): a 1px smoke frame (max 1296px, 24px margin on desktop, edge to edge on phone), a header (LORE, `BUILDING YOUR WORLD` with the file line, a clock that counts only while the run works), the `WorldScene` (Hazel, the animated cauldron from `lib/ascii/cauldron.ts`, two pumpkins and the concept names tossed into the pot), a 380px side column on desktop (`STAGES`, `LOG`, then the animation list), and Hazel's cream `lore-dialog` box at the bottom. The concept review is a row of ink chips in that box, the world preview and the failure controls sit in it too. Phone keeps the scene and the dialogue (the stage list and the log are desktop only; the animation list stays). It is built from Kit parts only.
 
 | Component | Props | Notes |
 |---|---|---|

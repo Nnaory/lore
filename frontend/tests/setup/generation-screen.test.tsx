@@ -135,6 +135,6 @@ describe("GenerationScreen — failure", () => {
     const cls = screen.getByTestId("generation-retry").className;
     expect(cls).toContain("w-full");
     expect(cls).toContain("md:w-auto");
-    expect(screen.getByTestId("generation-screen").querySelector("main")!.className).toContain("md:w-[680px]");
+    expect(screen.getByTestId("generation-screen").querySelector("main")!.className).toContain("flex-col");
   });
 });
