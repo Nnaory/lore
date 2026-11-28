@@ -77,7 +77,7 @@ variable "animation_enabled" {
 variable "animation_verifier_image_tag" {
   description = "ECR tag of the verifier image. Empty means the Lambda is not created yet."
   type        = string
-  default     = ""
+  default     = "sha-1755d37"
 
   validation {
     condition     = var.animation_verifier_image_tag == "" || can(regex("^sha-[0-9a-f]{7}$", var.animation_verifier_image_tag))
