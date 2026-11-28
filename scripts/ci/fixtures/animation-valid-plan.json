@@ -1,0 +1,698 @@
+{
+  "format_version": "1.2",
+  "terraform_version": "1.15.9",
+  "resource_changes": [
+    {
+      "address": "aws_s3_bucket.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "bucket": "lore-prod-animations-<ACCOUNT_ID>",
+          "force_destroy": false,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-bucket"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_s3_bucket_public_access_block.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_public_access_block",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "block_public_acls": true,
+          "block_public_policy": true,
+          "ignore_public_acls": true,
+          "restrict_public_buckets": true
+        },
+        "after_unknown": {"bucket": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_s3_bucket_ownership_controls.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_ownership_controls",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "rule": [{"object_ownership": "BucketOwnerEnforced"}]
+        },
+        "after_unknown": {"bucket": true, "id": true, "rule": [{}]}
+      }
+    },
+    {
+      "address": "aws_s3_bucket_server_side_encryption_configuration.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_server_side_encryption_configuration",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "rule": [
+            {
+              "apply_server_side_encryption_by_default": [
+                {"kms_master_key_id": null, "sse_algorithm": "AES256"}
+              ]
+            }
+          ]
+        },
+        "after_unknown": {
+          "bucket": true,
+          "id": true,
+          "rule": [
+            {
+              "apply_server_side_encryption_by_default": [{}],
+              "bucket_key_enabled": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "address": "aws_s3_bucket_policy.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_policy",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {},
+        "after_unknown": {"bucket": true, "id": true, "policy": true}
+      }
+    },
+    {
+      "address": "aws_s3_bucket_cors_configuration.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_cors_configuration",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "cors_rule": [
+            {
+              "allowed_headers": null,
+              "allowed_methods": ["GET"],
+              "expose_headers": null,
+              "max_age_seconds": 3000
+            }
+          ]
+        },
+        "after_unknown": {
+          "bucket": true,
+          "cors_rule": [{"allowed_origins": true, "id": true}],
+          "id": true
+        }
+      }
+    },
+    {
+      "address": "aws_s3_bucket_lifecycle_configuration.animations",
+      "mode": "managed",
+      "type": "aws_s3_bucket_lifecycle_configuration",
+      "name": "animations",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "rule": [
+            {
+              "abort_incomplete_multipart_upload": [{"days_after_initiation": 7}],
+              "filter": [{}],
+              "id": "abort-incomplete-multipart",
+              "status": "Enabled"
+            }
+          ]
+        },
+        "after_unknown": {
+          "bucket": true,
+          "id": true,
+          "rule": [{"abort_incomplete_multipart_upload": [{}], "filter": [{}]}]
+        }
+      }
+    },
+    {
+      "address": "aws_ecr_repository.animation_verifier",
+      "mode": "managed",
+      "type": "aws_ecr_repository",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "encryption_configuration": [{"encryption_type": "AES256", "kms_key": null}],
+          "force_delete": null,
+          "image_scanning_configuration": [{"scan_on_push": true}],
+          "image_tag_mutability": "IMMUTABLE",
+          "name": "lore-prod-animation-verifier",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-ecr"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "registry_id": true, "repository_url": true}
+      }
+    },
+    {
+      "address": "aws_ecr_lifecycle_policy.animation_verifier",
+      "mode": "managed",
+      "type": "aws_ecr_lifecycle_policy",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "policy": "{\"rules\":[{\"action\":{\"type\":\"expire\"},\"description\":\"keep the 5 newest images\",\"rulePriority\":1,\"selection\":{\"countNumber\":5,\"countType\":\"imageCountMoreThan\",\"tagStatus\":\"any\"}}]}",
+          "repository": "lore-prod-animation-verifier"
+        },
+        "after_unknown": {"id": true, "registry_id": true}
+      }
+    },
+    {
+      "address": "aws_cloudwatch_log_group.animation_verifier",
+      "mode": "managed",
+      "type": "aws_cloudwatch_log_group",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "kms_key_id": null,
+          "name": "/aws/lambda/lore-prod-animation-verifier",
+          "name_prefix": null,
+          "retention_in_days": 7,
+          "skip_destroy": false,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-logs"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true}
+      }
+    },
+    {
+      "address": "aws_security_group.animation_verifier",
+      "mode": "managed",
+      "type": "aws_security_group",
+      "name": "animation_verifier",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "description": "Verifier Lambda: no ingress and no egress",
+          "name": "lore-prod-animation-verifier",
+          "revoke_rules_on_delete": true,
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-verifier-sg"
+          }
+        },
+        "after_unknown": {
+          "arn": true,
+          "egress": true,
+          "id": true,
+          "ingress": true,
+          "owner_id": true,
+          "vpc_id": true
+        }
+      }
+    },
+    {
+      "address": "aws_iam_role.animation_verifier_exec",
+      "mode": "managed",
+      "type": "aws_iam_role",
+      "name": "animation_verifier_exec",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "assume_role_policy": "{\"Statement\":[{\"Action\":\"sts:AssumeRole\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"}}],\"Version\":\"2012-10-17\"}",
+          "description": "Execution role of the animation verifier Lambda (own logs and VPC interfaces)",
+          "name": "lore-prod-animation-verifier-exec",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-verifier-exec"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "unique_id": true}
+      }
+    },
+    {
+      "address": "aws_iam_role_policy.animation_verifier_exec",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "animation_verifier_exec",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "lore-prod-animation-verifier-exec"
+        },
+        "after_unknown": {"id": true, "policy": true, "role": true}
+      }
+    },
+    {
+      "address": "aws_lambda_function.animation_verifier[0]",
+      "mode": "managed",
+      "type": "aws_lambda_function",
+      "name": "animation_verifier",
+      "index": 0,
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "architectures": ["x86_64"],
+          "function_name": "lore-prod-animation-verifier",
+          "logging_config": [
+            {
+              "application_log_level": null,
+              "log_format": "Text",
+              "log_group": "/aws/lambda/lore-prod-animation-verifier",
+              "system_log_level": null
+            }
+          ],
+          "memory_size": 1536,
+          "package_type": "Image",
+          "reserved_concurrent_executions": -1,
+          "timeout": 60,
+          "vpc_config": [
+            {
+              "ipv6_allowed_for_dual_stack": false,
+              "subnet_ids": ["subnet-0aaaaaaaaaaaaaaa1", "subnet-0aaaaaaaaaaaaaaa2"]
+            }
+          ],
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "animation",
+            "Name": "lore-prod-animation-verifier"
+          }
+        },
+        "after_unknown": {
+          "arn": true,
+          "id": true,
+          "image_uri": true,
+          "role": true,
+          "vpc_config": [{"security_group_ids": true, "vpc_id": true}]
+        }
+      }
+    },
+    {
+      "address": "aws_iam_role_policy.api_animation",
+      "mode": "managed",
+      "type": "aws_iam_role_policy",
+      "name": "api_animation",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "lore-prod-api-animation"
+        },
+        "after_unknown": {"id": true, "policy": true, "role": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_RATE_PER_MINUTE_IP\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_RATE_PER_MINUTE_IP",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_RATE_PER_MINUTE_IP",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "4",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_rate_per_minute_ip"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_DAILY_PER_IP\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_DAILY_PER_IP",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_DAILY_PER_IP",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "30",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_daily_per_ip"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_MAX_CONCURRENT_PER_IP\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_MAX_CONCURRENT_PER_IP",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_MAX_CONCURRENT_PER_IP",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "1",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_max_concurrent_per_ip"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_MAX_CONCURRENT_GLOBAL\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_MAX_CONCURRENT_GLOBAL",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_MAX_CONCURRENT_GLOBAL",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "2",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_max_concurrent_global"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_MAX_ATTEMPTS\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_MAX_ATTEMPTS",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_MAX_ATTEMPTS",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "4",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_max_attempts"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_DEADLINE_MS\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_DEADLINE_MS",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_DEADLINE_MS",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "240000",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_deadline_ms"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_BUCKET\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_BUCKET",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_BUCKET",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "lore-prod-animations-<ACCOUNT_ID>",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_bucket"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"ANIMATION_VERIFIER_FUNCTION\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "ANIMATION_VERIFIER_FUNCTION",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_VERIFIER_FUNCTION",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "lore-prod-animation-verifier",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_verifier_function"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_env[\"AWS_REGION\"]",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_env",
+      "index": "AWS_REGION",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/AWS_REGION",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "ap-southeast-3",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-aws_region"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_ssm_parameter.animation_enabled",
+      "mode": "managed",
+      "type": "aws_ssm_parameter",
+      "name": "animation_enabled",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["create"],
+        "before": null,
+        "after": {
+          "name": "/lore/prod/api/env/ANIMATION_ENABLED",
+          "overwrite": true,
+          "tier": "Standard",
+          "type": "String",
+          "value": "false",
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api-env-animation_enabled"
+          }
+        },
+        "after_unknown": {"arn": true, "id": true, "version": true}
+      }
+    },
+    {
+      "address": "aws_instance.api",
+      "mode": "managed",
+      "type": "aws_instance",
+      "name": "api",
+      "provider_name": "registry.terraform.io/hashicorp/aws",
+      "change": {
+        "actions": ["update"],
+        "before": {
+          "instance_type": "t3.micro",
+          "monitoring": false,
+          "credit_specification": [{"cpu_credits": "standard"}],
+          "root_block_device": [{"volume_size": 12}],
+          "metadata_options": [
+            {
+              "http_endpoint": "enabled",
+              "http_put_response_hop_limit": 1,
+              "http_tokens": "required",
+              "instance_metadata_tags": "disabled"
+            }
+          ],
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api"
+          }
+        },
+        "after": {
+          "instance_type": "t3.micro",
+          "monitoring": false,
+          "credit_specification": [{"cpu_credits": "standard"}],
+          "root_block_device": [{"volume_size": 12}],
+          "metadata_options": [
+            {
+              "http_endpoint": "enabled",
+              "http_put_response_hop_limit": 2,
+              "http_tokens": "required",
+              "instance_metadata_tags": "disabled"
+            }
+          ],
+          "tags_all": {
+            "Project": "lore",
+            "Environment": "prod",
+            "ManagedBy": "terraform",
+            "Repo": "Nnaory/lore",
+            "Component": "api",
+            "Name": "lore-prod-api"
+          }
+        },
+        "after_unknown": {}
+      }
+    }
+  ]
+}

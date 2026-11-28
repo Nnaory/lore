@@ -41,6 +41,38 @@
         "ssm:ListTagsForResource"
       ],
       "Resource": "arn:aws:ssm:<AWS_REGION>:<ACCOUNT_ID>:parameter/lore/prod/*/release/image_tag"
+    },
+    {
+      "Sid": "EcrAuthToken",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "EcrPushVerifier",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:PutImage",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:DescribeImages"
+      ],
+      "Resource": "arn:aws:ecr:<AWS_REGION>:<ACCOUNT_ID>:repository/lore-prod-animation-verifier"
+    },
+    {
+      "Sid": "LambdaVerifierRelease",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:UpdateFunctionCode",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:InvokeFunction"
+      ],
+      "Resource": "arn:aws:lambda:<AWS_REGION>:<ACCOUNT_ID>:function:lore-prod-animation-verifier"
     }
   ]
 }
