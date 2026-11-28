@@ -44,9 +44,10 @@ import { animationForStep } from "@/lib/animation/targets";
 import { useStoryPlayer } from "@/lib/story/use-story-player";
 import { lessonStepInfo } from "@/lib/story/lesson-steps";
 import { getSceneContentBlocks, isBadBranchAtEnd, type CharacterIndex } from "@/lib/story/story-player";
+import { buildCompletionReport, type RunAnswer } from "@/lib/story/completion-report";
 import { loadStoredPacing, motionAllowed, savePacing, type Pacing } from "@/lib/story/pacing";
 import { initialTextMode } from "@/lib/dialogue/typewriter";
-import { resolveCampaignCast, emotionToExpression, pickOtherCharacter } from "@/lib/cast/cast-mapping";
+import { CAST_ORDER, resolveCampaignCast, emotionToExpression, pickOtherCharacter } from "@/lib/cast/cast-mapping";
 import { STAGE_BOXES, visibleSprites } from "@/lib/stage/stage-boxes";
 import type { StageLayout } from "@/lib/stage/board-scale";
 import { stableHash } from "@/lib/contracts/hash";
@@ -56,6 +57,7 @@ import {
   recordPuzzleSubmission,
   getConceptIdsFromScene,
 } from "@/lib/game/knowledge-manager";
+import { MAX_HP } from "@/lib/game/hp-manager";
 import { StoryFailure } from "./StoryFailure";
 import { StoryComplete } from "./StoryComplete";
 import { EndingDisplay } from "./EndingDisplay";
@@ -194,6 +196,17 @@ const PANEL_BOX: Record<StageLayout, { left: number; top: number; width: number;
   phone: { left: 0, top: 0, width: 390, height: 844 },
 };
 
+/** The completion report column, in board coordinates: full height, half the board wide and centred (desktop), or inset (phone). */
+const REPORT_BOX: Record<StageLayout, { left: number; top: number; width: number; height: number }> = {
+  desktop: {
+    left: STAGE_BOXES.desktop.board.width / 4,
+    top: 0,
+    width: STAGE_BOXES.desktop.board.width / 2,
+    height: STAGE_BOXES.desktop.board.height,
+  },
+  phone: { left: 12, top: 14, width: 366, height: 816 },
+};
+
 function overlay(layout: StageLayout, children: ReactNode) {
   return (
     <div
@@ -271,6 +284,16 @@ export function StoryViewer({
   // ── Character reactions to answers (held while still on that scene) ───────
   const [reaction, setReaction] = useState<{ sceneId: string; emotion: Emotion } | null>(null);
 
+  // ── This run's judged answers and start time, for the completion screen ───
+  const [answers, setAnswers] = useState<RunAnswer[]>([]);
+  // `Date.now()` is not allowed while the page is prerendered (cacheComponents), so the start time
+  // is taken once after mount, in the browser.
+  const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setRunStartedAt(Date.now());
+  }, []);
+
   // ── Puzzle answer handler ─────────────────────────────────────────────────
   const handlePuzzleAnswerSubmitted = useCallback(
     (correct: boolean) => {
@@ -281,6 +304,7 @@ export function StoryViewer({
       if (!puzzle) return;
 
       setReaction({ sceneId: currentScene.scene_id, emotion: correct ? "happy" : "worried" });
+      setAnswers((prev) => [...prev, { puzzleId, correct }]);
 
       if (onKnowledgeUpdate) {
         const latestKnowledge = playerKnowledgeRef.current;
@@ -398,6 +422,8 @@ export function StoryViewer({
     loggedKeys.current.clear();
     setLog([]);
     setReaction(null);
+    setAnswers([]);
+    setRunStartedAt(Date.now());
   }
 
   // ── Advancing ──────────────────────────────────────────────────────────────
@@ -460,6 +486,18 @@ export function StoryViewer({
     characters
   );
   const otherCastId = otherCharacter ? castMap.get(otherCharacter.character_id)?.castId : undefined;
+
+  // ── Completion screen (good ending only) ───────────────────────────────────
+  const atGoodEnding =
+    !navigationError && !isFailed && isComplete && Boolean(ending) && !playerState.returnToPuzzleSceneId;
+  const completionReport = useMemo(() => buildCompletionReport(story, answers), [story, answers]);
+  const completionCast = useMemo(() => {
+    const inStory = characters.filter((c) => story.character_ids.includes(c.character_id));
+    return (inStory.length > 0 ? inStory : characters).slice(0, CAST_ORDER.length).flatMap((c) => {
+      const castId = castMap.get(c.character_id)?.castId;
+      return castId ? [{ castId, name: c.name }] : [];
+    });
+  }, [characters, story.character_ids, castMap]);
 
   // ── Canvas (OQ-12: a CanvasFrame only for lesson, visual and decision) ─────
   const seed = parseInt(stableHash(story.story_id), 36) % 1000;
@@ -538,6 +576,8 @@ export function StoryViewer({
       );
     }
     if (currentScene?.type === "ending") {
+      // The good ending is shown by the full-screen completion report (see `completionScreen`).
+      if (atGoodEnding) return null;
       const badEnding = Boolean(playerState.returnToPuzzleSceneId);
       return overlay(
         layout,
@@ -595,18 +635,20 @@ export function StoryViewer({
         fullBleed={(layout) => (
           <>
             <StageScene fullBleed layout={layout} seed={seed + 1} />
-            <StageHud
-              fullWidth
-              layout={layout}
-              storyTitle={story.title}
-              chapterIndex={chapterIndex}
-              chapterCount={story.chapters.length}
-              chapterTitle={currentChapter?.title}
-              location={currentScene?.location}
-              hp={hp}
-              failed={isFailed}
-              onExit={onExit ? () => setShowExitConfirm(true) : undefined}
-            />
+            <div style={atGoodEnding ? { visibility: "hidden" } : undefined}>
+              <StageHud
+                fullWidth
+                layout={layout}
+                storyTitle={story.title}
+                chapterIndex={chapterIndex}
+                chapterCount={story.chapters.length}
+                chapterTitle={currentChapter?.title}
+                location={currentScene?.location}
+                hp={hp}
+                failed={isFailed}
+                onExit={onExit ? () => setShowExitConfirm(true) : undefined}
+              />
+            </div>
           </>
         )}
       >
@@ -632,7 +674,12 @@ export function StoryViewer({
                 <>
                   <div
                     data-testid="stage-panel"
-                    style={{ position: "absolute", ...PANEL_BOX[layout], overflow: "hidden" }}
+                    style={{
+                      position: "absolute",
+                      ...PANEL_BOX[layout],
+                      overflow: "hidden",
+                      visibility: atGoodEnding ? "hidden" : undefined,
+                    }}
                   >
                     {framed && (
                       <div
@@ -746,6 +793,30 @@ export function StoryViewer({
                     {overlayFor(layout)}
                     {!phone && <KeyHints />}
                   </div>
+                  {atGoodEnding && ending && (
+                    <div
+                      data-testid="story-report"
+                      style={{ position: "absolute", zIndex: 40, ...REPORT_BOX[layout] }}
+                    >
+                      <StoryComplete
+                        storyTitle={story.title}
+                        subtitle={`${story.chapters.length} ${story.chapters.length === 1 ? "chapter" : "chapters"}`}
+                        layout={layout}
+                        cast={completionCast}
+                        report={completionReport}
+                        hp={hp}
+                        maxHp={MAX_HP}
+                        startedAt={runStartedAt ?? undefined}
+                        onContinue={handleContinueCampaign}
+                        onExit={onExit ?? (() => {})}
+                        isCampaignComplete={isCampaignComplete}
+                        onViewResults={onViewResults}
+                        onReplay={onReplay}
+                        onOpenLog={() => setShowLog(true)}
+                        endingSlot={<EndingDisplay ending={ending} />}
+                      />
+                    </div>
+                  )}
                 </>
               );
             }}
