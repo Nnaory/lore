@@ -18,6 +18,7 @@ type CampaignSummaryProps = {
   summary: LearningSummary;
   onBackToLobby: () => void;
   homeHref?: string;
+  onReplayCampaign?: () => void;
 };
 
 const OUTCOME: Record<
@@ -50,7 +51,7 @@ const OUTCOME: Record<
   },
 };
 
-export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSummaryProps) {
+export function CampaignSummary({ summary, onBackToLobby, homeHref, onReplayCampaign }: CampaignSummaryProps) {
   const total = summary.concepts.length;
   const { mastered } = summary.counts;
 
@@ -164,6 +165,16 @@ export function CampaignSummary({ summary, onBackToLobby, homeHref }: CampaignSu
         {homeHref && (
           <Button variant="primary" href={homeHref} className="w-full md:w-auto">
             Back to your stories
+          </Button>
+        )}
+        {onReplayCampaign && (
+          <Button
+            variant="outline"
+            data-testid="summary-replay-button"
+            onClick={onReplayCampaign}
+            className="w-full md:w-auto"
+          >
+            Replay Campaign
           </Button>
         )}
         <Button variant="outline" href="/create" className="w-full md:w-auto">

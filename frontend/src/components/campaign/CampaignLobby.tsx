@@ -124,6 +124,17 @@ export function CampaignLobby({
                 </Button>
               )}
 
+              {isCompleted && (
+                <Button
+                  variant="outline"
+                  data-testid={`replay-story-${entry.story_id}`}
+                  onClick={() => onStartStory(entry.story_id)}
+                  className="mt-4 w-full md:w-auto"
+                >
+                  Replay Story
+                </Button>
+              )}
+
               {!unlocked && !isCompleted && (
                 <p className="mt-3 font-mono text-[12px] text-muted" aria-live="polite">
                   Complete previous stories to unlock

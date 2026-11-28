@@ -80,4 +80,23 @@ describe("StoryComplete (task 13.3)", () => {
     fireEvent.click(exitBtn);
     expect(onExit).toHaveBeenCalledTimes(1);
   });
+
+  it("shows Replay Story when isCampaignComplete and onReplay are passed", () => {
+    const onReplay = vi.fn();
+    render(
+      <StoryComplete
+        storyTitle="The Outer Ward"
+        onContinue={vi.fn()}
+        onExit={vi.fn()}
+        isCampaignComplete={true}
+        onViewResults={vi.fn()}
+        onReplay={onReplay}
+      />
+    );
+    const replayBtn = screen.getByTestId("replay-story-button");
+    expect(replayBtn.textContent).toBe("Replay Story");
+    expect(replayBtn.className).toContain("min-h-[44px]");
+    fireEvent.click(replayBtn);
+    expect(onReplay).toHaveBeenCalledTimes(1);
+  });
 });

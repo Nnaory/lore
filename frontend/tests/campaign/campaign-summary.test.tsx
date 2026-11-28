@@ -232,5 +232,26 @@ describe("CampaignSummary component (task 11.3)", () => {
       "No concepts were tested in this campaign."
     );
   });
+
+  it("renders Replay Campaign button when onReplayCampaign is passed and calls it on click", () => {
+    const onReplayCampaign = vi.fn();
+    render(
+      <CampaignSummary
+        summary={{
+          campaign_title: "Completed Campaign",
+          stories: [],
+          concepts: [],
+          counts: { mastered: 0, developing: 0, practice: 0, unseen: 0 },
+        }}
+        onBackToLobby={vi.fn()}
+        onReplayCampaign={onReplayCampaign}
+      />
+    );
+    const replayBtn = screen.getByTestId("summary-replay-button");
+    expect(replayBtn.textContent).toBe("Replay Campaign");
+    expect(replayBtn.className).toContain("min-h-[44px]");
+    fireEvent.click(replayBtn);
+    expect(onReplayCampaign).toHaveBeenCalledTimes(1);
+  });
 });
 

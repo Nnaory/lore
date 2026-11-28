@@ -98,6 +98,8 @@ type StoryViewerProps = {
   isCampaignComplete?: boolean;
   /** Opens the epilogue and learning evaluation once the campaign is complete. */
   onViewResults?: () => void;
+  /** Restarts this story from Scene 1 with full HP (shown on completed campaign replays). */
+  onReplay?: () => void;
   /** Called when knowledge state needs updating (learning exposure or puzzle answer). */
   onKnowledgeUpdate?: (updates: Record<string, PlayerKnowledge>) => void;
   /** The current player_knowledge map from CampaignState. */
@@ -194,6 +196,7 @@ export function StoryViewer({
   onExit,
   isCampaignComplete = false,
   onViewResults,
+  onReplay,
   onKnowledgeUpdate,
   playerKnowledge = {},
 }: StoryViewerProps) {
@@ -478,6 +481,7 @@ export function StoryViewer({
                 onExit={onExit ?? (() => {})}
                 isCampaignComplete={isCampaignComplete}
                 onViewResults={onViewResults}
+                onReplay={onReplay}
               />
             )
           )}
