@@ -51,6 +51,12 @@ infra/tfplan
 infra/plan.txt
 infra/plan.json
 
+# animation verifier (Lambda package) and sandbox runtime build output
+animation-verifier/node_modules/
+animation-verifier/dist/
+animation-verifier/.corpus-results.json
+/frontend/public/sandbox/
+
 # python
 __pycache__/
 *.py[cod]
