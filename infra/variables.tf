@@ -71,7 +71,7 @@ variable "site_address" {
 variable "animation_enabled" {
   description = "Turn the animation feature on in the API (SSM ANIMATION_ENABLED)."
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "animation_verifier_image_tag" {
