@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "A lone surrogate in a key",
+  "text": "The key below is an unknown key, but it still holds a lone surrogate.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en",
+  "\ud800": "value"
+}

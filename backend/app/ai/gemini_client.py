@@ -1,10 +1,14 @@
-"""Async Gemini `generateContent` client that always asks for a JSON response.
+"""Async Gemini `generateContent` client with a JSON mode and a plain-text mode.
 
 Why: an async port of `frontend/src/lib/ai/providers/gemini-client.ts` so the backend can call
 Gemini with the same behaviour: ordered model fallback, retries with backoff on 429/5xx, code
-fence stripping, and a total deadline. Expected failures are returned as `GeminiFailure`, never
-raised. The API key is only sent in the `x-goog-api-key` header; it never appears in results,
-details, exceptions or logs, and request bodies are never logged.
+fence stripping (JSON mode only), and a total deadline. `generate_json` asks for
+`application/json` and parses it; `generate_text` asks for `text/plain` and returns the text
+as is. Both run the same `_generate` loop, so model order, attempts, backoff, status
+classification, deadline and thought-part filtering cannot drift apart. Expected failures are
+returned as `GeminiFailure`, never raised. The API key is only sent in the `x-goog-api-key`
+header; it never appears in results, details, exceptions or logs, and request bodies are never
+logged. This is the only module under `backend/app` that knows the Gemini endpoint.
 """
 
 from __future__ import annotations
@@ -14,7 +18,7 @@ import json
 import re
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Literal
 from urllib.parse import quote
 
@@ -26,16 +30,23 @@ ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models"
 _MAX_REASON_CHARS = 200
 
 FailureCode = Literal["PROVIDER_UNAVAILABLE", "OUTPUT_PARSE_FAILED", "RATE_LIMITED", "TIMEOUT"]
+ResponseFormat = Literal["json", "text"]
 
 
 @dataclass(frozen=True)
 class GeminiRequest:
-    """One JSON generation request."""
+    """One generation request.
+
+    `response_format` is set by `generate_json` ("json") and `generate_text` ("text"), so
+    callers normally leave the default. It stays the last field so existing positional and
+    keyword constructions keep working.
+    """
 
     system: str
     prompt: str
     max_output_tokens: int
     temperature: float | None = None
+    response_format: ResponseFormat = "json"
 
 
 @dataclass(frozen=True)
@@ -59,6 +70,23 @@ class GeminiOk:
 
 
 @dataclass(frozen=True)
+class GeminiTextOk:
+    """Successful text generation.
+
+    `text` is the non-thought parts joined in order, untouched (no trim, no fence stripping).
+    `finish_reason` is Gemini's `finishReason` or "none"; `MAX_TOKENS` is still a success, so
+    callers that care about truncation must check it.
+    """
+
+    text: str
+    model: str
+    usage: GeminiUsage
+    latency_ms: float
+    finish_reason: str
+    ok: Literal[True] = True
+
+
+@dataclass(frozen=True)
 class GeminiFailure:
     """Failed generation. `detail` is a list of {model, reason, status?}."""
 
@@ -69,6 +97,7 @@ class GeminiFailure:
 
 
 GeminiResult = GeminiOk | GeminiFailure
+GeminiTextResult = GeminiTextOk | GeminiFailure
 Sleep = Callable[[float], Awaitable[object]]
 
 
@@ -79,6 +108,18 @@ class _Attempt:
     status: int | None = None
     json: Any = None
     usage: GeminiUsage | None = None
+    text: str = ""
+    finish_reason: str = "none"
+
+
+@dataclass(frozen=True)
+class _Success:
+    """The winning attempt of `_generate`, before it is shaped into a public result."""
+
+    attempt: _Attempt
+    model: str
+    usage: GeminiUsage
+    latency_ms: float
 
 
 def parse_json_text(text: str) -> Any:
@@ -101,6 +142,16 @@ def _error_reason(body: dict[str, Any], status: int) -> str:
     return f"HTTP {status}"
 
 
+def _usage_of(body: dict[str, Any]) -> GeminiUsage:
+    meta = body.get("usageMetadata")
+    meta = meta if isinstance(meta, dict) else {}
+    return GeminiUsage(
+        prompt_tokens=_int_or_none(meta.get("promptTokenCount")),
+        output_tokens=_int_or_none(meta.get("candidatesTokenCount")),
+        total_tokens=_int_or_none(meta.get("totalTokenCount")),
+    )
+
+
 async def _attempt_once(
     client: httpx2.AsyncClient,
     model: str,
@@ -108,8 +159,9 @@ async def _attempt_once(
     config: GeminiConfig,
     timeout_ms: float,
 ) -> _Attempt:
+    is_text = request.response_format == "text"
     generation_config: dict[str, Any] = {
-        "responseMimeType": "application/json",
+        "responseMimeType": "text/plain" if is_text else "application/json",
         "maxOutputTokens": request.max_output_tokens,
     }
     if request.temperature is not None:
@@ -165,21 +217,26 @@ async def _attempt_once(
         if isinstance(p, dict) and not p.get("thought") and isinstance(p.get("text"), str)
     )
     finish = candidate.get("finishReason") or "none"
-    if not text:
+    # Text mode also treats whitespace-only output as empty; JSON mode keeps its old rule
+    # (whitespace-only falls through to the JSON parser and fails there).
+    if not (text.strip() if is_text else text):
         return _Attempt("retry", f"empty response (finishReason: {finish})")
 
+    if is_text:
+        # No JSON parsing, no trimming, no fence stripping: the caller owns the text.
+        return _Attempt("ok", usage=_usage_of(body), text=text, finish_reason=finish)
     try:
         parsed_json = parse_json_text(text)
     except ValueError:
         return _Attempt("retry", f"response was not valid JSON (finishReason: {finish})")
-    meta = body.get("usageMetadata")
-    meta = meta if isinstance(meta, dict) else {}
-    usage = GeminiUsage(
-        prompt_tokens=_int_or_none(meta.get("promptTokenCount")),
-        output_tokens=_int_or_none(meta.get("candidatesTokenCount")),
-        total_tokens=_int_or_none(meta.get("totalTokenCount")),
-    )
-    return _Attempt("ok", json=parsed_json, usage=usage)
+    return _Attempt("ok", json=parsed_json, usage=_usage_of(body))
+
+
+def _with_format(request: GeminiRequest, response_format: ResponseFormat) -> GeminiRequest:
+    """Return `request` in the given format (the same object when it already matches)."""
+    if request.response_format == response_format:
+        return request
+    return replace(request, response_format=response_format)
 
 
 async def generate_json(
@@ -194,6 +251,51 @@ async def generate_json(
 
     `sleep` receives seconds (like `asyncio.sleep`). Returns parsed, unvalidated JSON.
     """
+    outcome = await _run(_with_format(request, "json"), config, client, sleep, monotonic)
+    if isinstance(outcome, GeminiFailure):
+        return outcome
+    return GeminiOk(
+        json=outcome.attempt.json,
+        model=outcome.model,
+        usage=outcome.usage,
+        latency_ms=outcome.latency_ms,
+    )
+
+
+async def generate_text(
+    request: GeminiRequest,
+    config: GeminiConfig,
+    *,
+    client: httpx2.AsyncClient | None = None,
+    sleep: Sleep = asyncio.sleep,
+    monotonic: Callable[[], float] = time.monotonic,
+) -> GeminiTextResult:
+    """Generate plain text, trying each configured model in order.
+
+    Same model order, retries, backoff, status handling and deadline as `generate_json`.
+    The text is returned exactly as Gemini sent it. A failure is never `OUTPUT_PARSE_FAILED`,
+    because nothing is parsed.
+    """
+    outcome = await _run(_with_format(request, "text"), config, client, sleep, monotonic)
+    if isinstance(outcome, GeminiFailure):
+        return outcome
+    return GeminiTextOk(
+        text=outcome.attempt.text,
+        model=outcome.model,
+        usage=outcome.usage,
+        latency_ms=outcome.latency_ms,
+        finish_reason=outcome.attempt.finish_reason,
+    )
+
+
+async def _run(
+    request: GeminiRequest,
+    config: GeminiConfig,
+    client: httpx2.AsyncClient | None,
+    sleep: Sleep,
+    monotonic: Callable[[], float],
+) -> _Success | GeminiFailure:
+    """Run `_generate` with the caller's client, or with one opened (and closed) here."""
     if client is not None:
         return await _generate(request, config, client, sleep, monotonic)
     async with httpx2.AsyncClient() as own_client:
@@ -206,12 +308,13 @@ async def _generate(
     client: httpx2.AsyncClient,
     sleep: Sleep,
     monotonic: Callable[[], float],
-) -> GeminiResult:
+) -> _Success | GeminiFailure:
     start = monotonic()
     failures: list[dict[str, Any]] = []
     saw_rate_limit = False
     saw_timeout_only = True
     saw_bad_json = False
+    is_json = request.response_format == "json"
 
     def elapsed_ms() -> float:
         return (monotonic() - start) * 1000
@@ -228,11 +331,8 @@ async def _generate(
                 client, model, request, config, min(config.timeout_ms, remaining)
             )
             if result.kind == "ok" and result.usage is not None:
-                return GeminiOk(
-                    json=result.json,
-                    model=model,
-                    usage=result.usage,
-                    latency_ms=elapsed_ms(),
+                return _Success(
+                    attempt=result, model=model, usage=result.usage, latency_ms=elapsed_ms()
                 )
             failure: dict[str, Any] = {"model": model, "reason": result.reason}
             if result.status is not None:
@@ -242,7 +342,9 @@ async def _generate(
                 saw_rate_limit = True
             if result.reason != "timeout":
                 saw_timeout_only = False
-            if "not valid JSON" in result.reason:
+            # Only JSON mode can fail to parse. In text mode a provider error message that
+            # happens to say "not valid JSON" must not turn into OUTPUT_PARSE_FAILED.
+            if is_json and "not valid JSON" in result.reason:
                 saw_bad_json = True
 
             if result.kind == "fatal":

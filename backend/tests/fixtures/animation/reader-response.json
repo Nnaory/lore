@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "data": {
+    "animation": {
+      "animation_id": "3f8e2b1c-6d4a-4e5f-9a7b-0c1d2e3f4a5b",
+      "source_sha256": "2cd1099e9762d7bb624fe648f91aea507c6cf0de4132165ff748f8f2702f15c7",
+      "bundle_sha256": "2229e928dcbfb600dc7fc295ca136439824038091485c6dfb1cf7d1176c141a3",
+      "width": 1280,
+      "height": 720,
+      "fps": 30,
+      "duration_in_frames": 150,
+      "contract_version": 1
+    },
+    "manifest": {
+      "contract_version": 1,
+      "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+      "source_bytes": 6120,
+      "bundle_bytes": 8734,
+      "meta": { "width": 1280, "height": 720, "fps": 30, "durationInFrames": 150 },
+      "verifier_version": "0.1.0",
+      "model": "gemini-3.5-flash-lite",
+      "attempts": 1
+    },
+    "urls": {
+      "bundle": "https://lore-prod-animations-123456789012.s3.ap-southeast-3.amazonaws.com/animations/v1/2c/2cd1099e9762d7bb624fe648f91aea507c6cf0de4132165ff748f8f2702f15c7/main.js?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=EXAMPLEKEYID%2F20261127%2Fap-southeast-3%2Fs3%2Faws4_request&X-Amz-Date=20261127T094103Z&X-Amz-Expires=300&X-Amz-SignedHeaders=host&X-Amz-Signature=0000000000000000000000000000000000000000000000000000000000000000",
+      "manifest": "https://lore-prod-animations-123456789012.s3.ap-southeast-3.amazonaws.com/animations/v1/2c/2cd1099e9762d7bb624fe648f91aea507c6cf0de4132165ff748f8f2702f15c7/manifest.json?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=EXAMPLEKEYID%2F20261127%2Fap-southeast-3%2Fs3%2Faws4_request&X-Amz-Date=20261127T094103Z&X-Amz-Expires=300&X-Amz-SignedHeaders=host&X-Amz-Signature=1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "expires_in": 300
+  }
+}

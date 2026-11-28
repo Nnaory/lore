@@ -58,6 +58,12 @@ PLAN_CAMPAIGN_BODY_BYTES = 1024 * 1024
 # anyway; a looser one would not fit more legitimate data.
 GENERATE_STORY_BODY_BYTES = 512 * 1024
 
+# POST /api/v1/ai/animations receives one lesson or puzzle: title (200 characters), text (2,000),
+# up to 5 concepts, one `visual` and up to 8 forbidden tokens. The heaviest legal request (a
+# `plot` with 3 series of 60 points, 2,000 characters of non-Latin text) is under 16 KB, so
+# 64 KiB (65,536 bytes) leaves about four times that and stays far below Caddy's 5 MB limit.
+ANIMATION_BODY_BYTES = 64 * 1024
+
 WINDOW_SECONDS = 60
 SECONDS_PER_DAY = 86_400
 CONCURRENCY_RETRY_AFTER = 5  # seconds; a running call usually finishes within tens of seconds

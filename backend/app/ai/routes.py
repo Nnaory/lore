@@ -3,14 +3,17 @@
 Why: replaces the Next.js `/api/ai/*` route handlers one layer at a time with identical
 contracts. Each route is a one-liner over `handle_ai_request`; add the next layer by defining an
 `AiEndpoint` and a route here. The cookie middleware in `app.owner` covers this prefix, so every
-response carries the `lore_device` cookie used for the per-owner limit.
+response carries the `lore_device` cookie used for the per-owner limit. The exception is
+`/animations`: its answer is a Server-Sent Events stream that holds a concurrency slot, so it is
+handled by `app.ai.animation.endpoint` (which shares the entry guard with the JSON routes).
 """
 
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 
+from app.ai.animation.endpoint import create_animation
 from app.ai.campaign_planner import plan_campaign
 from app.ai.contracts.requests import (
     AnalyzeMaterialRequest,
@@ -67,3 +70,13 @@ async def plan_campaign_route(request: Request) -> JSONResponse:
 async def generate_story_route(request: Request) -> JSONResponse:
     """Story Generator (Layer 3): campaign + one story entry + material -> StoryBlueprint."""
     return await handle_ai_request(request, GENERATE_STORY)
+
+
+@router.post("/animations", include_in_schema=False)
+async def create_animation_route(request: Request) -> Response:
+    """Animation_Agent: one lesson or puzzle -> an SSE stream that ends in an AnimationReference.
+
+    Not a one-liner over `handle_ai_request`: the answer is a stream that holds a concurrency slot
+    for the whole run, so `animation.endpoint` owns the order of checks (design 6.10).
+    """
+    return await create_animation(request)

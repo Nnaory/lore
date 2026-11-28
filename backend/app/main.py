@@ -9,6 +9,9 @@ from fastapi import FastAPI, status
 from fastapi.responses import JSONResponse
 from sqlalchemy import Engine
 
+from app.ai.animation.endpoint import animation_health, animations_router
+from app.ai.animation.limits import AnimationLimits, animation_limiter_from_env
+from app.ai.animation.logconfig import configure_animation_logging
 from app.ai.limits import AiLimiter
 from app.ai.routes import router as ai_router
 from app.ai.runtime import AiRuntime
@@ -41,7 +44,8 @@ def _resolve_engine(application: FastAPI) -> Engine | None:
 
 @asynccontextmanager
 async def _lifespan(application: FastAPI) -> AsyncIterator[None]:
-    """Manage the SQLAlchemy connection pool lifecycle."""
+    """Manage the SQLAlchemy connection pool lifecycle and the animation log handler."""
+    configure_animation_logging()  # at startup, not at import: importing app.main stays inert
     if getattr(application.state, "db_engine", _ENGINE_UNSET) is _ENGINE_UNSET:
         application.state.db_engine = create_db_engine()
     try:
@@ -60,6 +64,12 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
     application.state.rate_limiter = RateLimiter()
     application.state.ai_limiter = AiLimiter()  # tests replace it to inject fake clocks
     application.state.ai_runtime = AiRuntime()  # tests inject the Gemini HTTP client here
+    # The animation endpoint has its own limiter and per-owner cap; it shares no counters with the
+    # JSON AI endpoints or with `app.state.limits` of projects. The runtime (S3, Lambda) is built
+    # on the first request that passes the configuration checks, never here.
+    application.state.animation_limiter = animation_limiter_from_env()
+    application.state.animation_limits = AnimationLimits()
+    application.state.animation_runtime = None
     application.middleware("http")(device_token_middleware)
 
     @application.get("/health", include_in_schema=False)
@@ -85,9 +95,17 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
 
     @application.get("/health/ai", include_in_schema=False)
     def health_ai() -> JSONResponse:
-        """Internal probe: is the AI provider configured? Never calls Gemini or leaks the key."""
+        """Internal probe: is the AI provider configured, and is the animation feature?
+
+        `configured` is the Gemini key, as before. `animation` says whether the feature flag is on
+        and whether everything it needs is set. It reads the environment only: it never calls
+        Gemini or AWS, never creates the animation runtime and never leaks a key or a name.
+        """
         return JSONResponse(
-            content={"configured": ai_provider_ready()},
+            content={
+                "configured": ai_provider_ready(),
+                "animation": animation_health(application),
+            },
             headers={"Cache-Control": "no-store"},
         )
 
@@ -98,6 +116,7 @@ def create_app(db_engine: Engine | None | object = _ENGINE_UNSET) -> FastAPI:
 
     application.include_router(projects_router)
     application.include_router(ai_router)
+    application.include_router(animations_router)
 
     return application
 

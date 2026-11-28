@@ -1,0 +1,14 @@
+{
+  "kind": "puzzle",
+  "title": "Pilih hasilnya",
+  "text": "Tentukan nilai B dari tabel.",
+  "concepts": ["vektor", "penjumlahan", "skala", "arah", "panjang"],
+  "visual": {
+    "kind": "table",
+    "headers": ["Opsi", "Hasil"],
+    "rows": [["A", "3"], ["B", "?"]],
+    "caption": "Opsi mana yang cocok?"
+  },
+  "language": "id",
+  "forbidden_tokens": ["tujuh", "delapan", "sembilan", "sepuluh", "dua belas", "lima belas", "dua puluh", "tiga puluh"]
+}

@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "diagnostics": [
+    {
+      "tool": "eslint",
+      "code": "ESLINT_LORE_KIT_STYLE",
+      "severity": "warning",
+      "line": 41,
+      "column": 9,
+      "message": "Kit style: borderRadius must be 0"
+    }
+  ],
+  "bundle": "\"use strict\";var Main=function(){return null};module.exports={meta:{width:1280,height:720,fps:30,durationInFrames:210,pauseAtFrame:180},default:Main};",
+  "meta": { "width": 1280, "height": 720, "fps": 30, "durationInFrames": 210, "pauseAtFrame": 180 },
+  "summary": {
+    "verifier_version": "0.1.0",
+    "contract_version": 1,
+    "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+    "checks": [
+      { "name": "size", "ok": true, "ms": 1 },
+      { "name": "policy", "ok": true, "ms": 38 },
+      { "name": "eslint", "ok": true, "ms": 410 },
+      { "name": "tsc", "ok": true, "ms": 880 },
+      { "name": "esbuild", "ok": true, "ms": 22 },
+      { "name": "render", "ok": true, "ms": 1450 },
+      { "name": "fidelity", "ok": true, "ms": 2 }
+    ],
+    "truncated": false
+  }
+}

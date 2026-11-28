@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "Emoji concept at the limit",
+  "text": "The second concept is 40 emoji, which is 80 UTF-16 units but only 40 code points.",
+  "concepts": ["vectors", "😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀😀"],
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

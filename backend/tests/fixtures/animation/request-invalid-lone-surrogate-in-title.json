@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": "Broken \ud800 title",
+  "text": "A lone high surrogate in a value is rejected before any hash is computed.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

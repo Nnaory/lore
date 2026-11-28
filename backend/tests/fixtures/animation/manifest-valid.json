@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "contract_version": 1,
+  "runtime_version": { "react": "19.3.0", "remotion": "4.0.543" },
+  "source_sha256": "a2424ddddf09351eaf051b32239380d1e9d8a321dc15c24fc60cbb814829cfad",
+  "bundle_sha256": "f29a30080396e64c28e6ca7a8f0b534e9531b2081cf2faa1baeab82083d72197",
+  "source_bytes": 6120,
+  "bundle_bytes": 8734,
+  "meta": { "width": 1280, "height": 720, "fps": 30, "durationInFrames": 210, "pauseAtFrame": 180 },
+  "verification": {
+    "verifier_version": "0.1.0",
+    "checks": [
+      { "name": "size", "ok": true, "ms": 1 },
+      { "name": "policy", "ok": true, "ms": 38 },
+      { "name": "eslint", "ok": true, "ms": 410 },
+      { "name": "tsc", "ok": true, "ms": 880 },
+      { "name": "esbuild", "ok": true, "ms": 22 },
+      { "name": "render", "ok": true, "ms": 1450 },
+      { "name": "fidelity", "ok": true, "ms": 2 }
+    ],
+    "warnings": [
+      {
+        "tool": "eslint",
+        "code": "ESLINT_LORE_KIT_STYLE",
+        "severity": "warning",
+        "line": 41,
+        "column": 9,
+        "message": "Kit style: borderRadius must be 0"
+      }
+    ]
+  },
+  "skipped_tokens": ["#ff8800"],
+  "model": "gemini-3.5-flash-lite",
+  "attempts": 2,
+  "request_hash": "6cbd25d851ef8b7071847ec745a9388f7590ec3845beba873c8145468b3e66b2",
+  "created_at": "2026-11-27T09:41:03Z"
+}

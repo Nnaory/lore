@@ -1,0 +1,11 @@
+{
+  "kind": "lesson",
+  "title": "Empty concept",
+  "text": "Each concept needs at least one character.",
+  "concepts": [""],
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}

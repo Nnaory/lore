@@ -1,0 +1,39 @@
+{
+  "request": {
+    "kind": "lesson",
+    "title": "Colour names and codes",
+    "text": "Each row pairs a colour name with the code that writes it.",
+    "concepts": ["colour"],
+    "visual": {
+      "kind": "table",
+      "headers": ["Name", "Code"],
+      "rows": [
+        ["White", "#FFF"],
+        ["Black", "rgb(0, 0, 0)"],
+        ["Ink", "#0b0b0f"],
+        ["Lore", "https://lore.example"],
+        ["White", "#fff"],
+        ["Empty", ""],
+        ["Note", "Keep it short"]
+      ],
+      "highlight_rows": [2],
+      "caption": "Names are for people, codes are for machines."
+    },
+    "language": "en"
+  },
+  "required_tokens": [
+    "Colour names and codes",
+    "Names are for people, codes are for machines.",
+    "Name",
+    "Code",
+    "White",
+    "Black",
+    "Ink",
+    "Lore",
+    "Empty",
+    "Note",
+    "Keep it short"
+  ],
+  "skipped_tokens": ["#FFF", "rgb(0, 0, 0)", "#0b0b0f", "https://lore.example"],
+  "effective_forbidden_tokens": []
+}

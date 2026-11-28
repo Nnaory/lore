@@ -1,0 +1,10 @@
+{
+  "kind": "lesson",
+  "title": 123,
+  "text": "A number is not a title.",
+  "visual": {
+    "kind": "vectors",
+    "vectors": [{ "from": [0, 0], "to": [4, 2] }]
+  },
+  "language": "en"
+}
